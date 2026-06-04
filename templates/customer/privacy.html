@@ -1,0 +1,53 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}Privacy Policy{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="bg-white p-5 rounded-4 shadow-sm border" style="max-width: 900px; margin: 0 auto;">
+        <h1 class="fw-bold mb-4" style="color: var(--primary-color); font-family: 'Playfair Display', serif;">Privacy Policy</h1>
+        <p class="text-muted small">Last updated: June 2, 2026</p>
+        <hr class="my-4">
+        
+        <h4 class="fw-bold text-dark mt-4">1. Information We Collect</h4>
+        <p class="text-secondary leading-relaxed">
+            We collect personal information that you provide directly to us when placing an order, creating an account, uploading custom graphics, or contacting support. This includes:
+            - Contact details (name, email address, phone number, shipping address).
+            - Transaction information processed securely via Zoho Payments (we do not store your credit card or raw banking credentials on our servers).
+            - Media uploads (corporate logos, custom texts, images for custom printing/engraving).
+        </p>
+
+        <h4 class="fw-bold text-dark mt-4">2. How We Use Your Information</h4>
+        <p class="text-secondary leading-relaxed">
+            We use the collected information for the following purposes:
+            - Processing, packing, shipping, and tracking your orders.
+            - Customizing packaging, sleeves, ribbons, and chocolate engravings based on your instructions.
+            - Generating invoices and processing payments through integrations.
+            - Sending order updates and responding to customer queries.
+        </p>
+
+        <h4 class="fw-bold text-dark mt-4">3. Data Sharing & Third-Party Integrations</h4>
+        <p class="text-secondary leading-relaxed">
+            We do not sell your personal data. We share information only to the extent necessary to fulfill services:
+            - **GCP Cloud Storage:** Uploaded logos and custom images are stored on Google Cloud Storage buckets.
+            - **Zoho Payments:** Customer and order details are passed to Zoho Payments to generate checkouts.
+            - **Delivery Partners:** Shipping addresses and contact numbers are shared with logistics providers.
+        </p>
+
+        <h4 class="fw-bold text-dark mt-4">4. Cookies and Tracking</h4>
+        <p class="text-secondary leading-relaxed">
+            Our platform uses cookies and session identifiers to store items in your shopping cart and keep users authenticated. You can control cookie preferences in your browser settings.
+        </p>
+
+        <h4 class="fw-bold text-dark mt-4">5. Security of Your Data</h4>
+        <p class="text-secondary leading-relaxed">
+            We employ administrative, technical, and physical security measures to protect your personal data. All data is transmitted securely over HTTPS and database links.
+        </p>
+
+        <h4 class="fw-bold text-dark mt-4">6. Contact Information</h4>
+        <p class="text-secondary leading-relaxed">
+            If you have questions about this Privacy Policy, please email us at: <a href="mailto:Pooja.sathish@pikachooz.com">Pooja.sathish@pikachooz.com</a>.
+        </p>
+    </div>
+</div>
+{% endblock %}

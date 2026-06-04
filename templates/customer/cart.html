@@ -1,0 +1,118 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}Cart{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <h2 class="fw-bold mb-4" style="color: var(--primary-color);">Your Cart</h2>
+    
+    <!-- Flashes -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category if category != 'error' and category != 'danger' else 'danger' }} py-2 small rounded-3 text-center mb-3">
+              {{ message }}
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+    
+    {% if not items %}
+    <div class="text-center py-5 glass-panel">
+        <h4>Your cart is currently empty.</h4>
+        <p class="text-muted">Let's find some delicious healthy treats for you.</p>
+        <a href="{{ url_for('customer.collections') }}" class="btn btn-premium mt-3">Continue Shopping</a>
+    </div>
+    {% else %}
+    <div class="row">
+        <div class="col-lg-8">
+            <div class="glass-panel p-4 mb-4">
+                <table class="table table-borderless align-middle">
+                    <thead>
+                        <tr class="border-bottom">
+                            <th scope="col">Product</th>
+                            <th scope="col">Price</th>
+                            <th scope="col" class="text-center">Quantity</th>
+                            <th scope="col" class="text-end">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for item in items %}
+                        <tr>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="ms-3">
+                                        <h6 class="mb-0 fw-bold">{{ item.product.name }}</h6>
+                                        {% if item.custom_message %}
+                                        <small class="text-muted d-block">Msg: {{ item.custom_message }}</small>
+                                        {% endif %}
+                                        {% if item.custom_logo_url %}
+                                        <small class="text-success d-block"><a href="{{ item.custom_logo_url }}" target="_blank">Custom Logo Uploaded</a></small>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </td>
+                            <td>₹{{ item.product.sale_price }}</td>
+                            <td class="text-center">{{ item.quantity }}</td>
+                            <td class="text-end fw-bold">₹{{ item.subtotal }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <div class="col-lg-4">
+            <div class="glass-panel p-4 mb-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark">Order Summary</h5>
+                <div class="d-flex justify-content-between mb-2 text-dark">
+                    <span>Subtotal</span>
+                    <span>₹{{ total }}</span>
+                </div>
+                
+                {% if discount > 0 %}
+                <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>Discount ({{ coupon_code }})</span>
+                    <span>-₹{{ discount }}</span>
+                </div>
+                {% endif %}
+                
+                <div class="d-flex justify-content-between mb-3 text-muted small">
+                    <span>Shipping</span>
+                    <span>Calculated at checkout</span>
+                </div>
+                <div class="d-flex justify-content-between mb-4 pt-2 border-top text-dark">
+                    <span class="fw-bold fs-5">Total</span>
+                    <span class="fw-bold fs-5" style="color: var(--secondary-color);">₹{{ grand_total }}</span>
+                </div>
+                <a href="{{ url_for('customer.checkout') }}" class="btn btn-premium w-100 py-3 mb-2">Proceed to Checkout</a>
+            </div>
+
+            <!-- Coupon code uploader card -->
+            <div class="glass-panel p-4">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Promo Coupon Code</h6>
+                {% if coupon_code %}
+                <div class="p-2 border border-success-subtle bg-light rounded-3 d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="small fw-semibold text-success d-block">Coupon Active:</span>
+                        <code class="fs-6">{{ coupon_code }}</code>
+                    </div>
+                    <form action="{{ url_for('customer.apply_coupon') }}" method="POST" class="m-0">
+                        <button type="submit" name="action" value="remove" class="btn btn-xs btn-outline-danger py-0.5 px-2" style="font-size: 0.75rem;">Remove</button>
+                    </form>
+                </div>
+                {% else %}
+                <form action="{{ url_for('customer.apply_coupon') }}" method="POST" class="m-0">
+                    <div class="input-group input-group-sm mb-2">
+                        <input type="text" name="coupon_code" class="form-control" placeholder="e.g. SWEET10" style="text-transform: uppercase;">
+                        <button type="submit" class="btn btn-dark">Apply</button>
+                    </div>
+                    <small class="text-muted" style="font-size: 0.75rem;">Try using coupon <strong>SWEET10</strong> for 10% off!</small>
+                </form>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+{% endblock %}

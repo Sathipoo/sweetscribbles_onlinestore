@@ -1,0 +1,10 @@
+Flask
+Flask-SQLAlchemy
+Flask-Login
+Flask-WTF
+google-cloud-storage
+requests
+psycopg2-binary
+python-dotenv
+gunicorn
+email-validator

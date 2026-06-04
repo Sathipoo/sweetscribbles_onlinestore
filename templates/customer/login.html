@@ -1,0 +1,82 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}{% if signup %}Sign Up{% else %}Login{% endif %} - Sweet Scribbles{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-5 col-md-7">
+            <div class="glass-panel p-4 p-md-5 rounded-4 shadow-lg text-dark" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(0, 0, 0, 0.06);">
+                
+                <!-- Brand Cursive Logo -->
+                <div class="text-center mb-4">
+                    <h2 class="fw-bold" style="font-family: 'Pacifico', cursive; color: #3e2723;">
+                        Sweet <span style="color: #ffb300;">Scribbles</span>
+                    </h2>
+                    <p class="text-muted small">Celebrate Better</p>
+                </div>
+
+                <!-- Tabs -->
+                <div class="d-flex justify-content-center gap-3 mb-4">
+                    <a href="{{ url_for('auth.login') }}" class="btn btn-sm {% if not signup %}btn-dark px-4{% else %}btn-outline-dark{% endif %} rounded-pill fw-semibold">
+                        Login
+                    </a>
+                    <a href="{{ url_for('auth.register') }}" class="btn btn-sm {% if signup %}btn-dark px-4{% else %}btn-outline-dark{% endif %} rounded-pill fw-semibold">
+                        Sign Up
+                    </a>
+                </div>
+
+                <!-- Flashes -->
+                {% with messages = get_flashed_messages() %}
+                  {% if messages %}
+                    {% for message in messages %}
+                      <div class="alert alert-danger py-2 small rounded-3 text-center mb-3">{{ message }}</div>
+                    {% endfor %}
+                  {% endif %}
+                {% endwith %}
+
+                {% if signup %}
+                <!-- Sign Up Form -->
+                <form action="{{ url_for('auth.register') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Full Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="John Doe" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Phone Number (Optional)</label>
+                        <input type="text" name="phone" class="form-control" placeholder="+91 9876543210">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required minlength="4">
+                    </div>
+                    <button type="submit" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
+                        Create Account
+                    </button>
+                </form>
+                {% else %}
+                <!-- Login Form -->
+                <form action="{{ url_for('auth.login') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Email Address</label>
+                        <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Password</label>
+                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
+                        Login to Account
+                    </button>
+                </form>
+                {% endif %}
+
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

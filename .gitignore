@@ -1,0 +1,24 @@
+# Virtual Environment
+venv/
+.venv/
+ENV/
+env/
+
+# Python compilation files
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Environment Variables & Secret Credentials
+.env
+gcp_creds.json
+gcp_credentials.json
+
+# IDE configurations
+.idea/
+.vscode/
+*.swp
+
+# OS files
+.DS_Store
+Thumbs.db

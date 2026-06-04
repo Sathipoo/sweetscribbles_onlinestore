@@ -1,0 +1,193 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+<h2 class="mb-4">Orders Management</h2>
+
+<div class="card">
+    <div class="card-body p-0">
+        <table class="table table-hover mb-0 align-middle">
+            <thead class="table-light">
+                <tr>
+                    <th>Order #</th>
+                    <th>Customer</th>
+                    <th>Items</th>
+                    <th>Amount</th>
+                    <th>Status</th>
+                    <th>Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for order in orders %}
+                <tr>
+                    <td>{{ order.order_number }}<br><small class="text-muted">{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</small></td>
+                    <td>
+                        {{ order.customer_name }}<br>
+                        <small class="text-muted">{{ order.customer_email }}</small>
+                    </td>
+                    <td>
+                        <ul class="list-unstyled mb-0 small">
+                            {% for item in order.items %}
+                            <li>{{ item.quantity }}x {{ item.product.name }}
+                                {% if item.custom_message %}<br><span class="text-muted ms-2">Msg: {{ item.custom_message }}</span>{% endif %}
+                                {% if item.custom_logo_url %}<br><a href="{{ item.custom_logo_url }}" target="_blank" class="ms-2">Logo</a>{% endif %}
+                            </li>
+                            {% endfor %}
+                        </ul>
+                    </td>
+                    <td>₹{{ order.total_amount }}</td>
+                    <td>
+                        <form action="{{ url_for('admin.update_order_status', order_id=order.id) }}" method="POST" class="d-flex align-items-center">
+                            <select name="status" class="form-select form-select-sm me-2" style="width: auto;" onchange="this.form.submit()">
+                                <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                <option value="Packing" {% if order.status == 'Packing' %}selected{% endif %}>Packing</option>
+                                <option value="Chocolate Etching" {% if order.status == 'Chocolate Etching' %}selected{% endif %}>Chocolate Etching</option>
+                                <option value="Dispatched" {% if order.status == 'Dispatched' %}selected{% endif %}>Dispatched</option>
+                                <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                            </select>
+                        </form>
+                    </td>
+                    <td>
+                        <button class="btn btn-sm btn-outline-info" data-bs-toggle="modal" data-bs-target="#orderDetailsModal{{ order.id }}">Details</button>
+                    </td>
+                </tr>
+
+                <!-- Order Details Modal -->
+                <div class="modal fade" id="orderDetailsModal{{ order.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-lg">
+                    <div class="modal-content text-dark">
+                      <div class="modal-header bg-light">
+                        <h5 class="modal-title">Order Info: {{ order.order_number }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body text-start">
+                          <div class="row g-3 mb-4">
+                              <div class="col-md-6">
+                                  <div class="card p-3 h-100 border bg-light">
+                                      <h6 class="fw-bold text-dark border-bottom pb-2 mb-2">Customer Profile Details</h6>
+                                      <p class="mb-1"><strong>Name:</strong> {{ order.customer_name }}</p>
+                                      <p class="mb-1"><strong>Email:</strong> {{ order.customer_email }}</p>
+                                      <p class="mb-1"><strong>Phone:</strong> {{ order.customer_phone or 'N/A' }}</p>
+                                  </div>
+                              </div>
+                              <div class="col-md-6">
+                                  <div class="card p-3 h-100 border bg-light">
+                                      <h6 class="fw-bold text-dark border-bottom pb-2 mb-2">Shipping & Delivery Address</h6>
+                                      <p class="mb-0 small" style="white-space: pre-wrap;">{{ order.shipping_address or 'No address provided.' }}</p>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <div class="row g-3 mb-4">
+                              <div class="col-md-6">
+                                  <div class="card p-3 h-100 border">
+                                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Metadata</h6>
+                                      <p class="mb-1"><strong>Ordered At:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                                      <p class="mb-1"><strong>Order Total:</strong> ₹{{ order.total_amount }}</p>
+                                      <p class="mb-1">
+                                          <strong>Payment Status:</strong> 
+                                          <span class="badge bg-{% if order.status == 'Paid' or order.payment_link %}success{% else %}warning{% endif %}">
+                                              {{ 'Paid' if order.status == 'Paid' else 'Pending/Unpaid' }}
+                                          </span>
+                                      </p>
+                                      {% if order.payment_link %}
+                                      <p class="mb-1 small"><strong>Payment Link:</strong> <a href="{{ order.payment_link }}" target="_blank" class="text-break">{{ order.payment_link }}</a></p>
+                                      {% endif %}
+                                  </div>
+                              </div>
+                              <div class="col-md-6">
+                                  <div class="card p-3 h-100 border">
+                                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Update Production & Shipping Tracking</h6>
+                                      <form action="{{ url_for('admin.update_order_tracking', order_id=order.id) }}" method="POST">
+                                          <div class="mb-2">
+                                              <label class="form-label small mb-0.5 fw-semibold">Order Status</label>
+                                              <select name="status_disabled" class="form-select form-select-sm" disabled>
+                                                  <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                                  <option value="Packing" {% if order.status == 'Packing' %}selected{% endif %}>Packing</option>
+                                                  <option value="Chocolate Etching" {% if order.status == 'Chocolate Etching' %}selected{% endif %}>Chocolate Etching</option>
+                                                  <option value="Dispatched" {% if order.status == 'Dispatched' %}selected{% endif %}>Dispatched</option>
+                                                  <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                              </select>
+                                          </div>
+                                          <div class="mb-2">
+                                              <label class="form-label small mb-0.5 fw-semibold">Courier Partner</label>
+                                              <select name="courier_name" class="form-select form-select-sm">
+                                                  <option value="" {% if not order.courier_name %}selected{% endif %}>-- Select Courier --</option>
+                                                  <option value="Delhivery" {% if order.courier_name == 'Delhivery' %}selected{% endif %}>Delhivery</option>
+                                                  <option value="Shiprocket" {% if order.courier_name == 'Shiprocket' %}selected{% endif %}>Shiprocket</option>
+                                                  <option value="Other" {% if order.courier_name == 'Other' %}selected{% endif %}>Other Courier</option>
+                                              </select>
+                                          </div>
+                                          <div class="mb-2">
+                                              <label class="form-label small mb-0.5 fw-semibold">AWB / Tracking Number</label>
+                                              <input type="text" name="tracking_number" class="form-control form-control-sm" value="{{ order.tracking_number or '' }}" placeholder="e.g. 1234567890">
+                                          </div>
+                                          <div class="mb-2">
+                                              <label class="form-label small mb-0.5 fw-semibold">Shipping Status</label>
+                                              <select name="shipping_status" class="form-select form-select-sm">
+                                                  <option value="Unshipped" {% if order.shipping_status == 'Unshipped' %}selected{% endif %}>Unshipped</option>
+                                                  <option value="Packed" {% if order.shipping_status == 'Packed' %}selected{% endif %}>Packed</option>
+                                                  <option value="In Transit" {% if order.shipping_status == 'In Transit' %}selected{% endif %}>In Transit / Shipped</option>
+                                                  <option value="Out for Delivery" {% if order.shipping_status == 'Out for Delivery' %}selected{% endif %}>Out for Delivery</option>
+                                                  <option value="Delivered" {% if order.shipping_status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                              </select>
+                                          </div>
+                                          <button type="submit" class="btn btn-sm btn-dark w-100 mt-1">Save Tracking Details</button>
+                                      </form>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Order Items</h6>
+                          <div class="table-responsive">
+                              <table class="table table-bordered table-sm align-middle small">
+                                  <thead class="table-light">
+                                      <tr>
+                                          <th>Product</th>
+                                          <th>SKU</th>
+                                          <th>Price</th>
+                                          <th>Qty</th>
+                                          <th>Subtotal</th>
+                                          <th>Customizations</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {% for item in order.items %}
+                                      <tr>
+                                          <td>{{ item.product.name }}</td>
+                                          <td><code>{{ item.product.sku }}</code></td>
+                                          <td>₹{{ item.price_at_purchase }}</td>
+                                          <td>{{ item.quantity }}</td>
+                                          <td>₹{{ item.price_at_purchase * item.quantity }}</td>
+                                          <td>
+                                              {% if item.custom_message %}
+                                              <div class="mb-1"><span class="badge bg-secondary">Message</span> {{ item.custom_message }}</div>
+                                              {% endif %}
+                                              {% if item.custom_logo_url %}
+                                              <div><span class="badge bg-primary">Logo</span> <a href="{{ item.custom_logo_url }}" target="_blank">View Uploaded Logo</a></div>
+                                              {% endif %}
+                                              {% if not item.custom_message and not item.custom_logo_url %}
+                                              <span class="text-muted">None</span>
+                                              {% endif %}
+                                          </td>
+                                      </tr>
+                                      {% endfor %}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-4">No orders found.</td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

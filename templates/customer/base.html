@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sweet Scribbles{% endblock %} - Celebrate Better</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Pacifico&family=Caveat:wght@700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <!-- Custom CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
+    <style>
+        /* Embed inline override for custom signature navbar brand */
+        .brand-capsule {
+            background: white;
+            border: 2px solid #000;
+            border-radius: 50px;
+            padding: 8px 24px;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.05);
+            display: inline-block;
+        }
+        .brand-logo-text {
+            font-family: 'Pacifico', cursive;
+            font-size: 1.6rem;
+            color: #3e2723;
+            text-decoration: none;
+        }
+        .brand-logo-text span {
+            display: block;
+            font-size: 0.9rem;
+            font-family: 'Inter', sans-serif;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            margin-top: -8px;
+            text-align: center;
+        }
+        .nav-capsule {
+            margin-top: 15px;
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 50px;
+            padding: 10px 24px;
+            box-shadow: 0 8px 30px rgba(0, 0, 0, 0.08);
+            border: 1px solid rgba(0,0,0,0.05);
+            transition: all 0.3s ease;
+        }
+        .nav-link-custom {
+            font-weight: 500;
+            color: #222 !important;
+            margin: 0 10px;
+            transition: color 0.2s ease;
+            font-size: 0.95rem;
+        }
+        .nav-link-custom:hover {
+            color: #d84315 !important;
+        }
+        .utility-btn {
+            background: none;
+            border: none;
+            font-size: 1.25rem;
+            color: #222;
+            margin-left: 15px;
+            cursor: pointer;
+            transition: transform 0.2s ease;
+        }
+        .utility-btn:hover {
+            transform: scale(1.1);
+        }
+        .arrow-btn-blue {
+            background: #00bcd4;
+            color: white;
+            border: none;
+            border-radius: 50%;
+            width: 32px;
+            height: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            margin-left: 15px;
+            transition: background 0.2s;
+        }
+        .arrow-btn-blue:hover {
+            background: #00acc1;
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Header / Navbar Capsule -->
+    <header class="container sticky-top" style="z-index: 1050;">
+        <nav class="navbar navbar-expand-lg nav-capsule">
+            <div class="container-fluid p-0 align-items-center">
+                <!-- Brand Logo Capsule -->
+                <div class="brand-capsule">
+                    <a class="brand-logo-text" href="{{ url_for('customer.home') }}">
+                        Sweet <span style="font-family: 'Pacifico', cursive; text-transform: none; letter-spacing: 0; display: inline; font-size: 1.6rem; color: #3e2723;">Scribbles</span>
+                    </a>
+                </div>
+                
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+                    <span class="navbar-toggler-icon"></span>
+                </button>
+                
+                <div class="collapse navbar-collapse justify-content-end" id="navbarNav">
+                    <ul class="navbar-nav align-items-center ms-auto">
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" href="{{ url_for('customer.home') }}">Home</a>
+                        </li>
+                        <li class="nav-item">
+                            <a class="nav-link nav-link-custom" href="{{ url_for('customer.home') }}#daily-nutritional-bites">Daily Nutritional Bites</a>
+                        </li>
+                    </ul>
+                    
+                    <!-- Utilities -->
+                    <div class="d-flex align-items-center">
+                        <button class="utility-btn" title="Search">🔍</button>
+                        <a href="{{ url_for('customer.cart') }}" class="utility-btn position-relative" title="Cart">
+                            🛒
+                            {% if session.get('cart', [])|length > 0 %}
+                            <span class="position-absolute top-0 start-100 translate-middle badge rounded-pill bg-danger" style="font-size: 0.65rem;">
+                                {{ session.get('cart', [])|length }}
+                            </span>
+                            {% endif %}
+                        </a>
+                        {% if current_user.is_authenticated %}
+                        <a class="btn btn-outline-dark btn-sm ms-3" href="{{ url_for('customer.profile') }}">My Account</a>
+                        {% else %}
+                        <a class="btn btn-outline-dark btn-sm ms-3" href="{{ url_for('auth.login') }}">Login</a>
+                        {% endif %}
+                        <a href="{{ url_for('customer.collections') }}" class="arrow-btn-blue" title="Explore Collections">
+                            <span style="font-size: 0.8rem; transform: rotate(180deg);">»</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </nav>
+    </header>
+
+    <!-- Main Content -->
+    <main>
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Re-engineered Dark Footer -->
+    <footer class="bg-black text-white py-5 mt-5" style="border-top: 3px solid #ffb300;">
+        <div class="container">
+            <div class="row py-4">
+                <!-- Brand & Contact -->
+                <div class="col-lg-4 mb-4 mb-lg-0">
+                    <h2 class="mb-3" style="font-family: 'Pacifico', cursive; color: #ffb300;">Sweet Scribbles</h2>
+                    <ul class="list-unstyled text-light opacity-75">
+                        <li class="mb-3">
+                            <span style="color: #ffb300; font-size: 1.2rem; margin-right: 5px;">•</span> 
+                            <strong>Naturally Sweet. Thoughtfully Crafted.</strong>
+                        </li>
+                        <li class="mb-3 d-flex align-items-start">
+                            <span class="me-2">📍</span>
+                            <span>151, Pikachooz, Kuduregere, Thammenahalli road, Bangalore 562162</span>
+                        </li>
+                        <li class="mb-3 d-flex align-items-center">
+                            <span class="me-2">✉️</span>
+                            <a href="mailto:Pooja.sathish@pikachooz.com" class="text-white text-decoration-none">Pooja.sathish@pikachooz.com</a>
+                        </li>
+                    </ul>
+                </div>
+                
+                <!-- Categories Links -->
+                <div class="col-md-3 col-sm-6 mb-4 mb-md-0 offset-lg-1">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: rgba(255,179,0,0.3) !important;">Categories</h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="#daily-nutritional-bites" class="text-light opacity-75 text-decoration-none hover-gold">Daily Nutritional Bites</a></li>
+                        <li class="mb-2"><a href="#choco-bliss-collection" class="text-light opacity-75 text-decoration-none hover-gold">Choco Bliss Bites</a></li>
+                        <li class="mb-2"><a href="#choco-licious-world" class="text-light opacity-75 text-decoration-none hover-gold">Choco-licious World</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.collections') }}" class="text-light opacity-75 text-decoration-none hover-gold">Subscriptions</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Useful Links -->
+                <div class="col-md-2 col-sm-6 mb-4 mb-md-0">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: rgba(255,179,0,0.3) !important;">Useful Links</h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="{{ url_for('customer.privacy') }}" class="text-light opacity-75 text-decoration-none hover-gold">Privacy Policy</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.refunds') }}" class="text-light opacity-75 text-decoration-none hover-gold">Return Policy</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.refunds') }}" class="text-light opacity-75 text-decoration-none hover-gold">Shipping Policy</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.terms') }}" class="text-light opacity-75 text-decoration-none hover-gold">Terms & Conditions</a></li>
+                    </ul>
+                </div>
+                
+                <!-- Services -->
+                <div class="col-md-2 col-sm-6">
+                    <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: rgba(255,179,0,0.3) !important;">Services</h5>
+                    <ul class="list-unstyled footer-links">
+                        <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-gold">Delivery Info</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.profile') }}" class="text-light opacity-75 text-decoration-none hover-gold">My Account</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <hr class="border-secondary my-4 opacity-25">
+            <div class="row align-items-center">
+                <div class="col-md-6 text-center text-md-start">
+                    <p class="text-muted small mb-0">&copy; 2026 Sweet Scribbles. All Rights Reserved. Crafted with ❤️ in India.</p>
+                </div>
+                <div class="col-md-6 text-center text-md-end mt-3 mt-md-0">
+                    <!-- WhatsApp floating action widget preview (mocked in layout) -->
+                    <a href="https://wa.me/918904660651" target="_blank" class="btn btn-success rounded-pill px-3 py-2 btn-sm shadow" style="background-color: #25d366; border: none;">
+                        💬 Chat with Us
+                    </a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>

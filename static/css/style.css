@@ -1,0 +1,100 @@
+:root {
+  --primary-color: #3e2723; /* Dark chocolate brown */
+  --secondary-color: #ffb300; /* Amber gold accent */
+  --accent-color: #d84315; /* Rust orange */
+  --bg-color: #f9f9f9; /* Clean light background */
+  --text-dark: #212121;
+  --text-light: #ffffff;
+  --card-border-radius: 24px;
+}
+
+body {
+  font-family: 'Inter', sans-serif;
+  background-color: var(--bg-color);
+  color: var(--text-dark);
+  overflow-x: hidden;
+}
+
+/* Custom Signature Headers */
+h1, h2, h3, h4, .font-premium-header {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+}
+
+/* Navigation Capsule */
+.nav-capsule {
+  transition: all 0.3s ease;
+}
+
+/* Card Styling Re-imagined */
+.card.product-card {
+  border-radius: var(--card-border-radius);
+  border: 1px solid rgba(0,0,0,0.06);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.02);
+  transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+  overflow: hidden;
+}
+
+.card.product-card:hover {
+  transform: translateY(-8px);
+  box-shadow: 0 12px 30px rgba(0,0,0,0.08);
+}
+
+/* Custom Buttons */
+.btn-premium {
+  background-color: var(--primary-color);
+  color: var(--text-light);
+  border-radius: 50px;
+  padding: 10px 28px;
+  font-weight: 600;
+  border: none;
+  transition: all 0.2s ease;
+}
+
+.btn-premium:hover {
+  background-color: var(--secondary-color);
+  color: var(--primary-color);
+  transform: scale(1.03);
+}
+
+/* Footer Hover Effects */
+.footer-links a {
+  transition: all 0.2s ease;
+}
+
+.footer-links a:hover {
+  color: var(--secondary-color) !important;
+  padding-left: 5px;
+}
+
+/* Micro-animations */
+.fade-in-up {
+  animation: fadeInUp 0.7s ease-out forwards;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Aspect-ratio layout rules for widescreen banners */
+.banner-curve {
+  border-radius: var(--card-border-radius);
+  overflow: hidden;
+}
+
+/* Occasion & Category Grids styling overrides */
+.grid-item-hover {
+  transition: all 0.3s ease;
+}
+.grid-item-hover:hover {
+  background-color: #fff !important;
+  box-shadow: 0 6px 15px rgba(0,0,0,0.05);
+  transform: translateY(-3px);
+}

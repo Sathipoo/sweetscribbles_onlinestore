@@ -1,0 +1,68 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}Simulated Payment Gateway - Sweet Scribbles{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="glass-panel mx-auto p-4 p-md-5 rounded-4 shadow-lg text-dark" style="max-width: 650px; border: 1px solid rgba(0,0,0,0.08); background: rgba(255, 255, 255, 0.95);">
+        <!-- Header -->
+        <div class="text-center mb-4 pb-3 border-bottom">
+            <h2 class="fw-bold text-uppercase tracking-wide" style="font-family: 'Pacifico', cursive; color: #3e2723;">
+                Sweet <span style="color: #ffb300;">Scribbles</span>
+            </h2>
+            <span class="badge bg-warning text-dark px-3 py-2 mt-2 fw-semibold rounded-pill">
+                Sandbox Payment Simulator
+            </span>
+        </div>
+
+        <!-- Explanation Alert -->
+        <div class="alert alert-info border-0 rounded-3 p-3 mb-4 shadow-sm" style="background-color: #e3f2fd; color: #0d47a1;">
+            <h6 class="fw-bold mb-2">💡 Why are you seeing this page?</h6>
+            <p class="mb-0 small leading-relaxed">
+                Zoho Payments API requires a secure <strong>HTTPS URL</strong> and registered domain whitelist to generate live payment links. Since your application is running locally on <strong>localhost</strong>, we've launched this interactive Simulator so you can test your order queue, custom logos, messages, and order workflow without blocking development.
+            </p>
+        </div>
+
+        <!-- Order details card -->
+        <div class="card border-0 bg-light rounded-3 p-4 mb-4 shadow-sm">
+            <h5 class="fw-bold mb-3 text-secondary">Order Summary</h5>
+            
+            <div class="d-flex justify-content-between py-2 border-bottom border-secondary-subtle">
+                <span class="text-muted">Order ID:</span>
+                <span class="fw-bold">{{ order.order_number }}</span>
+            </div>
+            
+            <div class="d-flex justify-content-between py-2 border-bottom border-secondary-subtle">
+                <span class="text-muted">Customer Name:</span>
+                <span>{{ order.customer_name }}</span>
+            </div>
+
+            <div class="d-flex justify-content-between py-2 border-bottom border-secondary-subtle">
+                <span class="text-muted">Email:</span>
+                <span>{{ order.customer_email }}</span>
+            </div>
+
+            <div class="d-flex justify-content-between py-2">
+                <span class="text-muted fw-bold">Total Amount to Pay:</span>
+                <span class="fw-bold fs-4 text-success">₹{{ order.total_amount }}</span>
+            </div>
+        </div>
+
+        <!-- Simulation Actions -->
+        <form method="POST">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <button type="submit" name="action" value="success" class="btn btn-success w-100 py-3 fw-bold rounded-3 shadow" style="letter-spacing: 0.5px;">
+                        ✔️ Simulate Successful Payment
+                    </button>
+                </div>
+                <div class="col-md-6">
+                    <button type="submit" name="action" value="failure" class="btn btn-outline-danger w-100 py-3 fw-bold rounded-3" style="letter-spacing: 0.5px;">
+                        ❌ Cancel & Simulate Failure
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,42 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}Checkout{% endblock %}
+
+{% block content %}
+<div class="container py-5">
+    <div class="row justify-content-center">
+        <div class="col-lg-6">
+            <div class="glass-panel p-5">
+                <h3 class="fw-bold mb-4 text-center" style="color: var(--primary-color);">Secure Checkout</h3>
+                <p class="text-center text-muted mb-4">You will be redirected to Zoho Payments to complete your purchase securely.</p>
+                
+                <form action="{{ url_for('customer.checkout') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Full Name</label>
+                        <input type="text" name="name" class="form-control" required placeholder="John Doe" value="{% if current_user.is_authenticated %}{{ current_user.name or '' }}{% endif %}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Email Address</label>
+                        <input type="email" name="email" class="form-control" required placeholder="john@example.com" value="{% if current_user.is_authenticated %}{{ current_user.email or '' }}{% endif %}">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Phone Number (Optional)</label>
+                        <input type="text" name="phone" class="form-control" placeholder="+91 9876543210" value="{% if current_user.is_authenticated %}{{ current_user.phone or '' }}{% endif %}">
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Delivery Address</label>
+                        <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter full delivery address (Street, Apartment, Landmark, City, Pincode)">{% if current_user.is_authenticated %}{{ current_user.address or '' }}{% endif %}</textarea>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center">
+                        <span class="me-2">Proceed to Payment</span>
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+                          <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
+                        </svg>
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

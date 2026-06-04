@@ -1,0 +1,596 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}Home{% endblock %}
+
+{% block content %}
+<!-- Section 1: Hero Slider & Promotion Section -->
+<section class="py-4">
+    <div class="container">
+        <div id="heroPromotionCarousel" class="carousel slide rounded-5 overflow-hidden shadow" data-bs-ride="carousel" style="border: 1px solid #ddd;">
+            <div class="carousel-indicators">
+                <button type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
+                <button type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+            </div>
+            <div class="carousel-inner">
+                <!-- Slide 1: All-Products Poster -->
+                <div class="carousel-item active" style="height: 460px; background: url('/static/images/Gemini_Generated_Image_kcrjxfkcrjxfkcrj.png') no-repeat center center; background-size: cover;">
+                    <div class="position-absolute w-100 h-100" style="background: rgba(0, 0, 0, 0.4); top: 0; left: 0;"></div>
+                    <div class="carousel-caption d-flex flex-column justify-content-center h-100 text-start px-md-5" style="bottom: 0; left: 5%; right: 5%; z-index: 10;">
+                        <h1 class="display-4 fw-extrabold text-white mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                            Celebrate Better.<br>Gift Healthier.
+                        </h1>
+                        <p class="lead text-light mb-4" style="max-width: 600px; font-size: 1.2rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                            Handcrafted dry-fruit delights made with dates, nuts, and premium ingredients — thoughtfully personalized for every celebration.
+                        </p>
+                        <div>
+                            <a href="{{ url_for('customer.collections') }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark shadow">Explore Collections</a>
+                        </div>
+                    </div>
+                </div>
+                <!-- Slide 2: Festive Promotion -->
+                <div class="carousel-item" style="height: 460px; background: url('/static/images/Gemini_Generated_Image_w08uwnw08uwnw08u.png') no-repeat center center; background-size: cover;">
+                    <div class="position-absolute w-100 h-100" style="background: rgba(0, 0, 0, 0.45); top: 0; left: 0;"></div>
+                    <div class="carousel-caption d-flex flex-column justify-content-center h-100 text-start px-md-5" style="bottom: 0; left: 5%; right: 5%; z-index: 10;">
+                        <h1 class="display-4 fw-extrabold text-white mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                            Festive Season Offers
+                        </h1>
+                        <p class="lead text-light mb-4" style="max-width: 600px; font-size: 1.2rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                            Bring wholesome joy to every occasion! Custom company branding, sleeve designs, and bulk gifting rates are open.
+                        </p>
+                        <div>
+                            <a href="https://wa.me/918904660651" target="_blank" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow">
+                                💬 Inquire on WhatsApp
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <button class="carousel-control-prev" type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide="prev">
+                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Previous</span>
+            </button>
+            <button class="carousel-control-next" type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide="next">
+                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="visually-hidden">Next</span>
+            </button>
+        </div>
+    </div>
+</section>
+
+<!-- Section 2: Carousel Product Slider (Top Bites Featured) -->
+<section class="pb-5">
+    <div class="container">
+        <!-- Flex row to display featured products -->
+        <div class="row g-4 justify-content-center">
+            {% for product in featured %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card p-3 rounded-4 shadow-sm border-0 h-100 bg-white" style="transition: transform 0.3s; position: relative;">
+                    <!-- Badge: No sugar dry fruit bites -->
+                    <div style="position: absolute; top: 20px; left: 20px; z-index: 10;">
+                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill font-monospace" style="font-size: 0.75rem; letter-spacing: 0.5px;">
+                            no sugar dry fruit bites
+                        </span>
+                    </div>
+
+                    <!-- Out of stock badge -->
+                    {% if product.available_qty == 0 %}
+                    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
+                            Out of stock
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Product image -->
+                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 280px; border: 1px solid #eee;">
+                        {% if product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
+                        {% else %}
+                        <!-- Custom styled placeholder matching screenshot -->
+                        <div class="text-muted text-center">
+                            <span style="font-size: 3rem;">🖼️</span>
+                            <p class="mt-2 mb-0 small font-monospace text-secondary">no sugar dry fruit bites</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body px-1 pt-3 d-flex flex-column">
+                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.95rem; min-height: 48px;">
+                            {{ product.name }}
+                        </h6>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="fw-bold text-dark" style="font-size: 1.2rem;">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                            <!-- Circular view button -->
+                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn d-flex align-items-center justify-content-center shadow-sm border" style="width: 42px; height: 42px; border-radius: 50%; background: white; border-color: #ddd;">
+                                <span style="font-size: 1.1rem; color: #333;">👁️</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Orange circular arrow controls -->
+        <div class="text-center mt-4">
+            <button class="btn me-2" style="background-color: #ffb300; color: #111; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; border: none; font-size: 1.2rem;" onclick="alert('Previous items')">‹</button>
+            <button class="btn" style="background-color: #ffb300; color: #111; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; border: none; font-size: 1.2rem;" onclick="alert('Next items')">›</button>
+        </div>
+    </div>
+</section>
+
+<!-- Section 3: Which Sweet Scribbler Are You? (Avatars) -->
+<section class="py-5 bg-white">
+    <div class="container text-center">
+        <h2 class="fw-extrabold mb-2" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; color: #111; font-size: 2.2rem;">
+            Which Sweet Scribbler Are You?
+        </h2>
+        <p class="text-muted mb-5" style="font-size: 1.05rem;">
+            Step into your flavour universe – find your category avatar
+        </p>
+        
+        <div class="row g-4 justify-content-center">
+            <!-- Avatar 1: The Dark Knight -->
+            <div class="col">
+                <div class="px-2">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal1" class="d-block transition-scale">
+                        <img src="/static/images/the_dark_Knight.png" alt="The Dark Knight" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    </a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal1" class="text-decoration-none text-dark hover-gold">
+                        <h6 class="fw-bold mb-1">The Dark Knight</h6>
+                    </a>
+                    <p class="text-muted small">Sophisticated taste, elegant choices.</p>
+                </div>
+            </div>
+            <!-- Avatar 2: The Wellness Wanderer -->
+            <div class="col">
+                <div class="px-2">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal2" class="d-block transition-scale">
+                        <img src="/static/images/wellness_wanderer.png" alt="The Wellness Wanderer" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    </a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal2" class="text-decoration-none text-dark hover-gold">
+                        <h6 class="fw-bold mb-1">The Wellness Wanderer</h6>
+                    </a>
+                    <p class="text-muted small">Reads labels, chooses purity, loves clean energy.</p>
+                </div>
+            </div>
+            <!-- Avatar 3: The Celebration Spark -->
+            <div class="col">
+                <div class="px-2">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal3" class="d-block transition-scale">
+                        <img src="/static/images/celeb_spark.png" alt="The Celebration Spark" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    </a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal3" class="text-decoration-none text-dark hover-gold">
+                        <h6 class="fw-bold mb-1">The Celebration Spark</h6>
+                    </a>
+                    <p class="text-muted small">Spreads joy everywhere they go.</p>
+                </div>
+            </div>
+            <!-- Avatar 4: The Thoughtful Giver -->
+            <div class="col">
+                <div class="px-2">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal4" class="d-block transition-scale">
+                        <img src="/static/images/thoughtful_giver.png" alt="The Thoughtful Giver" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    </a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal4" class="text-decoration-none text-dark hover-gold">
+                        <h6 class="fw-bold mb-1">The Thoughtful Giver</h6>
+                    </a>
+                    <p class="text-muted small">You shine brightest when gifting happiness to others.</p>
+                </div>
+            </div>
+            <!-- Avatar 5: The Bliss Explorer -->
+            <div class="col">
+                <div class="px-2">
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal5" class="d-block transition-scale">
+                        <img src="/static/images/bliss_explorer.png" alt="The Bliss Explorer" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    </a>
+                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal5" class="text-decoration-none text-dark hover-gold">
+                        <h6 class="fw-bold mb-1">The Bliss Explorer</h6>
+                    </a>
+                    <p class="text-muted small">Your heart says "all of them please!"</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 4: Rounded Dark Banner -->
+<section class="py-4">
+    <div class="container">
+        <div class="bg-black text-white p-5 rounded-5 text-center shadow-lg position-relative overflow-hidden" style="border: 2px solid #ffb300;">
+            <!-- Golden sparkles/stars on sides -->
+            <div class="d-none d-md-block position-absolute" style="top: 25%; left: 8%; font-size: 2.5rem; color: #ffb300;">✦</div>
+            <div class="d-none d-md-block position-absolute" style="bottom: 25%; left: 12%; font-size: 1.8rem; color: #ffb300;">✦</div>
+            <div class="d-none d-md-block position-absolute" style="top: 25%; right: 8%; font-size: 2.5rem; color: #ffb300;">✦</div>
+            <div class="d-none d-md-block position-absolute" style="bottom: 25%; right: 12%; font-size: 1.8rem; color: #ffb300;">✦</div>
+
+            <h2 class="fw-extrabold mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 800; color: #ffb300;">
+                Healthy Has Never Tasted This Good
+            </h2>
+            <p class="text-light opacity-90 fs-5 mb-3">
+                Handcrafted using premium nuts, seeds, anjeer & dates
+            </p>
+            <hr class="mx-auto my-3" style="width: 80px; border-top: 2px solid #ffb300;">
+            <h4 class="fw-bold text-white mb-2" style="letter-spacing: 0.5px;">
+                no sugar, no jaggery, no stevia.
+            </h4>
+            <p class="text-light opacity-75 small">
+                Perfect for kids, parents, fitness lovers & gifting.
+            </p>
+        </div>
+    </div>
+</section>
+
+<!-- Section 5: The Choco Bliss Collection -->
+<section class="py-5 text-white" id="choco-bliss-collection" style="background-color: #5d4037; border-radius: 40px; margin: 40px 0;">
+    <div class="container py-4">
+        <h2 class="fw-extrabold mb-5 px-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 2.2rem; color: #ffe8d6;">
+            The Choco Bliss Collection
+        </h2>
+        
+        <div class="row g-4 justify-content-center">
+            {% for product in choco %}
+            <div class="col-lg-4 col-md-6">
+                <div class="card p-3 rounded-4 shadow-sm border-0 h-100 bg-white" style="position: relative;">
+                    <!-- Out of stock badge -->
+                    {% if product.available_qty == 0 %}
+                    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+                        <span class="badge bg-danger text-white border border-danger px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
+                            Out of stock
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Product image -->
+                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 280px; border: 1px solid #eee;">
+                        {% if product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
+                        {% else %}
+                        <div class="text-muted text-center">
+                            <span style="font-size: 3rem;">🍫</span>
+                            <p class="mt-2 mb-0 small text-secondary">Choco Bliss Bite</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body px-1 pt-3 d-flex flex-column">
+                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.95rem; min-height: 48px;">
+                            {{ product.name }}
+                        </h6>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="fw-bold text-dark" style="font-size: 1.2rem;">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">View Details</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Section 6: Dwell into our Choco-licious World Widescreen Banner -->
+<section class="py-4" id="choco-licious-world">
+    <div class="container">
+        <a href="{{ url_for('customer.choco_world') }}" class="text-decoration-none d-block shadow rounded-5 overflow-hidden transition-hover" style="border: 1px solid #ddd;">
+            <!-- Banner container with image background -->
+            <div class="position-relative text-white d-flex align-items-center justify-content-center" style="height: 380px; background: url('/static/images/Gemini_Generated_Image_6kgcok6kgcok6kgc.png') no-repeat center center; background-size: cover;">
+                <!-- Dark Overlay for text legibility -->
+                <div class="position-absolute w-100 h-100" style="background: rgba(0,0,0,0.4); top: 0; left: 0; z-index: 1;"></div>
+                
+                <div class="text-center position-relative px-4" style="z-index: 2;">
+                    <h1 class="display-5 fw-extrabold mb-2" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
+                        Dwell into our choco–licious world
+                    </h1>
+                    <p class="lead opacity-90 fs-5 mb-3" style="font-weight: 400; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
+                        Explore through our range of flavors
+                    </p>
+                    <span class="btn btn-outline-light rounded-pill px-4 py-2 fw-semibold">Discover Our Journey ➔</span>
+                </div>
+            </div>
+        </a>
+    </div>
+</section>
+
+<!-- Section 7: 10% Offer Zone -->
+<section class="py-4">
+    <div class="container">
+        <div class="bg-white p-5 rounded-5 border shadow-sm d-flex flex-column flex-md-row align-items-center justify-content-between overflow-hidden">
+            <div class="mb-4 mb-md-0 px-md-3">
+                <h2 class="display-6 fw-extrabold mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; color: #111;">
+                    You're in our 10% offer zone
+                </h2>
+                <p class="text-muted fs-5 mb-4">
+                    Get the best ever deals on the latest sweets
+                </p>
+                <a href="{{ url_for('customer.collections') }}" class="btn btn-dark rounded-pill px-4 py-2 fw-semibold">
+                    Shop Now <span class="ms-1">➔</span>
+                </a>
+            </div>
+            <div class="text-center px-md-4">
+                <img src="/static/images/icons/discount.png" alt="Discount Character" class="img-fluid" style="max-height: 240px; object-fit: contain;">
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 8: Consumption Occasions Grid -->
+<section class="py-5 bg-white">
+    <div class="container">
+        <div class="row g-4">
+            <!-- Card 1: Office Snack -->
+            <div class="col-lg-4 col-md-6">
+                <div class="bg-light p-4 rounded-4 text-center border h-100">
+                    <img src="/static/images/icons/officeSnack.png" alt="Office Snack" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0">The Perfect Office Snack</h6>
+                </div>
+            </div>
+            <!-- Card 2: Lunchbox -->
+            <div class="col-lg-4 col-md-6">
+                <div class="bg-light p-4 rounded-4 text-center border h-100">
+                    <img src="/static/images/icons/lunchBox.png" alt="Lunchbox Favourite" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0">A Lunchbox Favorite for Kids!</h6>
+                </div>
+            </div>
+            <!-- Card 3: Post-Meal -->
+            <div class="col-lg-4 col-md-6">
+                <div class="bg-light p-4 rounded-4 text-center border h-100">
+                    <img src="/static/images/icons/postMeal.png" alt="Post-Meal Sweet" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0">A Perfect Post-Meal Sweet!</h6>
+                </div>
+            </div>
+            <!-- Card 4: Gym -->
+            <div class="col-lg-4 col-md-6">
+                <div class="bg-light p-4 rounded-4 text-center border h-100">
+                    <img src="/static/images/icons/Gym.png" alt="Gym Friendly Energy" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0">Gym-Friendly Energy!</h6>
+                </div>
+            </div>
+            <!-- Card 5: Gifting -->
+            <div class="col-lg-4 col-md-6">
+                <div class="bg-light p-4 rounded-4 text-center border h-100">
+                    <img src="/static/images/icons/gifting.png" alt="Festive Gifting" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0">Perfect for Festive Gifting!</h6>
+                </div>
+            </div>
+            <!-- Card 6: Midnight Cravings -->
+            <div class="col-lg-4 col-md-6">
+                <div class="bg-light p-4 rounded-4 text-center border h-100">
+                    <img src="/static/images/icons/midnightCravings.png" alt="Midnight Cravings" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
+                    <h6 class="fw-bold mb-0">For Your Midnight Cravings!</h6>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Section 9: Daily Nutrition Bites Section -->
+<section class="py-5" id="daily-nutritional-bites" style="background-color: #eaecef; border-radius: 40px; margin: 40px 0;">
+    <div class="container py-4">
+        <h2 class="fw-extrabold mb-5 px-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 2.2rem; color: #111;">
+            Daily Nutritional Bites
+        </h2>
+        
+        <div class="row g-4 justify-content-center">
+            {% for product in bites %}
+            <div class="col-lg-3 col-md-6">
+                <div class="card p-3 rounded-4 shadow-sm border-0 h-100 bg-white" style="position: relative;">
+                    <!-- Badge: no sugar dry fruit bites -->
+                    <div style="position: absolute; top: 20px; left: 20px; z-index: 10;">
+                        <span class="badge bg-light text-dark border px-2 py-1 rounded-pill" style="font-size: 0.7rem; font-family: monospace;">
+                            no sugar dry fruit bites
+                        </span>
+                    </div>
+
+                    <!-- Out of stock badge -->
+                    {% if product.available_qty == 0 %}
+                    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
+                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
+                            Out of stock
+                        </span>
+                    </div>
+                    {% endif %}
+
+                    <!-- Product image -->
+                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 220px; border: 1px solid #eee;">
+                        {% if product.image_url %}
+                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
+                        {% else %}
+                        <div class="text-muted text-center">
+                            <span style="font-size: 3rem;">🖼️</span>
+                            <p class="mt-2 mb-0 small text-secondary">no sugar dry fruit bites</p>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="card-body px-1 pt-3 d-flex flex-column">
+                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.9rem; min-height: 48px;">
+                            {{ product.name }}
+                        </h6>
+                        <div class="d-flex justify-content-between align-items-center mt-3">
+                            <span class="fw-bold text-dark" style="font-size: 1.1rem;">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                            <!-- Circular view button -->
+                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn d-flex align-items-center justify-content-center shadow-sm border" style="width: 36px; height: 36px; border-radius: 50%; background: white; border-color: #ddd;">
+                                <span style="font-size: 0.95rem; color: #333;">👁️</span>
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+</section>
+
+<!-- Section 10: Why Choose Sweet Scribbles -->
+<section class="py-5 bg-white">
+    <div class="container text-center">
+        <h2 class="fw-extrabold mb-1" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; color: #111; font-size: 2.2rem;">
+            Why Choose Sweet Scribbles
+        </h2>
+        <hr class="mx-auto my-3" style="width: 50px; height: 3px; background-color: #ffb300; opacity: 1; border: none;">
+        
+        <div class="row g-4 mt-3">
+            <!-- Item 1: 100% Natural -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="px-3">
+                    <img src="/static/images/icons/NaturalIngredients.png" alt="100% Natural Ingredients" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    <h6 class="fw-bold mb-2">100% Natural Ingredients</h6>
+                    <p class="text-muted small">No chemicals, no preservatives — only dates, nuts & pure goodness.</p>
+                </div>
+            </div>
+            <!-- Item 2: No Added Sugar -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="px-3">
+                    <img src="/static/images/icons/NoAddedSugar.png" alt="No Added Sugar" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    <h6 class="fw-bold mb-2">No Added Sugar</h6>
+                    <p class="text-muted small">Sweetened only with dates (and occasional honey). Nothing else.</p>
+                </div>
+            </div>
+            <!-- Item 3: Handcrafted Fresh -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="px-3">
+                    <img src="/static/images/icons/HandcraftedFresh.png" alt="Handcrafted Fresh" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    <h6 class="fw-bold mb-2">Handcrafted Fresh</h6>
+                    <p class="text-muted small">Every bite is made in small batches for freshness and quality.</p>
+                </div>
+            </div>
+            <!-- Item 4: Healthy + Indulgent -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="px-3">
+                    <img src="/static/images/icons/HealthyIndulgent.png" alt="Healthy + Indulgent" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    <h6 class="fw-bold mb-2">Healthy + Indulgent</h6>
+                    <p class="text-muted small">Perfect balance of clean nutrition and rich taste.</p>
+                </div>
+            </div>
+            <!-- Item 5: Gifting Packaging -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="px-3">
+                    <img src="/static/images/icons/GiftingReady.png" alt="Gifting-Ready Packaging" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    <h6 class="fw-bold mb-2">Gifting-Ready Packaging</h6>
+                    <p class="text-muted small">Beautifully designed boxes for festivals, celebrations & corporate gifting.</p>
+                </div>
+            </div>
+            <!-- Item 6: Made in India -->
+            <div class="col-lg-4 col-md-6 mb-3">
+                <div class="px-3">
+                    <img src="/static/images/icons/MadeInIndia.png" alt="Made in India" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                    <h6 class="fw-bold mb-2">Made in India, With Love</h6>
+                    <p class="text-muted small">From Bengaluru, crafted with care and honesty.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Avatar Details Modals -->
+<!-- Modal 1: The Dark Knight -->
+<div class="modal fade" id="avatarModal1" tabindex="-1" aria-labelledby="avatarModal1Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center pt-0 px-4 pb-4">
+        <img src="/static/images/the_dark_Knight.png" alt="The Dark Knight" class="img-fluid mb-3" style="max-height: 180px; object-fit: contain;">
+        <h4 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: var(--primary-color);">The Dark Knight</h4>
+        <h6 class="text-secondary fw-semibold mb-3">Sophisticated Taste, Elegant Choices</h6>
+        <p class="text-muted small px-2">
+            You appreciate the deep, intense flavors of rich dark couverture chocolate blended with premium dates and roasted nuts. You value complexity and elegant design. A true connoisseur of healthy luxury who makes no compromises on quality.
+        </p>
+        <div class="mt-4">
+            <a href="{{ url_for('customer.collections') }}#choco-bliss-collection" class="btn btn-premium btn-sm rounded-pill px-4">Shop Dark Chocolate</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 2: The Wellness Wanderer -->
+<div class="modal fade" id="avatarModal2" tabindex="-1" aria-labelledby="avatarModal2Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center pt-0 px-4 pb-4">
+        <img src="/static/images/wellness_wanderer.png" alt="The Wellness Wanderer" class="img-fluid mb-3" style="max-height: 180px; object-fit: contain;">
+        <h4 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: var(--primary-color);">The Wellness Wanderer</h4>
+        <h6 class="text-secondary fw-semibold mb-3">Reads Labels, Chooses Purity, Loves Clean Energy</h6>
+        <p class="text-muted small px-2">
+            For you, ingredients are everything. You look for raw, unadulterated nutrients without any artificial fillers. Pure dates, nutrient-dense figs, raw seeds, and roasted nuts are your fuel of choice for an active, mindful lifestyle.
+        </p>
+        <div class="mt-4">
+            <a href="{{ url_for('customer.collections') }}#daily-nutritional-bites" class="btn btn-premium btn-sm rounded-pill px-4">Shop Nutritional Bites</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 3: The Celebration Spark -->
+<div class="modal fade" id="avatarModal3" tabindex="-1" aria-labelledby="avatarModal3Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center pt-0 px-4 pb-4">
+        <img src="/static/images/celeb_spark.png" alt="The Celebration Spark" class="img-fluid mb-3" style="max-height: 180px; object-fit: contain;">
+        <h4 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: var(--primary-color);">The Celebration Spark</h4>
+        <h6 class="text-secondary fw-semibold mb-3">Spreads Joy Everywhere They Go</h6>
+        <p class="text-muted small px-2">
+            Bright, sweet, and social — you love celebrating life's big and small moments with friends and family. You represent sharing wholesome happiness through beautifully presented, delicious, and guilt-free sweets.
+        </p>
+        <div class="mt-4">
+            <a href="{{ url_for('customer.collections') }}#gifting-collection" class="btn btn-premium btn-sm rounded-pill px-4">Shop Celebration Boxes</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 4: The Thoughtful Giver -->
+<div class="modal fade" id="avatarModal4" tabindex="-1" aria-labelledby="avatarModal4Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center pt-0 px-4 pb-4">
+        <img src="/static/images/thoughtful_giver.png" alt="The Thoughtful Giver" class="img-fluid mb-3" style="max-height: 180px; object-fit: contain;">
+        <h4 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: var(--primary-color);">The Thoughtful Giver</h4>
+        <h6 class="text-secondary fw-semibold mb-3">You Shine Brightest When Gifting Happiness</h6>
+        <p class="text-muted small px-2">
+            For you, the act of giving is an art. You appreciate custom ribbons, personalized sleeves, customized messages, and beautifully engraved chocolates. You love showing people they are valued through custom-crafted experiences.
+        </p>
+        <div class="mt-4">
+            <a href="{{ url_for('customer.collections') }}#gifting-collection" class="btn btn-premium btn-sm rounded-pill px-4">Explore Custom Gifting</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal 5: The Bliss Explorer -->
+<div class="modal fade" id="avatarModal5" tabindex="-1" aria-labelledby="avatarModal5Label" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content rounded-4 border-0 shadow">
+      <div class="modal-header border-0 pb-0">
+        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+      <div class="modal-body text-center pt-0 px-4 pb-4">
+        <img src="/static/images/bliss_explorer.png" alt="The Bliss Explorer" class="img-fluid mb-3" style="max-height: 180px; object-fit: contain;">
+        <h4 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: var(--primary-color);">The Bliss Explorer</h4>
+        <h6 class="text-secondary fw-semibold mb-3">Your Heart Says "All of Them Please!"</h6>
+        <p class="text-muted small px-2">
+            You cannot choose just one! You love exploring flavor profiles, mixing daily bites with chocolate truffles, and trying everything we roll. You are a curious adventurer seeking the ultimate healthy sweet combinations.
+        </p>
+        <div class="mt-4">
+            <a href="{{ url_for('customer.collections') }}" class="btn btn-premium btn-sm rounded-pill px-4">Browse All Flavors</a>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}
