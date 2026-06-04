@@ -1,0 +1,27 @@
+# Exclude local virtual environments
+venv/
+.venv/
+ENV/
+env/
+
+# Exclude git repository metadata
+.git/
+.gitignore
+
+# Exclude secrets and configurations
+.env
+gcp_creds.json
+gcp_credentials.json
+
+# Exclude IDE settings
+.idea/
+.vscode/
+
+# Exclude OS-generated files
+.DS_Store
+
+# Exclude python build artifacts
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
