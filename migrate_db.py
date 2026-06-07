@@ -25,5 +25,12 @@ with app.app_context():
     except Exception as e:
         print(f"Error adding is_stock_deducted: {e}")
         
+    try:
+        # Check and add zoho_payment_link_id to orders
+        db.session.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS zoho_payment_link_id VARCHAR(100);"))
+        print("Column 'zoho_payment_link_id' checked/added to 'orders' table.")
+    except Exception as e:
+        print(f"Error adding zoho_payment_link_id: {e}")
+        
     db.session.commit()
     print("Migration completed successfully.")

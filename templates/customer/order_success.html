@@ -1,34 +1,90 @@
 {% extends 'customer/base.html' %}
 
-{% block title %}Order Successful{% endblock %}
+{% block title %}
+    {% if order and order.status == 'Failed' %}
+        Payment Failed
+    {% elif order and order.status == 'Pending' %}
+        Order Received
+    {% else %}
+        Order Successful
+    {% endif %}
+{% endblock %}
 
 {% block content %}
 <div class="container py-5 text-center">
     <div class="glass-panel p-5 mx-auto" style="max-width: 600px;">
-        <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="var(--secondary-color)" class="bi bi-check-circle-fill mb-4" viewBox="0 0 16 16">
-          <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-        </svg>
-        <h2 class="fw-bold mb-3" style="color: var(--primary-color);">Order Placed Successfully!</h2>
-        <p class="text-muted mb-4">Thank you for choosing Sweet Scribbles. We've received your order and will start preparing your handcrafted healthy delights soon.</p>
+        {% if order and order.status == 'Failed' %}
+            <!-- Failed state -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#dc3545" class="bi bi-x-circle-fill mb-4" viewBox="0 0 16 16">
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+            </svg>
+            <h2 class="fw-bold mb-3" style="color: #dc3545;">Payment Unsuccessful</h2>
+            <p class="text-muted mb-4">It seems there was an issue processing your payment. Your order is registered in our system but remains unpaid.</p>
+        {% elif order and order.status == 'Pending' %}
+            <!-- Pending state -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="var(--secondary-color)" class="bi bi-clock-history mb-4" viewBox="0 0 16 16">
+              <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7 7 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.657.755zm1.452 1.107a7 7 0 0 0-.64-.537l.64-.768a8 8 0 0 1 .856.77l-.856.535zM8 3a.5.5 0 0 0-.5.5v5a.5.5 0 0 0 .25.433l3 1.732a.5.5 0 0 0 .5-.866L8.5 7.723V3.5A.5.5 0 0 0 8 3z"/>
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8z"/>
+            </svg>
+            <h2 class="fw-bold mb-3" style="color: var(--primary-color);">Order Received!</h2>
+            <p class="text-muted mb-4">We've received your order. We are currently verifying the payment status with Zoho Payments.</p>
+        {% else %}
+            <!-- Success state -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="var(--secondary-color)" class="bi bi-check-circle-fill mb-4" viewBox="0 0 16 16">
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+            </svg>
+            <h2 class="fw-bold mb-3" style="color: var(--primary-color);">Order Placed Successfully!</h2>
+            <p class="text-muted mb-4">Thank you for choosing Sweet Scribbles. We've received your payment and will start preparing your handcrafted healthy delights soon.</p>
+        {% endif %}
         
         {% if order %}
-        <div class="card border-0 bg-light p-3 mb-4 rounded-3 text-start mx-auto" style="max-width: 400px; font-size: 0.95rem;">
-            <div class="d-flex justify-content-between mb-2">
+        <div class="card border-0 bg-light p-4 mb-4 rounded-3 text-start mx-auto shadow-sm" style="max-width: 440px; font-size: 0.95rem; border: 1px solid rgba(62, 39, 35, 0.08) !important;">
+            <div class="d-flex justify-content-between mb-2 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
                 <span class="text-muted">Order ID:</span>
                 <span class="fw-bold text-dark">{{ order.order_number }}</span>
             </div>
-            <div class="d-flex justify-content-between mb-2">
-                <span class="text-muted">Amount Paid:</span>
-                <span class="fw-bold text-success">₹{{ order.total_amount }}</span>
+            <div class="d-flex justify-content-between mb-2 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
+                <span class="text-muted">Amount due:</span>
+                <span class="fw-bold text-dark">₹{{ order.total_amount }}</span>
             </div>
-            <div class="d-flex justify-content-between">
+            <div class="d-flex justify-content-between align-items-center">
                 <span class="text-muted">Payment Status:</span>
-                <span class="badge bg-success px-2 py-1">Paid</span>
+                {% if order.status == 'Paid' %}
+                    <span class="badge bg-success-subtle text-success border border-success px-3 py-1.5 rounded-pill fw-semibold">✅ Paid</span>
+                {% elif order.status == 'Pending' %}
+                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-1.5 rounded-pill fw-semibold">🕒 Verification Pending</span>
+                {% else %}
+                    <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1.5 rounded-pill fw-semibold">❌ {{ order.status }}</span>
+                {% endif %}
             </div>
+
+            {% if order.status == 'Pending' %}
+            <div class="alert alert-warning border border-warning-subtle p-3 mt-3 mb-0 small text-start rounded-3 bg-warning-subtle text-warning-emphasis">
+                <i class="bi bi-info-circle me-1"></i> We are waiting for Zoho Payments to confirm your transaction. If you've already completed the payment:
+                <ul class="mb-2 mt-1 ps-3">
+                    <li>Try **refreshing this page** in a few moments to re-verify status.</li>
+                    <li>Or wait for our email confirmation once processing completes.</li>
+                </ul>
+                {% if order.payment_link %}
+                <div class="text-center mt-3">
+                    <a href="{{ order.payment_link }}" class="btn btn-sm btn-premium px-4 py-2 w-100">Retry Zoho Checkout</a>
+                </div>
+                {% endif %}
+            </div>
+            {% elif order.status == 'Failed' and order.payment_link %}
+            <div class="text-center mt-3">
+                <a href="{{ order.payment_link }}" class="btn btn-premium px-4 py-2 w-100">Retry Payment</a>
+            </div>
+            {% endif %}
         </div>
         {% endif %}
         
-        <a href="{{ url_for('customer.home') }}" class="btn btn-premium">Back to Home</a>
+        <div class="d-flex justify-content-center gap-2 mt-4">
+            <a href="{{ url_for('customer.home') }}" class="btn btn-outline-secondary px-4 py-2 rounded-pill">Back to Home</a>
+            {% if current_user.is_authenticated %}
+            <a href="{{ url_for('customer.profile') }}" class="btn btn-premium px-4 py-2 rounded-pill">View Order History</a>
+            {% endif %}
+        </div>
     </div>
 </div>
 {% endblock %}

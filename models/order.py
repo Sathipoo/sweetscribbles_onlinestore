@@ -20,6 +20,7 @@ class Order(db.Model):
     
     # Payment info
     payment_link = db.Column(db.String(500))
+    zoho_payment_link_id = db.Column(db.String(100))
     payment_status = db.Column(db.String(50), default='Unpaid')
     
     # Shipping info (Delhivery/Shiprocket)

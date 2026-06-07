@@ -216,22 +216,28 @@ def checkout():
         db.session.commit()
         
         zoho = ZohoClient()
-        payment_link = zoho.create_payment_link({
-            'order_id': order.order_number,
-            'amount': total_amount,
-            'customer_email': customer_email,
-            'customer_phone': customer_phone,
-            'customer_name': customer_name,
-            'package': f"Order {order_number}"
-        })
-        
+        try:
+            payment_link, zoho_payment_link_id = zoho.create_payment_link({
+                'order_id': order.order_number,
+                'amount': order.total_amount,  # Fix: Use discounted total amount
+                'customer_email': customer_email,
+                'customer_phone': customer_phone,
+                'customer_name': customer_name,
+                'package': f"Order {order.order_number}"
+            })
+        except Exception as e:
+            print("ERROR: Exception calling create_payment_link:", str(e))
+            payment_link, zoho_payment_link_id = None, None
+            
         if payment_link:
             order.payment_link = payment_link
+            order.zoho_payment_link_id = zoho_payment_link_id
             db.session.commit()
             session.pop('cart', None)
             return redirect(payment_link)
         else:
             # Fallback to simulated payment flow for local development / Zoho error
+            print("INFO: Falling back to simulated payment flow.")
             simulated_url = url_for('customer.simulate_payment', order_number=order.order_number, _external=True)
             order.payment_link = simulated_url
             db.session.commit()
@@ -264,10 +270,82 @@ def pay_return():
     if order_number:
         order = Order.query.filter_by(order_number=order_number).first()
         if order and order.status == 'Pending':
-            order.status = 'Paid'
-            deduct_order_stock(order)
-            db.session.commit()
+            if order.zoho_payment_link_id:
+                zoho = ZohoClient()
+                zoho_status = zoho.check_payment_link_status(order.zoho_payment_link_id)
+                # Zoho payment link statuses typically include: 'paid', 'generated', 'expired', 'partially_paid', etc.
+                if zoho_status == 'paid':
+                    order.status = 'Paid'
+                    order.payment_status = 'Paid'
+                    deduct_order_stock(order)
+                    db.session.commit()
+                    print(f"SUCCESS: Order {order.order_number} verified and marked as Paid.")
+                else:
+                    print(f"INFO: Return URL hit, but payment status from Zoho is '{zoho_status}' for order {order.order_number}.")
+            else:
+                # Fallback for simulated checkout
+                order.status = 'Paid'
+                order.payment_status = 'Paid'
+                deduct_order_stock(order)
+                db.session.commit()
+                print(f"SUCCESS: Simulated payment marked as Paid for order {order.order_number}.")
+                
     return render_template('customer/order_success.html', order=order)
+
+@customer_bp.route('/pay/webhook', methods=['POST'])
+def pay_webhook():
+    import json
+    print("DEBUG: Webhook headers:", dict(request.headers))
+    try:
+        # force=True parses request body as JSON even if the content type is missing
+        payload = request.get_json(force=True) or {}
+        print("DEBUG: Webhook payload:", json.dumps(payload, indent=2))
+    except Exception as e:
+        print("ERROR: Failed to parse webhook JSON payload:", str(e))
+        return "Invalid JSON", 400
+
+    # Verify signature
+    zoho = ZohoClient()
+    if not zoho.verify_webhook(payload, request.headers):
+        print("ERROR: Webhook signature mismatch")
+        return "Invalid Signature", 401
+
+    event_type = payload.get("event_type")
+    event_obj = payload.get("event_object", {})
+    
+    # Extract order number recursively or via common payload patterns
+    order_number = (
+        event_obj.get("payment", {}).get("reference_number")
+        or event_obj.get("payment", {}).get("reference_id")
+        or event_obj.get("payment_link", {}).get("reference_id")
+        or event_obj.get("payment_link", {}).get("reference_number")
+        or payload.get("reference_id")
+    )
+    
+    print(f"DEBUG: Webhook Event: {event_type}, Extracted Order Number: {order_number}")
+
+    if event_type in ("payment.succeeded", "payment_link.paid"):
+        if order_number:
+            order = Order.query.filter_by(order_number=order_number).first()
+            if order:
+                if order.status == 'Pending':
+                    order.status = 'Paid'
+                    order.payment_status = 'Paid'
+                    deduct_order_stock(order)
+                    db.session.commit()
+                    print(f"SUCCESS: Webhook confirmed payment for order {order_number}.")
+                    return "Success", 200
+                else:
+                    print(f"INFO: Webhook event ignored, order {order_number} is already '{order.status}'.")
+                    return "Already Processed", 200
+            else:
+                print(f"ERROR: Webhook reference order {order_number} not found.")
+                return "Order Not Found", 404
+        else:
+            print("ERROR: No reference_id/order_number found in webhook payload.")
+            return "No Reference Found", 400
+
+    return "Event Ignored", 200
 
 @customer_bp.route('/terms')
 def terms():

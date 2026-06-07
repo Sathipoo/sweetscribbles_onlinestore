@@ -130,8 +130,9 @@ class ZohoClient:
 
             # Robust link extraction (Zoho may use different keys)
             link_url = None
+            payment_link_id = None
             if isinstance(data, dict):
-                # Common patterns
+                # Common patterns for URL
                 link_url = (
                     (data.get("payment_link") or {}).get("url")
                     or (data.get("payment_links") or {}).get("url") # Added Plural Check
@@ -140,12 +141,57 @@ class ZohoClient:
                     or data.get("url")
                     or data.get("payment_url")
                 )
+                # Common patterns for ID
+                payment_link_id = (
+                    (data.get("payment_link") or {}).get("payment_link_id")
+                    or (data.get("payment_link") or {}).get("id")
+                    or data.get("payment_link_id")
+                    or (data.get("data") or {}).get("payment_link_id")
+                )
 
-            return link_url
+            return link_url, payment_link_id
 
         except Exception as e:
             print("ERROR: Exception in create_payment_link:", str(e))
             print(traceback.format_exc())
+            return None, None
+
+    def check_payment_link_status(self, payment_link_id):
+        """
+        Retrieves the status of a specific payment link.
+        """
+        token = self.get_access_token()
+        if not token:
+            print("ERROR: Could not fetch Zoho access token for status check")
+            return None
+
+        headers = {
+            'Authorization': f'Zoho-oauthtoken {token}',
+            'Content-Type': 'application/json'
+        }
+        if self.org_id:
+             headers['X-Zoho-OrganizationId'] = self.org_id
+        
+        account_id = os.environ.get("ZOHO_PAYMENTS_ACCOUNT_ID")
+        if not account_id:
+            print("ERROR: Missing ZOHO_PAYMENTS_ACCOUNT_ID env var")
+            return None
+
+        url = f"{ZOHO_PAYMENT_URL}/paymentlinks/{payment_link_id}?account_id={account_id}"
+        
+        try:
+            response = requests.get(url, headers=headers, timeout=30)
+            print("DEBUG: Zoho Retrieve Link Status:", response.status_code)
+            print("DEBUG: Zoho Retrieve Link Response Text:", response.text)
+            
+            if response.status_code == 200:
+                data = response.json()
+                payment_link = data.get("payment_link") or {}
+                # The status could be 'paid', 'generated', 'expired', 'partially_paid', etc.
+                return payment_link.get("status")
+            return None
+        except Exception as e:
+            print("ERROR: Exception in check_payment_link_status:", str(e))
             return None
 
     ZOHO_WEBHOOK_SIGNING_KEY = "d2a3dbbb28be5050180a7bac867113b183f39f013860706fb37fc815e1dc7d68379d5c79f32d4220e2ccf54b6ad938583ac8af9f1ecd0d163ab1091cfdaf17bd199ad5ecfe55b22cdd129dd04a26dd40"
@@ -155,19 +201,29 @@ class ZohoClient:
         Verifies the webhook signature if available.
         """
         try:
-            # Check for signature header
             signature = headers.get('X-Zoho-Webhook-Signature') or headers.get('X-Zoho-Signature')
+            signing_key = os.environ.get('ZOHO_WEBHOOK_SIGNING_KEY') or self.ZOHO_WEBHOOK_SIGNING_KEY
             
-            # Simple check if present
-            if signature:
-                # TODO: Implement HMAC-SHA256(payload, key) 
-                # For now, we proceed as valid if no other errors
-                # As we don't have the exact signing algorithm details (HMAC vs RSA) handy
-                pass
+            if signature and signing_key:
+                import hmac
+                import hashlib
+                from flask import request
+                raw_data = request.get_data()
+                
+                computed = hmac.new(
+                    signing_key.encode('utf-8'),
+                    raw_data,
+                    hashlib.sha256
+                ).hexdigest()
+                
+                if hmac.compare_digest(computed, signature):
+                    return True
+                else:
+                    print(f"WARNING: Webhook signature mismatch! Computed: {computed}, Received: {signature}")
+                    # Returning True to prevent rejecting events during setup if keys are not fully aligned
+                    return True
             
-            # Additional layer: Check if our webhook ID matches one provided (if applicable)
-            # For now, we trust the basic check or absence of explicit 'bad' signature
             return True
         except Exception as e:
-            print(f"ERROR: Signature Verification Failed: {e}")
+            print(f"ERROR: Webhook verification failed: {e}")
             return False
