@@ -98,3 +98,344 @@ h1, h2, h3, h4, .font-premium-header {
   box-shadow: 0 6px 15px rgba(0,0,0,0.05);
   transform: translateY(-3px);
 }
+
+/* --- Collection Lanes & Responsive Horizontal Carousel --- */
+.collection-section-wrapper {
+  border-radius: 32px;
+  margin: 40px 0;
+  padding: 40px 0;
+  transition: background-color 0.3s ease;
+}
+
+/* Distinct Themes */
+.theme-bites {
+  background-color: #f3f6f4; /* Soft Sage Green */
+  color: #1b3d2f;
+}
+.theme-bites .collection-title-serif {
+  color: #1b3d2f;
+}
+.theme-bites .collection-card {
+  border-color: #1b3d2f;
+}
+.theme-bites .collection-card-stars {
+  color: #1b3d2f;
+}
+.theme-bites .collection-scroll-btn:hover {
+  background-color: #1b3d2f;
+  color: #fff;
+  border-color: #1b3d2f;
+}
+
+.theme-choco {
+  background-color: #fdf8f5; /* Soft Cream Chocolate */
+  color: #4a2c22;
+}
+.theme-choco .collection-title-serif {
+  color: #4a2c22;
+}
+.theme-choco .collection-card {
+  border-color: #4a2c22;
+}
+.theme-choco .collection-card-stars {
+  color: #d84315;
+}
+.theme-choco .collection-scroll-btn:hover {
+  background-color: #4a2c22;
+  color: #fff;
+  border-color: #4a2c22;
+}
+
+.theme-gifting {
+  background-color: #faf6eb; /* Soft Gold/Champagne */
+  color: #5c4008;
+}
+.theme-gifting .collection-title-serif {
+  color: #5c4008;
+}
+.theme-gifting .collection-card {
+  border-color: #5c4008;
+}
+.theme-gifting .collection-card-stars {
+  color: #ffb300;
+}
+.theme-gifting .collection-scroll-btn:hover {
+  background-color: #5c4008;
+  color: #fff;
+  border-color: #5c4008;
+}
+
+/* Header & Title */
+.collection-header-wrapper {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+.collection-title-serif {
+  font-family: 'Playfair Display', Georgia, serif;
+  font-weight: 700;
+  font-size: 1.8rem;
+  margin-bottom: 0;
+}
+
+/* Horizontal Scroll lane wrapper */
+.collection-scroll-wrapper {
+  position: relative;
+}
+.collection-scroll-container {
+  display: flex;
+  overflow-x: auto;
+  gap: 16px;
+  scroll-behavior: smooth;
+  scroll-snap-type: x mandatory;
+  padding: 10px 4px 20px;
+  -webkit-overflow-scrolling: touch;
+  scrollbar-width: none; /* Hide scrollbar Firefox */
+}
+.collection-scroll-container::-webkit-scrollbar {
+  display: none; /* Hide scrollbar Chrome/Safari */
+}
+
+/* Collection item card width constraints */
+.collection-card-item {
+  flex: 0 0 240px; /* Desktop Blinkit-like width */
+  scroll-snap-align: start;
+}
+
+/* Collection Card design */
+.collection-card {
+  height: 100%;
+  background-color: #ffffff;
+  border-radius: 20px;
+  border: 1.5px solid;
+  padding: 10px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: all 0.3s ease;
+  text-decoration: none !important;
+  color: inherit !important;
+}
+.collection-card:hover {
+  box-shadow: 0 10px 25px rgba(0,0,0,0.06);
+  transform: translateY(-4px);
+}
+
+.collection-card-image-capsule {
+  position: relative;
+  border-radius: 14px;
+  overflow: hidden;
+  background-color: #f7f7f7;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 170px;
+  border: 1px solid rgba(0,0,0,0.03);
+}
+.collection-card-image-capsule img {
+  max-height: 100%;
+  max-width: 100%;
+  object-fit: cover;
+  transition: transform 0.5s ease;
+}
+.collection-card:hover .collection-card-image-capsule img {
+  transform: scale(1.05);
+}
+
+/* Badges */
+.collection-discount-badge {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  background-color: #097969; /* Green badge */
+  color: #ffffff;
+  padding: 3px 8px;
+  border-radius: 6px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  z-index: 5;
+  box-shadow: 0 2px 4px rgba(9,121,105,0.25);
+}
+.collection-sold-out-badge {
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  background-color: #ffffff;
+  color: #333333;
+  padding: 3px 12px;
+  border-radius: 50px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  border: 1px solid rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(0,0,0,0.08);
+  white-space: nowrap;
+  z-index: 5;
+}
+
+/* Card Metadata */
+.collection-card-title {
+  font-family: 'Inter', sans-serif;
+  font-size: 0.9rem;
+  font-weight: 700;
+  text-align: center;
+  color: #111111;
+  margin: 12px 0 4px;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  height: 2.6rem;
+  line-height: 1.3;
+}
+.collection-card-stars {
+  font-size: 0.75rem;
+  text-align: center;
+  margin-bottom: 6px;
+  font-weight: 500;
+}
+.collection-card-price-row {
+  text-align: center;
+  margin-top: auto;
+  padding-bottom: 6px;
+}
+.collection-mrp-strike {
+  text-decoration: line-through;
+  color: #888888;
+  font-size: 0.75rem;
+  margin-right: 6px;
+}
+.collection-sale-price {
+  font-weight: 800;
+  color: #111111;
+  font-size: 0.95rem;
+}
+
+/* Nav Controls */
+.collection-scroll-btn {
+  width: 36px;
+  height: 36px;
+  border-radius: 50%;
+  border: 1px solid rgba(0,0,0,0.15);
+  background-color: #ffffff;
+  color: #333333;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  box-shadow: 0 2px 5px rgba(0,0,0,0.05);
+  font-weight: bold;
+}
+.collection-scroll-btn:active {
+  transform: scale(0.95);
+}
+
+/* Responsive Scaling: Smaller Blinkit/Zepto Cards on Mobile */
+@media (max-width: 576px) {
+  .collection-section-wrapper {
+    margin: 20px 0;
+    padding: 24px 0;
+    border-radius: 20px;
+  }
+  .collection-header-wrapper {
+    margin-bottom: 16px;
+  }
+  .collection-title-serif {
+    font-size: 1.25rem;
+    line-height: 1.2;
+  }
+  .collection-scroll-container {
+    gap: 12px;
+    padding-bottom: 15px;
+  }
+  .collection-card-item {
+    flex: 0 0 145px; /* Blinkit/Zepto card size */
+  }
+  .collection-card {
+    border-width: 1px;
+    padding: 8px;
+    border-radius: 14px;
+  }
+  .collection-card-image-capsule {
+    height: 110px;
+    border-radius: 10px;
+  }
+  .collection-card-title {
+    font-size: 0.75rem;
+    height: 2.2rem;
+    margin-top: 8px;
+  }
+  .collection-card-stars {
+    font-size: 0.65rem;
+    margin-bottom: 4px;
+  }
+  .collection-mrp-strike {
+    font-size: 0.65rem;
+    margin-right: 4px;
+  }
+  .collection-sale-price {
+    font-size: 0.8rem;
+  }
+  .collection-discount-badge {
+    font-size: 0.6rem;
+    padding: 2px 5px;
+    top: 5px;
+    right: 5px;
+  }
+  .collection-sold-out-badge {
+    font-size: 0.6rem;
+    padding: 2px 8px;
+    bottom: 5px;
+  }
+  .collection-scroll-btn {
+    width: 30px;
+    height: 30px;
+    font-size: 0.8rem;
+  }
+}
+
+/* --- Occasions & Why Choose Grid Sizing --- */
+.occasion-card-img {
+  max-height: 120px;
+  width: auto;
+  object-fit: contain;
+  transition: transform 0.3s ease;
+}
+.occasion-card-title {
+  font-size: 0.95rem;
+}
+.choose-card-img {
+  max-height: 120px;
+  width: auto;
+  object-fit: contain;
+}
+.choose-card-title {
+  font-size: 0.95rem;
+}
+.choose-card-desc {
+  font-size: 0.8rem;
+}
+
+@media (max-width: 576px) {
+  .occasion-card-img {
+    max-height: 72px;
+  }
+  .occasion-card-title {
+    font-size: 0.85rem;
+    line-height: 1.25;
+  }
+  .choose-card-img {
+    max-height: 72px;
+  }
+  .choose-card-title {
+    font-size: 0.85rem;
+    line-height: 1.25;
+  }
+  .choose-card-desc {
+    font-size: 0.68rem;
+    line-height: 1.25;
+  }
+}
+

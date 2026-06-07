@@ -27,6 +27,8 @@ class Order(db.Model):
     courier_name = db.Column(db.String(100))
     shipping_status = db.Column(db.String(50), default='Unshipped')
     
+    is_stock_deducted = db.Column(db.Boolean, default=False, nullable=False)
+    
     items = db.relationship('OrderItem', backref='order', lazy=True)
 
 class OrderItem(db.Model):

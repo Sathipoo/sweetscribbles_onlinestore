@@ -58,213 +58,664 @@
 </section>
 
 <!-- Section 2: Carousel Product Slider (Top Bites Featured) -->
-<section class="pb-5">
+<section class="collection-section-wrapper theme-bites py-5" id="featured-section">
     <div class="container">
-        <!-- Flex row to display featured products -->
-        <div class="row g-4 justify-content-center">
-            {% for product in featured %}
-            <div class="col-lg-4 col-md-6">
-                <div class="card p-3 rounded-4 shadow-sm border-0 h-100 bg-white" style="transition: transform 0.3s; position: relative;">
-                    <!-- Badge: No sugar dry fruit bites -->
-                    <div style="position: absolute; top: 20px; left: 20px; z-index: 10;">
-                        <span class="badge bg-light text-dark border px-3 py-2 rounded-pill font-monospace" style="font-size: 0.75rem; letter-spacing: 0.5px;">
-                            no sugar dry fruit bites
-                        </span>
-                    </div>
-
-                    <!-- Out of stock badge -->
-                    {% if product.available_qty == 0 %}
-                    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
-                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
-                            Out of stock
-                        </span>
-                    </div>
-                    {% endif %}
-
-                    <!-- Product image -->
-                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 280px; border: 1px solid #eee;">
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
-                        {% else %}
-                        <!-- Custom styled placeholder matching screenshot -->
-                        <div class="text-muted text-center">
-                            <span style="font-size: 3rem;">🖼️</span>
-                            <p class="mt-2 mb-0 small font-monospace text-secondary">no sugar dry fruit bites</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="card-body px-1 pt-3 d-flex flex-column">
-                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.95rem; min-height: 48px;">
-                            {{ product.name }}
-                        </h6>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="fw-bold text-dark" style="font-size: 1.2rem;">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                            <!-- Circular view button -->
-                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn d-flex align-items-center justify-content-center shadow-sm border" style="width: 42px; height: 42px; border-radius: 50%; background: white; border-color: #ddd;">
-                                <span style="font-size: 1.1rem; color: #333;">👁️</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+        <div class="collection-header-wrapper">
+            <h2 class="collection-title-serif">Top Featured Bites | Energy Boosters</h2>
+            <div class="d-flex gap-2">
+                <button class="collection-scroll-btn" onclick="scrollCollection('featured-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('featured-scroll', 'right')">›</button>
             </div>
-            {% endfor %}
         </div>
         
-        <!-- Orange circular arrow controls -->
-        <div class="text-center mt-4">
-            <button class="btn me-2" style="background-color: #ffb300; color: #111; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; border: none; font-size: 1.2rem;" onclick="alert('Previous items')">‹</button>
-            <button class="btn" style="background-color: #ffb300; color: #111; width: 44px; height: 44px; border-radius: 50%; font-weight: bold; border: none; font-size: 1.2rem;" onclick="alert('Next items')">›</button>
-        </div>
-    </div>
-</section>
+        <div class="collection-scroll-wrapper">
+            <div class="collection-scroll-container" id="featured-scroll">
+                {% for product in featured %}
+                <div class="collection-card-item">
+                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
+                        <div class="collection-card-image-capsule">
+                            {% set discount = 0 %}
+                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
+                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                            {% endif %}
+                            {% if discount > 0 %}
+                            <div class="collection-discount-badge">{{ discount }}% Off</div>
+                            {% endif %}
 
-<!-- Section 3: Which Sweet Scribbler Are You? (Avatars) -->
-<section class="py-5 bg-white">
-    <div class="container text-center">
-        <h2 class="fw-extrabold mb-2" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; color: #111; font-size: 2.2rem;">
-            Which Sweet Scribbler Are You?
-        </h2>
-        <p class="text-muted mb-5" style="font-size: 1.05rem;">
-            Step into your flavour universe – find your category avatar
-        </p>
-        
-        <div class="row g-4 justify-content-center">
-            <!-- Avatar 1: The Dark Knight -->
-            <div class="col">
-                <div class="px-2">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal1" class="d-block transition-scale">
-                        <img src="/static/images/the_dark_Knight.png" alt="The Dark Knight" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
+                            {% if product.available_qty == 0 %}
+                            <div class="collection-sold-out-badge">Sold out</div>
+                            {% endif %}
+
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="text-muted text-center py-4">
+                                <span style="font-size: 2.2rem;">🌴</span>
+                                <p class="mt-2 mb-0 small text-secondary">No Sugar Bite</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="collection-card-title">{{ product.name }}</h6>
+                        
+                        <div class="collection-card-stars">
+                            {% set ratings = [
+                                '★★★★★ (29)',
+                                '★★★★★ (32)',
+                                '★★★★☆ (18)',
+                                '★★★★★ (45)',
+                                '★★★★☆ (26)'
+                            ] %}
+                            {{ ratings[(product.id) % 5] }}
+                        </div>
+
+                        <div class="collection-card-price-row">
+                            {% if product.mrp and product.mrp > product.sale_price %}
+                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            {% endif %}
+                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                        </div>
                     </a>
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal1" class="text-decoration-none text-dark hover-gold">
-                        <h6 class="fw-bold mb-1">The Dark Knight</h6>
-                    </a>
-                    <p class="text-muted small">Sophisticated taste, elegant choices.</p>
                 </div>
-            </div>
-            <!-- Avatar 2: The Wellness Wanderer -->
-            <div class="col">
-                <div class="px-2">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal2" class="d-block transition-scale">
-                        <img src="/static/images/wellness_wanderer.png" alt="The Wellness Wanderer" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    </a>
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal2" class="text-decoration-none text-dark hover-gold">
-                        <h6 class="fw-bold mb-1">The Wellness Wanderer</h6>
-                    </a>
-                    <p class="text-muted small">Reads labels, chooses purity, loves clean energy.</p>
-                </div>
-            </div>
-            <!-- Avatar 3: The Celebration Spark -->
-            <div class="col">
-                <div class="px-2">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal3" class="d-block transition-scale">
-                        <img src="/static/images/celeb_spark.png" alt="The Celebration Spark" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    </a>
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal3" class="text-decoration-none text-dark hover-gold">
-                        <h6 class="fw-bold mb-1">The Celebration Spark</h6>
-                    </a>
-                    <p class="text-muted small">Spreads joy everywhere they go.</p>
-                </div>
-            </div>
-            <!-- Avatar 4: The Thoughtful Giver -->
-            <div class="col">
-                <div class="px-2">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal4" class="d-block transition-scale">
-                        <img src="/static/images/thoughtful_giver.png" alt="The Thoughtful Giver" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    </a>
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal4" class="text-decoration-none text-dark hover-gold">
-                        <h6 class="fw-bold mb-1">The Thoughtful Giver</h6>
-                    </a>
-                    <p class="text-muted small">You shine brightest when gifting happiness to others.</p>
-                </div>
-            </div>
-            <!-- Avatar 5: The Bliss Explorer -->
-            <div class="col">
-                <div class="px-2">
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal5" class="d-block transition-scale">
-                        <img src="/static/images/bliss_explorer.png" alt="The Bliss Explorer" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    </a>
-                    <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal5" class="text-decoration-none text-dark hover-gold">
-                        <h6 class="fw-bold mb-1">The Bliss Explorer</h6>
-                    </a>
-                    <p class="text-muted small">Your heart says "all of them please!"</p>
-                </div>
+                {% endfor %}
             </div>
         </div>
     </div>
 </section>
 
-<!-- Section 4: Rounded Dark Banner -->
-<section class="py-4">
-    <div class="container">
-        <div class="bg-black text-white p-5 rounded-5 text-center shadow-lg position-relative overflow-hidden" style="border: 2px solid #ffb300;">
-            <!-- Golden sparkles/stars on sides -->
-            <div class="d-none d-md-block position-absolute" style="top: 25%; left: 8%; font-size: 2.5rem; color: #ffb300;">✦</div>
-            <div class="d-none d-md-block position-absolute" style="bottom: 25%; left: 12%; font-size: 1.8rem; color: #ffb300;">✦</div>
-            <div class="d-none d-md-block position-absolute" style="top: 25%; right: 8%; font-size: 2.5rem; color: #ffb300;">✦</div>
-            <div class="d-none d-md-block position-absolute" style="bottom: 25%; right: 12%; font-size: 1.8rem; color: #ffb300;">✦</div>
+<!-- Section 3: Which Sweet Scribbler Are You? (Quiz & Grid) -->
+<style>
+/* Scribbler Quiz Styling */
+.quiz-card {
+    background: #fbf9f6;
+    border: 1px solid rgba(62, 39, 35, 0.08);
+    border-radius: 30px;
+    box-shadow: 0 10px 30px rgba(62, 39, 35, 0.03);
+    overflow: hidden;
+    transition: all 0.3s ease;
+}
+.quiz-progress {
+    height: 6px;
+    background-color: #eee;
+    border-radius: 10px;
+    overflow: hidden;
+}
+.quiz-progress-bar {
+    height: 100%;
+    width: 0%;
+    background-color: var(--secondary-color);
+    transition: width 0.4s cubic-bezier(0.1, 0.8, 0.1, 1);
+}
+.quiz-option {
+    background: white;
+    border: 2px solid rgba(62, 39, 35, 0.08);
+    border-radius: 16px;
+    padding: 16px 20px;
+    margin-bottom: 12px;
+    cursor: pointer;
+    font-weight: 500;
+    transition: all 0.25s ease;
+    text-align: left;
+    display: block;
+    width: 100%;
+    color: #4e342e;
+}
+.quiz-option:hover {
+    transform: translateY(-2px);
+    border-color: var(--secondary-color);
+    background-color: #fffdf9;
+    box-shadow: 0 4px 12px rgba(255, 179, 0, 0.1);
+}
+.quiz-option:active {
+    transform: translateY(0);
+}
+.quiz-avatar-btn {
+    transition: transform 0.3s ease;
+}
+.quiz-avatar-btn:hover {
+    transform: scale(1.05);
+}
+.quiz-avatar-img {
+    filter: drop-shadow(0 8px 15px rgba(0,0,0,0.08));
+}
+.result-shine {
+    animation: bounceIn 0.8s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+@keyframes bounceIn {
+    0% { opacity: 0; transform: scale(0.3); }
+    50% { opacity: 0.9; transform: scale(1.05); }
+    70% { transform: scale(0.9); }
+    100% { opacity: 1; transform: scale(1); }
+}
 
-            <h2 class="fw-extrabold mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-size: 2.5rem; font-weight: 800; color: #ffb300;">
-                Healthy Has Never Tasted This Good
+/* Ingredients Purity Showcase Styling */
+.purity-wrapper {
+    background: linear-gradient(135deg, #1c0e0b 0%, #0d0503 100%);
+    border: 2px solid #ffb300;
+    border-radius: 40px;
+    position: relative;
+    overflow: hidden;
+}
+.purity-sparkle {
+    position: absolute;
+    color: rgba(255, 179, 0, 0.2);
+    font-size: 2.2rem;
+    pointer-events: none;
+}
+.purity-card {
+    background: rgba(255, 255, 255, 0.02);
+    border: 1px solid rgba(255, 255, 255, 0.05);
+    border-radius: 20px;
+    padding: 20px;
+    cursor: pointer;
+    transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);
+    height: 100%;
+}
+.purity-card:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: #ffb300;
+    box-shadow: 0 8px 25px rgba(255, 179, 0, 0.15);
+    transform: translateY(-4px);
+}
+.purity-card.active {
+    background: rgba(255, 179, 0, 0.06);
+    border-color: #ffb300;
+    box-shadow: 0 8px 30px rgba(255, 179, 0, 0.25);
+}
+.purity-card-icon {
+    font-size: 2.2rem;
+    margin-bottom: 12px;
+    display: inline-block;
+    filter: drop-shadow(0 4px 8px rgba(0,0,0,0.15));
+}
+.gauge-container {
+    position: relative;
+    width: 220px;
+    height: 220px;
+    margin: 0 auto;
+}
+.gauge-svg {
+    transform: rotate(-90deg);
+}
+.gauge-bg {
+    fill: none;
+    stroke: rgba(255,255,255,0.05);
+    stroke-width: 14;
+}
+.gauge-fill {
+    fill: none;
+    stroke: #ffb300;
+    stroke-width: 14;
+    stroke-linecap: round;
+    stroke-dasharray: 565.48; /* 2 * PI * 90 */
+    stroke-dashoffset: 565.48;
+    transition: stroke-dashoffset 1.2s cubic-bezier(0.1, 0.8, 0.1, 1);
+    filter: drop-shadow(0 0 8px rgba(255,179,0,0.5));
+}
+.gauge-text {
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    text-align: center;
+}
+.pulse-glow {
+    animation: pulseGlow 2s infinite ease-in-out;
+}
+@keyframes pulseGlow {
+    0% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255,179,0,0.5)); }
+    50% { transform: scale(1.02); filter: drop-shadow(0 0 16px rgba(255,179,0,0.8)); }
+    100% { transform: scale(1); filter: drop-shadow(0 0 8px rgba(255,179,0,0.5)); }
+}
+</style>
+
+<section class="py-5 bg-light" id="scribbler-section">
+    <div class="container">
+        <div class="text-center mb-5">
+            <h2 class="fw-extrabold mb-2" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; color: #111; font-size: 2.2rem;">
+                Which Sweet Scribbler Are You?
             </h2>
-            <p class="text-light opacity-90 fs-5 mb-3">
-                Handcrafted using premium nuts, seeds, anjeer & dates
+            <p class="text-muted fs-5 mx-auto" style="max-width: 600px;">
+                Step into our flavor universe – take the quiz to find your avatar, or explore them below.
             </p>
-            <hr class="mx-auto my-3" style="width: 80px; border-top: 2px solid #ffb300;">
-            <h4 class="fw-bold text-white mb-2" style="letter-spacing: 0.5px;">
-                no sugar, no jaggery, no stevia.
-            </h4>
-            <p class="text-light opacity-75 small">
-                Perfect for kids, parents, fitness lovers & gifting.
-            </p>
+        </div>
+
+        <div class="row g-5 align-items-center">
+            <!-- Left Side: Interactive Quiz Panel -->
+            <div class="col-lg-6">
+                <div class="quiz-card p-4 p-md-5">
+                    <div id="quiz-intro-state">
+                        <div class="text-center py-4">
+                            <span class="fs-1 mb-3 d-block">🔮</span>
+                            <h4 class="fw-bold mb-3" style="color: var(--primary-color);">Discover Your Flavor Profile</h4>
+                            <p class="text-muted small px-md-4 mb-4">
+                                Answer 3 quick lifestyle questions and let the Cocoa Oracle match you with your custom avatar and recommended bites!
+                            </p>
+                            <button class="btn btn-premium rounded-pill px-5 py-2 fw-semibold" onclick="startScribblerQuiz()">
+                                Start Avatar Quiz ➔
+                            </button>
+                        </div>
+                    </div>
+
+                    <div id="quiz-question-state" class="d-none">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <span class="badge bg-dark text-white rounded-pill px-3 py-1 font-monospace" id="quiz-question-counter">Question 1/3</span>
+                            <span class="text-muted small fw-semibold" id="quiz-progress-text">33% Complete</span>
+                        </div>
+                        <div class="quiz-progress mb-4">
+                            <div class="quiz-progress-bar" id="quiz-progress-bar"></div>
+                        </div>
+                        <h5 class="fw-bold text-dark mb-4" id="quiz-question-title">--</h5>
+                        <div id="quiz-options-container">
+                            <!-- Injected dynamically -->
+                        </div>
+                    </div>
+
+                    <div id="quiz-loading-state" class="d-none">
+                        <div class="text-center py-5">
+                            <div class="spinner-border text-warning mb-3" role="status" style="width: 3rem; height: 3rem; border-width: 0.25em;">
+                                <span class="visually-hidden">Loading...</span>
+                            </div>
+                            <h5 class="fw-semibold text-dark" id="quiz-loading-message">Consulting the Cocoa Oracle...</h5>
+                            <p class="text-muted small">Mixing ingredients, estimating cravings...</p>
+                        </div>
+                    </div>
+
+                    <div id="quiz-result-state" class="d-none">
+                        <div class="text-center result-shine">
+                            <img src="" id="result-avatar-img" alt="Avatar Result" class="img-fluid mb-3 quiz-avatar-img" style="max-height: 150px; object-fit: contain;">
+                            <h4 class="fw-bold mb-1" id="result-avatar-title" style="font-family: 'Playfair Display', serif; color: var(--primary-color);">--</h4>
+                            <h6 class="text-secondary fw-semibold mb-3 small" id="result-avatar-subtitle">--</h6>
+                            <p class="text-muted small px-md-3 mb-4" id="result-avatar-desc">--</p>
+                            
+                            <div class="p-3 bg-white rounded-4 border shadow-sm mb-4 d-inline-flex align-items-center gap-3" style="max-width: 100%;">
+                                <div class="text-start">
+                                    <span class="text-muted small d-block">Recommended Sweet:</span>
+                                    <strong class="text-dark small d-block" id="result-product-name">--</strong>
+                                </div>
+                                <a href="" id="result-product-link" class="btn btn-premium btn-sm rounded-pill px-4">Get Yours ➔</a>
+                            </div>
+                            <div class="d-block">
+                                <button class="btn btn-link text-muted btn-sm text-decoration-none fw-semibold" onclick="resetScribblerQuiz()">➔ Reset and retake quiz</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right Side: Grid of 5 static Avatars -->
+            <div class="col-lg-6">
+                <h5 class="fw-bold text-dark mb-4 text-center text-lg-start">Meet the Avatars</h5>
+                <div class="row g-3 justify-content-center">
+                    <!-- Avatar Card 1 -->
+                    <div class="col-6 col-sm-4 text-center">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal1" class="d-block p-2 border rounded-4 bg-white text-decoration-none text-dark quiz-avatar-btn shadow-sm h-100">
+                            <img src="/static/images/the_dark_Knight.png" alt="The Dark Knight" class="img-fluid mb-2" style="max-height: 80px; object-fit: contain;">
+                            <h6 class="fw-bold mb-1 small">The Dark Knight</h6>
+                            <span class="text-muted font-monospace" style="font-size: 0.65rem;">View Profile</span>
+                        </a>
+                    </div>
+                    <!-- Avatar Card 2 -->
+                    <div class="col-6 col-sm-4 text-center">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal2" class="d-block p-2 border rounded-4 bg-white text-decoration-none text-dark quiz-avatar-btn shadow-sm h-100">
+                            <img src="/static/images/wellness_wanderer.png" alt="The Wellness Wanderer" class="img-fluid mb-2" style="max-height: 80px; object-fit: contain;">
+                            <h6 class="fw-bold mb-1 small">The Wellness Wanderer</h6>
+                            <span class="text-muted font-monospace" style="font-size: 0.65rem;">View Profile</span>
+                        </a>
+                    </div>
+                    <!-- Avatar Card 3 -->
+                    <div class="col-6 col-sm-4 text-center">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal3" class="d-block p-2 border rounded-4 bg-white text-decoration-none text-dark quiz-avatar-btn shadow-sm h-100">
+                            <img src="/static/images/celeb_spark.png" alt="The Celebration Spark" class="img-fluid mb-2" style="max-height: 80px; object-fit: contain;">
+                            <h6 class="fw-bold mb-1 small">Celebration Spark</h6>
+                            <span class="text-muted font-monospace" style="font-size: 0.65rem;">View Profile</span>
+                        </a>
+                    </div>
+                    <!-- Avatar Card 4 -->
+                    <div class="col-6 col-sm-4 text-center mt-sm-3">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal4" class="d-block p-2 border rounded-4 bg-white text-decoration-none text-dark quiz-avatar-btn shadow-sm h-100">
+                            <img src="/static/images/thoughtful_giver.png" alt="The Thoughtful Giver" class="img-fluid mb-2" style="max-height: 80px; object-fit: contain;">
+                            <h6 class="fw-bold mb-1 small">Thoughtful Giver</h6>
+                            <span class="text-muted font-monospace" style="font-size: 0.65rem;">View Profile</span>
+                        </a>
+                    </div>
+                    <!-- Avatar Card 5 -->
+                    <div class="col-6 col-sm-4 text-center mt-sm-3">
+                        <a href="#" data-bs-toggle="modal" data-bs-target="#avatarModal5" class="d-block p-2 border rounded-4 bg-white text-decoration-none text-dark quiz-avatar-btn shadow-sm h-100">
+                            <img src="/static/images/bliss_explorer.png" alt="The Bliss Explorer" class="img-fluid mb-2" style="max-height: 80px; object-fit: contain;">
+                            <h6 class="fw-bold mb-1 small">The Bliss Explorer</h6>
+                            <span class="text-muted font-monospace" style="font-size: 0.65rem;">View Profile</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
         </div>
     </div>
 </section>
+
+<!-- Section 4: Healthy Snacking Poster Banner -->
+<section class="py-5 bg-white" id="purity-showcase">
+    <div class="container">
+        <div class="text-white p-4 p-md-5 shadow-lg border" style="background: linear-gradient(135deg, #3e2723 0%, #1b0e0c 100%); border-color: rgba(255, 179, 0, 0.25) !important; border-radius: 32px;">
+            <div class="text-center mb-4">
+                <span class="fs-1 mb-2 d-block">✨</span>
+                <h2 class="fw-extrabold mb-2" style="font-family: 'Playfair Display', Georgia, serif; font-size: 2.2rem; font-weight: 800; color: #ffb300;">
+                    Healthy Has Never Tasted This Good
+                </h2>
+                <p class="fs-5 text-light opacity-90 mx-auto" style="max-width: 680px; line-height: 1.6;">
+                    Our commitment is simple: 100% clean ingredients, zero chemical shortcuts. We source raw, honest inputs to handcraft our recipes and fuel your active day.
+                </p>
+                <div style="width: 50px; height: 2px; background-color: #ffb300; margin: 15px auto 0;"></div>
+            </div>
+
+            <!-- Clean Grid of Key Ingredients -->
+            <div class="row g-3 justify-content-center text-center mt-3">
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <span class="fs-2 mb-2 d-block">🌴</span>
+                        <h6 class="fw-bold text-warning mb-1" style="font-size: 0.95rem;">Raw Dates & Figs</h6>
+                        <p class="text-light opacity-75 mb-0" style="font-size: 0.75rem;">Naturally sweet & fiber-dense base</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <span class="fs-2 mb-2 d-block">🌰</span>
+                        <h6 class="fw-bold text-warning mb-1" style="font-size: 0.95rem;">Roasted Nuts</h6>
+                        <p class="text-light opacity-75 mb-0" style="font-size: 0.75rem;">Premium almonds & roasted cashews</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <span class="fs-2 mb-2 d-block">🌱</span>
+                        <h6 class="fw-bold text-warning mb-1" style="font-size: 0.95rem;">Superfood Seeds</h6>
+                        <p class="text-light opacity-75 mb-0" style="font-size: 0.75rem;">Sesame & nutrient-rich pumpkin seeds</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-3 h-100 rounded-4" style="background: rgba(255, 255, 255, 0.02); border: 1px solid rgba(255, 255, 255, 0.06);">
+                        <span class="fs-2 mb-2 d-block">🍫</span>
+                        <h6 class="fw-bold text-warning mb-1" style="font-size: 0.95rem;">Couverture Cocoa</h6>
+                        <p class="text-light opacity-75 mb-0" style="font-size: 0.75rem;">Antioxidant-dense, 0% palm oil</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Zero Chemical Shield Banner -->
+            <div class="text-center mt-5">
+                <div class="d-inline-block p-3 px-4 rounded-pill shadow-sm" style="background: rgba(0, 0, 0, 0.25); border: 1px solid rgba(255, 179, 0, 0.15); max-width: 100%;">
+                    <span class="fw-semibold text-warning font-monospace" style="font-size: 0.75rem; letter-spacing: 0.5px;">🛡️ 0% ADDED SUGAR • 0% JAGGERY • 0% PRESERVATIVES • 0% PALM OIL</span>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<script>
+/* Personality Quiz Logic */
+let quizCurrentQuestion = 0;
+let quizScores = {
+    dark_knight: 0,
+    wellness_wanderer: 0,
+    celeb_spark: 0,
+    thoughtful_giver: 0,
+    bliss_explorer: 0
+};
+
+const quizQuestions = [
+    {
+        title: "How do you usually feel when 3 PM rolls around at work or home?",
+        options: [
+            { text: "My brain is foggy, but I need deep focus to finish release tasks.", scores: { dark_knight: 2, wellness_wanderer: 1 } },
+            { text: "I have a sudden sugar craving, and I need a sweet lift!", scores: { celeb_spark: 2, bliss_explorer: 1 } },
+            { text: "Ready to hit the gym or go for a run, need clean athletic fuel.", scores: { wellness_wanderer: 3 } },
+            { text: "Thinking about dinner, or looking for something to share with my crew.", scores: { thoughtful_giver: 2, celeb_spark: 1 } }
+        ]
+    },
+    {
+        title: "What is your absolute number-one rule when choosing a snack?",
+        options: [
+            { text: "Must be 100% natural, clean ingredients, zero preservatives.", scores: { wellness_wanderer: 3 } },
+            { text: "Rich, indulgent dark couverture chocolate that melts slowly.", scores: { dark_knight: 3 } },
+            { text: "It must spread joy and double as a premium, healthy gift.", scores: { thoughtful_giver: 3 } },
+            { text: "Why pick one? Let me taste a bit of everything!", scores: { bliss_explorer: 3 } }
+        ]
+    },
+    {
+        title: "When does your sweet tooth hit the hardest?",
+        options: [
+            { text: "Midnight fridge raiding, standing in the cold light of the kitchen.", scores: { bliss_explorer: 2, dark_knight: 1 } },
+            { text: "Right after a heavy meal, to cleanse the palate.", scores: { dark_knight: 2, bliss_explorer: 1 } },
+            { text: "Mid-afternoon desk slump or right after high-intensity training.", scores: { wellness_wanderer: 2, celeb_spark: 1 } },
+            { text: "Whenever I want to gift or surprise someone I care about.", scores: { thoughtful_giver: 3 } }
+        ]
+    }
+];
+
+const quizAvatars = {
+    dark_knight: {
+        title: "The Dark Knight",
+        subtitle: "Sophisticated taste, elegant choices",
+        desc: "You appreciate the deep, intense flavors of rich dark couverture chocolate blended with premium dates and roasted nuts. You value complexity and elegant design. A true connoisseur of healthy luxury who makes no compromises on quality.",
+        img: "/static/images/the_dark_Knight.png",
+        product: "Dark Choco Bliss Bites",
+        link: "/collections#choco-bliss-collection"
+    },
+    wellness_wanderer: {
+        title: "The Wellness Wanderer",
+        subtitle: "Reads labels, chooses purity, loves clean energy",
+        desc: "For you, ingredients are everything. You look for raw, unadulterated nutrients without any artificial fillers. Pure dates, nutrient-dense figs, raw seeds, and roasted nuts are your fuel of choice for an active, mindful lifestyle.",
+        img: "/static/images/wellness_wanderer.png",
+        product: "Anjeer Dry Fruit Dates Bite",
+        link: "/collections#daily-nutritional-bites"
+    },
+    celeb_spark: {
+        title: "The Celebration Spark",
+        subtitle: "Spreads joy everywhere they go",
+        desc: "Bright, sweet, and social — you love celebrating life's big and small moments with friends and family. You represent sharing wholesome happiness through beautifully presented, delicious, and guilt-free sweets.",
+        img: "/static/images/celeb_spark.png",
+        product: "Peanut Dates Bite",
+        link: "/collections#daily-nutritional-bites"
+    },
+    thoughtful_giver: {
+        title: "The Thoughtful Giver",
+        subtitle: "You shine brightest when gifting happiness",
+        desc: "For you, the act of giving is an art. You appreciate custom ribbons, personalized sleeves, customized messages, and beautifully engraved chocolates. You love showing people they are valued through custom-crafted experiences.",
+        img: "/static/images/thoughtful_giver.png",
+        product: "Large Delight Box",
+        link: "/collections#gifting-collection"
+    },
+    bliss_explorer: {
+        title: "The Bliss Explorer",
+        subtitle: "Your heart says 'all of them please!'",
+        desc: "You cannot choose just one! You love exploring flavor profiles, mixing daily bites with chocolate truffles, and trying everything we roll. You are a curious adventurer seeking the ultimate healthy sweet combinations.",
+        img: "/static/images/bliss_explorer.png",
+        product: "Milk Choco Bliss Bites",
+        link: "/collections#choco-bliss-collection"
+    }
+};
+
+function startScribblerQuiz() {
+    quizCurrentQuestion = 0;
+    quizScores = { dark_knight: 0, wellness_wanderer: 0, celeb_spark: 0, thoughtful_giver: 0, bliss_explorer: 0 };
+    
+    document.getElementById('quiz-intro-state').classList.add('d-none');
+    document.getElementById('quiz-result-state').classList.add('d-none');
+    document.getElementById('quiz-question-state').classList.remove('d-none');
+    
+    renderQuizQuestion();
+}
+
+function renderQuizQuestion() {
+    const q = quizQuestions[quizCurrentQuestion];
+    
+    // Counter & Progress
+    document.getElementById('quiz-question-counter').innerText = `Question ${quizCurrentQuestion + 1}/${quizQuestions.length}`;
+    const percent = Math.round(((quizCurrentQuestion) / quizQuestions.length) * 100);
+    document.getElementById('quiz-progress-text').innerText = `${percent}% Complete`;
+    document.getElementById('quiz-progress-bar').style.width = `${percent}%`;
+    
+    document.getElementById('quiz-question-title').innerText = q.title;
+    
+    const container = document.getElementById('quiz-options-container');
+    container.innerHTML = '';
+    
+    q.options.forEach((opt, idx) => {
+        const btn = document.createElement('button');
+        btn.className = 'quiz-option';
+        btn.innerText = opt.text;
+        btn.onclick = () => selectQuizOption(opt.scores);
+        container.appendChild(btn);
+    });
+}
+
+function selectQuizOption(scores) {
+    // Accumulate scores
+    for (const key in scores) {
+        if (quizScores.hasOwnProperty(key)) {
+            quizScores[key] += scores[key];
+        }
+    }
+    
+    quizCurrentQuestion++;
+    
+    if (quizCurrentQuestion < quizQuestions.length) {
+        renderQuizQuestion();
+    } else {
+        // Update final progress bar level
+        document.getElementById('quiz-progress-bar').style.width = `100%`;
+        document.getElementById('quiz-progress-text').innerText = `100% Complete`;
+        showQuizLoader();
+    }
+}
+
+function showQuizLoader() {
+    document.getElementById('quiz-question-state').classList.add('d-none');
+    document.getElementById('quiz-loading-state').classList.remove('d-none');
+    
+    const messages = [
+        "Analyzing snack aura...",
+        "Decoding taste coordinates...",
+        "Consulting the Cocoa Oracle..."
+    ];
+    
+    let msgIdx = 0;
+    const interval = setInterval(() => {
+        msgIdx = (msgIdx + 1) % messages.length;
+        document.getElementById('quiz-loading-message').innerText = messages[msgIdx];
+    }, 600);
+    
+    setTimeout(() => {
+        clearInterval(interval);
+        revealQuizResult();
+    }, 1800);
+}
+
+function revealQuizResult() {
+    document.getElementById('quiz-loading-state').classList.add('d-none');
+    document.getElementById('quiz-result-state').classList.remove('d-none');
+    
+    // Find winner
+    let maxScore = -1;
+    let winner = 'bliss_explorer'; // fallback
+    
+    for (const key in quizScores) {
+        if (quizScores[key] > maxScore) {
+            maxScore = quizScores[key];
+            winner = key;
+        }
+    }
+    
+    const avatar = quizAvatars[winner];
+    
+    document.getElementById('result-avatar-img').src = avatar.img;
+    document.getElementById('result-avatar-title').innerText = avatar.title;
+    document.getElementById('result-avatar-subtitle').innerText = avatar.subtitle;
+    document.getElementById('result-avatar-desc').innerText = avatar.desc;
+    document.getElementById('result-product-name').innerText = avatar.product;
+    document.getElementById('result-product-link').href = avatar.link;
+}
+
+function resetScribblerQuiz() {
+    document.getElementById('quiz-result-state').classList.add('d-none');
+    document.getElementById('quiz-intro-state').classList.remove('d-none');
+}
+
+
+/* Smooth Scroll Helper for Collections */
+function scrollCollection(scrollId, direction) {
+    const container = document.getElementById(scrollId);
+    if (!container) return;
+    const scrollAmount = container.clientWidth * 0.75;
+    if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+}
+</script>
 
 <!-- Section 5: The Choco Bliss Collection -->
-<section class="py-5 text-white" id="choco-bliss-collection" style="background-color: #5d4037; border-radius: 40px; margin: 40px 0;">
-    <div class="container py-4">
-        <h2 class="fw-extrabold mb-5 px-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 2.2rem; color: #ffe8d6;">
-            The Choco Bliss Collection
-        </h2>
-        
-        <div class="row g-4 justify-content-center">
-            {% for product in choco %}
-            <div class="col-lg-4 col-md-6">
-                <div class="card p-3 rounded-4 shadow-sm border-0 h-100 bg-white" style="position: relative;">
-                    <!-- Out of stock badge -->
-                    {% if product.available_qty == 0 %}
-                    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
-                        <span class="badge bg-danger text-white border border-danger px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
-                            Out of stock
-                        </span>
-                    </div>
-                    {% endif %}
-
-                    <!-- Product image -->
-                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 280px; border: 1px solid #eee;">
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
-                        {% else %}
-                        <div class="text-muted text-center">
-                            <span style="font-size: 3rem;">🍫</span>
-                            <p class="mt-2 mb-0 small text-secondary">Choco Bliss Bite</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="card-body px-1 pt-3 d-flex flex-column">
-                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.95rem; min-height: 48px;">
-                            {{ product.name }}
-                        </h6>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="fw-bold text-dark" style="font-size: 1.2rem;">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill px-3">View Details</a>
-                        </div>
-                    </div>
-                </div>
+<section class="collection-section-wrapper theme-choco py-5" id="choco-bliss-collection">
+    <div class="container">
+        <div class="collection-header-wrapper">
+            <h2 class="collection-title-serif">Choco Bliss Bites | Clean Indulgence, Honest Ingredients</h2>
+            <div class="d-flex gap-2">
+                <button class="collection-scroll-btn" onclick="scrollCollection('choco-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('choco-scroll', 'right')">›</button>
             </div>
-            {% endfor %}
+        </div>
+        
+        <div class="collection-scroll-wrapper">
+            <div class="collection-scroll-container" id="choco-scroll">
+                {% for product in choco %}
+                <div class="collection-card-item">
+                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
+                        <div class="collection-card-image-capsule">
+                            {% set discount = 0 %}
+                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
+                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                            {% endif %}
+                            {% if discount > 0 %}
+                            <div class="collection-discount-badge">{{ discount }}% Off</div>
+                            {% endif %}
+
+                            {% if product.available_qty == 0 %}
+                            <div class="collection-sold-out-badge">Sold out</div>
+                            {% endif %}
+
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="text-muted text-center py-4">
+                                <span style="font-size: 2.2rem;">🍫</span>
+                                <p class="mt-2 mb-0 small text-secondary">Choco Bliss Bite</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="collection-card-title">{{ product.name }}</h6>
+                        
+                        <div class="collection-card-stars">
+                            {% set ratings = [
+                                '★★★★★ (38)',
+                                '★★★★★ (24)',
+                                '★★★★☆ (19)',
+                                '★★★★★ (50)',
+                                '★★★★☆ (33)'
+                            ] %}
+                            {{ ratings[(product.id) % 5] }}
+                        </div>
+
+                        <div class="collection-card-price-row">
+                            {% if product.mrp and product.mrp > product.sale_price %}
+                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            {% endif %}
+                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>
@@ -292,7 +743,8 @@
     </div>
 </section>
 
-<!-- Section 7: 10% Offer Zone -->
+<!-- Section 7: 10% Offer Zone (Hidden for now) -->
+<!--
 <section class="py-4">
     <div class="container">
         <div class="bg-white p-5 rounded-5 border shadow-sm d-flex flex-column flex-md-row align-items-center justify-content-between overflow-hidden">
@@ -313,111 +765,141 @@
         </div>
     </div>
 </section>
+-->
 
 <!-- Section 8: Consumption Occasions Grid -->
-<section class="py-5 bg-white">
+<section class="py-5 bg-white" id="occasions-section">
     <div class="container">
-        <div class="row g-4">
+        <div class="text-center mb-5">
+            <h2 class="display-6 fw-extrabold mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; color: #111;">
+                Sweet Occasions & Wholesome Stories
+            </h2>
+            <p class="text-muted fs-5 mx-auto" style="max-width: 700px; font-weight: 400; line-height: 1.6;">
+                Handcrafted for every moment of your busy day. Click any occasion below to explore the real stories, health tips, and interactive wellness widgets behind our recipes.
+            </p>
+            <div style="width: 60px; height: 3px; background-color: var(--secondary-color); margin: 20px auto 0;"></div>
+        </div>
+        <div class="row g-2 g-md-4">
             <!-- Card 1: Office Snack -->
-            <div class="col-lg-4 col-md-6">
-                <div class="bg-light p-4 rounded-4 text-center border h-100">
-                    <img src="/static/images/icons/officeSnack.png" alt="Office Snack" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">The Perfect Office Snack</h6>
-                </div>
+            <div class="col-lg-4 col-md-6 col-6">
+                <a href="{{ url_for('customer.blog_detail', slug='perfect-office-snack') }}" class="text-decoration-none text-dark d-block h-100">
+                    <div class="bg-light p-2 p-md-4 rounded-4 text-center border h-100 grid-item-hover">
+                        <img src="/static/images/icons/officeSnack.png" alt="Office Snack" class="img-fluid mb-2 mb-md-3 occasion-card-img">
+                        <h6 class="fw-bold mb-0 occasion-card-title">The Perfect Office Snack</h6>
+                    </div>
+                </a>
             </div>
             <!-- Card 2: Lunchbox -->
-            <div class="col-lg-4 col-md-6">
-                <div class="bg-light p-4 rounded-4 text-center border h-100">
-                    <img src="/static/images/icons/lunchBox.png" alt="Lunchbox Favourite" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">A Lunchbox Favorite for Kids!</h6>
-                </div>
+            <div class="col-lg-4 col-md-6 col-6">
+                <a href="{{ url_for('customer.blog_detail', slug='lunchbox-favorite-kids') }}" class="text-decoration-none text-dark d-block h-100">
+                    <div class="bg-light p-2 p-md-4 rounded-4 text-center border h-100 grid-item-hover">
+                        <img src="/static/images/icons/lunchBox.png" alt="Lunchbox Favourite" class="img-fluid mb-2 mb-md-3 occasion-card-img">
+                        <h6 class="fw-bold mb-0 occasion-card-title">A Lunchbox Favorite for Kids!</h6>
+                    </div>
+                </a>
             </div>
             <!-- Card 3: Post-Meal -->
-            <div class="col-lg-4 col-md-6">
-                <div class="bg-light p-4 rounded-4 text-center border h-100">
-                    <img src="/static/images/icons/postMeal.png" alt="Post-Meal Sweet" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">A Perfect Post-Meal Sweet!</h6>
-                </div>
+            <div class="col-lg-4 col-md-6 col-6">
+                <a href="{{ url_for('customer.blog_detail', slug='perfect-post-meal-sweet') }}" class="text-decoration-none text-dark d-block h-100">
+                    <div class="bg-light p-2 p-md-4 rounded-4 text-center border h-100 grid-item-hover">
+                        <img src="/static/images/icons/postMeal.png" alt="Post-Meal Sweet" class="img-fluid mb-2 mb-md-3 occasion-card-img">
+                        <h6 class="fw-bold mb-0 occasion-card-title">A Perfect Post-Meal Sweet!</h6>
+                    </div>
+                </a>
             </div>
             <!-- Card 4: Gym -->
-            <div class="col-lg-4 col-md-6">
-                <div class="bg-light p-4 rounded-4 text-center border h-100">
-                    <img src="/static/images/icons/Gym.png" alt="Gym Friendly Energy" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">Gym-Friendly Energy!</h6>
-                </div>
+            <div class="col-lg-4 col-md-6 col-6">
+                <a href="{{ url_for('customer.blog_detail', slug='gym-friendly-energy') }}" class="text-decoration-none text-dark d-block h-100">
+                    <div class="bg-light p-2 p-md-4 rounded-4 text-center border h-100 grid-item-hover">
+                        <img src="/static/images/icons/Gym.png" alt="Gym Friendly Energy" class="img-fluid mb-2 mb-md-3 occasion-card-img">
+                        <h6 class="fw-bold mb-0 occasion-card-title">Gym-Friendly Energy!</h6>
+                    </div>
+                </a>
             </div>
             <!-- Card 5: Gifting -->
-            <div class="col-lg-4 col-md-6">
-                <div class="bg-light p-4 rounded-4 text-center border h-100">
-                    <img src="/static/images/icons/gifting.png" alt="Festive Gifting" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">Perfect for Festive Gifting!</h6>
-                </div>
+            <div class="col-lg-4 col-md-6 col-6">
+                <a href="{{ url_for('customer.blog_detail', slug='festive-gifting-ideas') }}" class="text-decoration-none text-dark d-block h-100">
+                    <div class="bg-light p-2 p-md-4 rounded-4 text-center border h-100 grid-item-hover">
+                        <img src="/static/images/icons/gifting.png" alt="Festive Gifting" class="img-fluid mb-2 mb-md-3 occasion-card-img">
+                        <h6 class="fw-bold mb-0 occasion-card-title">Perfect for Festive Gifting!</h6>
+                    </div>
+                </a>
             </div>
             <!-- Card 6: Midnight Cravings -->
-            <div class="col-lg-4 col-md-6">
-                <div class="bg-light p-4 rounded-4 text-center border h-100">
-                    <img src="/static/images/icons/midnightCravings.png" alt="Midnight Cravings" class="img-fluid mb-3" style="max-height: 140px; object-fit: contain;">
-                    <h6 class="fw-bold mb-0">For Your Midnight Cravings!</h6>
-                </div>
+            <div class="col-lg-4 col-md-6 col-6">
+                <a href="{{ url_for('customer.blog_detail', slug='midnight-cravings-rescue') }}" class="text-decoration-none text-dark d-block h-100">
+                    <div class="bg-light p-2 p-md-4 rounded-4 text-center border h-100 grid-item-hover">
+                        <img src="/static/images/icons/midnightCravings.png" alt="Midnight Cravings" class="img-fluid mb-2 mb-md-3 occasion-card-img">
+                        <h6 class="fw-bold mb-0 occasion-card-title">For Your Midnight Cravings!</h6>
+                    </div>
+                </a>
             </div>
         </div>
     </div>
 </section>
 
 <!-- Section 9: Daily Nutrition Bites Section -->
-<section class="py-5" id="daily-nutritional-bites" style="background-color: #eaecef; border-radius: 40px; margin: 40px 0;">
-    <div class="container py-4">
-        <h2 class="fw-extrabold mb-5 px-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; font-size: 2.2rem; color: #111;">
-            Daily Nutritional Bites
-        </h2>
-        
-        <div class="row g-4 justify-content-center">
-            {% for product in bites %}
-            <div class="col-lg-3 col-md-6">
-                <div class="card p-3 rounded-4 shadow-sm border-0 h-100 bg-white" style="position: relative;">
-                    <!-- Badge: no sugar dry fruit bites -->
-                    <div style="position: absolute; top: 20px; left: 20px; z-index: 10;">
-                        <span class="badge bg-light text-dark border px-2 py-1 rounded-pill" style="font-size: 0.7rem; font-family: monospace;">
-                            no sugar dry fruit bites
-                        </span>
-                    </div>
-
-                    <!-- Out of stock badge -->
-                    {% if product.available_qty == 0 %}
-                    <div style="position: absolute; top: 20px; right: 20px; z-index: 10;">
-                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.75rem;">
-                            Out of stock
-                        </span>
-                    </div>
-                    {% endif %}
-
-                    <!-- Product image -->
-                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 220px; border: 1px solid #eee;">
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
-                        {% else %}
-                        <div class="text-muted text-center">
-                            <span style="font-size: 3rem;">🖼️</span>
-                            <p class="mt-2 mb-0 small text-secondary">no sugar dry fruit bites</p>
-                        </div>
-                        {% endif %}
-                    </div>
-
-                    <div class="card-body px-1 pt-3 d-flex flex-column">
-                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.9rem; min-height: 48px;">
-                            {{ product.name }}
-                        </h6>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="fw-bold text-dark" style="font-size: 1.1rem;">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                            <!-- Circular view button -->
-                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn d-flex align-items-center justify-content-center shadow-sm border" style="width: 36px; height: 36px; border-radius: 50%; background: white; border-color: #ddd;">
-                                <span style="font-size: 0.95rem; color: #333;">👁️</span>
-                            </a>
-                        </div>
-                    </div>
-                </div>
+<section class="collection-section-wrapper theme-bites py-5" id="daily-nutritional-bites">
+    <div class="container">
+        <div class="collection-header-wrapper">
+            <h2 class="collection-title-serif">Daily Nutritional Bites | Pure Taste, Zero Guilt</h2>
+            <div class="d-flex gap-2">
+                <button class="collection-scroll-btn" onclick="scrollCollection('bites-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('bites-scroll', 'right')">›</button>
             </div>
-            {% endfor %}
+        </div>
+        
+        <div class="collection-scroll-wrapper">
+            <div class="collection-scroll-container" id="bites-scroll">
+                {% for product in bites %}
+                <div class="collection-card-item">
+                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
+                        <div class="collection-card-image-capsule">
+                            {% set discount = 0 %}
+                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
+                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                            {% endif %}
+                            {% if discount > 0 %}
+                            <div class="collection-discount-badge">{{ discount }}% Off</div>
+                            {% endif %}
+
+                            {% if product.available_qty == 0 %}
+                            <div class="collection-sold-out-badge">Sold out</div>
+                            {% endif %}
+
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="text-muted text-center py-4">
+                                <span style="font-size: 2.2rem;">🌴</span>
+                                <p class="mt-2 mb-0 small text-secondary">No Sugar Bite</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="collection-card-title">{{ product.name }}</h6>
+                        
+                        <div class="collection-card-stars">
+                            {% set ratings = [
+                                '★★★★★ (29)',
+                                '★★★★★ (32)',
+                                '★★★★☆ (18)',
+                                '★★★★★ (45)',
+                                '★★★★☆ (26)'
+                            ] %}
+                            {{ ratings[(product.id) % 5] }}
+                        </div>
+
+                        <div class="collection-card-price-row">
+                            {% if product.mrp and product.mrp > product.sale_price %}
+                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            {% endif %}
+                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                        </div>
+                    </a>
+                </div>
+                {% endfor %}
+            </div>
         </div>
     </div>
 </section>
@@ -430,53 +912,53 @@
         </h2>
         <hr class="mx-auto my-3" style="width: 50px; height: 3px; background-color: #ffb300; opacity: 1; border: none;">
         
-        <div class="row g-4 mt-3">
+        <div class="row g-2 g-md-4 mt-3">
             <!-- Item 1: 100% Natural -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="px-3">
-                    <img src="/static/images/icons/NaturalIngredients.png" alt="100% Natural Ingredients" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    <h6 class="fw-bold mb-2">100% Natural Ingredients</h6>
-                    <p class="text-muted small">No chemicals, no preservatives — only dates, nuts & pure goodness.</p>
+            <div class="col-lg-4 col-md-6 col-6 mb-3">
+                <div class="px-1 px-md-3">
+                    <img src="/static/images/icons/NaturalIngredients.png" alt="100% Natural Ingredients" class="img-fluid mb-2 mb-md-3 choose-card-img">
+                    <h6 class="fw-bold mb-1 mb-md-2 choose-card-title">100% Natural Ingredients</h6>
+                    <p class="text-muted small mb-0 choose-card-desc">No chemicals, no preservatives — only dates, nuts & pure goodness.</p>
                 </div>
             </div>
             <!-- Item 2: No Added Sugar -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="px-3">
-                    <img src="/static/images/icons/NoAddedSugar.png" alt="No Added Sugar" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    <h6 class="fw-bold mb-2">No Added Sugar</h6>
-                    <p class="text-muted small">Sweetened only with dates (and occasional honey). Nothing else.</p>
+            <div class="col-lg-4 col-md-6 col-6 mb-3">
+                <div class="px-1 px-md-3">
+                    <img src="/static/images/icons/NoAddedSugar.png" alt="No Added Sugar" class="img-fluid mb-2 mb-md-3 choose-card-img">
+                    <h6 class="fw-bold mb-1 mb-md-2 choose-card-title">No Added Sugar</h6>
+                    <p class="text-muted small mb-0 choose-card-desc">Sweetened only with dates (and occasional honey). Nothing else.</p>
                 </div>
             </div>
             <!-- Item 3: Handcrafted Fresh -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="px-3">
-                    <img src="/static/images/icons/HandcraftedFresh.png" alt="Handcrafted Fresh" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    <h6 class="fw-bold mb-2">Handcrafted Fresh</h6>
-                    <p class="text-muted small">Every bite is made in small batches for freshness and quality.</p>
+            <div class="col-lg-4 col-md-6 col-6 mb-3">
+                <div class="px-1 px-md-3">
+                    <img src="/static/images/icons/HandcraftedFresh.png" alt="Handcrafted Fresh" class="img-fluid mb-2 mb-md-3 choose-card-img">
+                    <h6 class="fw-bold mb-1 mb-md-2 choose-card-title">Handcrafted Fresh</h6>
+                    <p class="text-muted small mb-0 choose-card-desc">Every bite is made in small batches for freshness and quality.</p>
                 </div>
             </div>
             <!-- Item 4: Healthy + Indulgent -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="px-3">
-                    <img src="/static/images/icons/HealthyIndulgent.png" alt="Healthy + Indulgent" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    <h6 class="fw-bold mb-2">Healthy + Indulgent</h6>
-                    <p class="text-muted small">Perfect balance of clean nutrition and rich taste.</p>
+            <div class="col-lg-4 col-md-6 col-6 mb-3">
+                <div class="px-1 px-md-3">
+                    <img src="/static/images/icons/HealthyIndulgent.png" alt="Healthy + Indulgent" class="img-fluid mb-2 mb-md-3 choose-card-img">
+                    <h6 class="fw-bold mb-1 mb-md-2 choose-card-title">Healthy + Indulgent</h6>
+                    <p class="text-muted small mb-0 choose-card-desc">Perfect balance of clean nutrition and rich taste.</p>
                 </div>
             </div>
             <!-- Item 5: Gifting Packaging -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="px-3">
-                    <img src="/static/images/icons/GiftingReady.png" alt="Gifting-Ready Packaging" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    <h6 class="fw-bold mb-2">Gifting-Ready Packaging</h6>
-                    <p class="text-muted small">Beautifully designed boxes for festivals, celebrations & corporate gifting.</p>
+            <div class="col-lg-4 col-md-6 col-6 mb-3">
+                <div class="px-1 px-md-3">
+                    <img src="/static/images/icons/GiftingReady.png" alt="Gifting-Ready Packaging" class="img-fluid mb-2 mb-md-3 choose-card-img">
+                    <h6 class="fw-bold mb-1 mb-md-2 choose-card-title">Gifting-Ready Packaging</h6>
+                    <p class="text-muted small mb-0 choose-card-desc">Beautifully designed boxes for celebrations & corporate gifting.</p>
                 </div>
             </div>
             <!-- Item 6: Made in India -->
-            <div class="col-lg-4 col-md-6 mb-3">
-                <div class="px-3">
-                    <img src="/static/images/icons/MadeInIndia.png" alt="Made in India" class="img-fluid mb-3" style="max-height: 120px; object-fit: contain;">
-                    <h6 class="fw-bold mb-2">Made in India, With Love</h6>
-                    <p class="text-muted small">From Bengaluru, crafted with care and honesty.</p>
+            <div class="col-lg-4 col-md-6 col-6 mb-3">
+                <div class="px-1 px-md-3">
+                    <img src="/static/images/icons/MadeInIndia.png" alt="Made in India" class="img-fluid mb-2 mb-md-3 choose-card-img">
+                    <h6 class="fw-bold mb-1 mb-md-2 choose-card-title">Made in India, With Love</h6>
+                    <p class="text-muted small mb-0 choose-card-desc">From Bengaluru, crafted with care and honesty.</p>
                 </div>
             </div>
         </div>

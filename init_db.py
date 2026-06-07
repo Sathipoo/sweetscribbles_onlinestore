@@ -35,6 +35,11 @@ with app.app_context():
         sale_price=320.0,
         available_qty=0, # Out of stock
         ingredients="Dates, Figs (Anjeer), Almonds, Cashews, Pistachios",
+        calories=380.0,
+        protein=6.5,
+        fat=12.0,
+        carbs=58.0,
+        fiber=7.5,
         image_url="" # Placeholder icon as in screenshot
     )
     
@@ -48,6 +53,11 @@ with app.app_context():
         sale_price=250.0,
         available_qty=0, # Out of stock
         ingredients="Dates, Cashews, Almonds, Honey",
+        calories=395.0,
+        protein=8.0,
+        fat=14.0,
+        carbs=55.0,
+        fiber=6.0,
         image_url="" # Placeholder icon as in screenshot
     )
     
@@ -61,7 +71,13 @@ with app.app_context():
         sale_price=155.0,
         available_qty=50, # In stock
         ingredients="Dates, Roasted Peanuts, Sea Salt",
-        image_url="/static/images/Gemini_Generated_Image_5qp0wq5qp0wq5qp0.png" # Stack of balls image
+        calories=410.0,
+        protein=11.5,
+        fat=16.0,
+        carbs=52.0,
+        fiber=5.5,
+        image_url="/static/images/Gemini_Generated_Image_5qp0wq5qp0wq5qp0.png", # Stack of balls image
+        promo_badge="Fast Seller"
     )
     
     p4 = Product(
@@ -72,9 +88,15 @@ with app.app_context():
         description="Wholesome sesame seeds blended with rich dates. Handcrafted, high-fiber, and delicious.",
         mrp=200.0,
         sale_price=170.0,
-        available_qty=30, # In stock
+        available_qty=3, # In stock (low stock alert test!)
         ingredients="Dates, Sesame Seeds, Cashews, Almonds",
-        image_url="/static/images/Gemini_Generated_Image_kcrjxfkcrjxfkcrj.png" # Reused stack image or similar
+        calories=390.0,
+        protein=9.0,
+        fat=15.0,
+        carbs=50.0,
+        fiber=7.0,
+        image_url="/static/images/Gemini_Generated_Image_kcrjxfkcrjxfkcrj.png", # Reused stack image or similar
+        promo_badge="New Arrival"
     )
     
     # Choco Bliss Bites (choco)
@@ -88,6 +110,11 @@ with app.app_context():
         sale_price=200.0,
         available_qty=0, # Out of stock
         ingredients="Dates, Almonds, Cashews, Dark Couverture Chocolate (Cocoa mass, Cocoa butter)",
+        calories=420.0,
+        protein=7.0,
+        fat=18.0,
+        carbs=53.0,
+        fiber=6.5,
         image_url="/static/images/Gemini_Generated_Image_w08uwnw08uwnw08u.png"
     )
     
@@ -101,6 +128,11 @@ with app.app_context():
         sale_price=200.0,
         available_qty=0, # Out of stock
         ingredients="Dates, Almonds, Cashews, Milk Couverture Chocolate",
+        calories=435.0,
+        protein=6.8,
+        fat=19.5,
+        carbs=54.5,
+        fiber=5.0,
         image_url="/static/images/Gemini_Generated_Image_kcrjxfkcrjxfkcrj.png"
     )
     
@@ -114,6 +146,11 @@ with app.app_context():
         sale_price=200.0,
         available_qty=0, # Out of stock
         ingredients="Dates, Almonds, Cashews, White Couverture Chocolate",
+        calories=440.0,
+        protein=6.2,
+        fat=20.0,
+        carbs=55.0,
+        fiber=4.5,
         image_url="/static/images/Gemini_Generated_Image_5xxpwv5xxpwv5xxp.png"
     )
     
@@ -128,8 +165,10 @@ with app.app_context():
         sale_price=1500.0,
         available_qty=25,
         ingredients="Assorted Bliss Bites & Daily Nutrition Bites",
-        image_url="/static/images/Gemini_Generated_Image_6kgcok6kgcok6kgc.png"
+        image_url="/static/images/Gemini_Generated_Image_6kgcok6kgcok6kgc.png",
+        promo_badge="Best Seller"
     )
+
 
     db.session.add_all([p1, p2, p3, p4, p5, p6, p7, p8])
     db.session.flush()

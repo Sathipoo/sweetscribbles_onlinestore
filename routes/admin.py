@@ -22,7 +22,22 @@ def dashboard():
     today_orders = Order.query.count()
     pending_orders = Order.query.filter_by(status='Pending').count()
     recent_orders = Order.query.order_by(Order.created_at.desc()).limit(5).all()
-    return render_template('admin/dashboard.html', today_orders=today_orders, pending_orders=pending_orders, recent_orders=recent_orders)
+    
+    # Query low stock active products
+    low_stock_products = Product.query.filter(
+        Product.is_active == True,
+        Product.available_qty <= Product.low_stock_threshold
+    ).all()
+    low_stock_count = len(low_stock_products)
+    
+    return render_template(
+        'admin/dashboard.html', 
+        today_orders=today_orders, 
+        pending_orders=pending_orders, 
+        recent_orders=recent_orders,
+        low_stock_count=low_stock_count,
+        low_stock_products=low_stock_products
+    )
 
 @admin_bp.route('/products', methods=['GET', 'POST'])
 @admin_required
@@ -31,7 +46,28 @@ def products():
         name = request.form.get('name')
         sku = request.form.get('sku')
         category = request.form.get('category')
-        sale_price = request.form.get('sale_price', 0.0)
+        sale_price = float(request.form.get('sale_price', 0.0) or 0.0)
+        mrp = float(request.form.get('mrp', 0.0) or 0.0)
+        corporate_price = float(request.form.get('corporate_price', 0.0) or 0.0)
+        available_qty = int(request.form.get('available_qty', 0) or 0)
+        low_stock_threshold = int(request.form.get('low_stock_threshold', 10) or 10)
+        promo_badge = request.form.get('promo_badge') or None
+        short_description = request.form.get('short_description') or ''
+        description = request.form.get('description') or ''
+        ingredients = request.form.get('ingredients') or ''
+        
+        # Optional Nutritional Info
+        calories = request.form.get('calories')
+        protein = request.form.get('protein')
+        fat = request.form.get('fat')
+        carbs = request.form.get('carbs')
+        fiber = request.form.get('fiber')
+        
+        calories = float(calories) if calories else None
+        protein = float(protein) if protein else None
+        fat = float(fat) if fat else None
+        carbs = float(carbs) if carbs else None
+        fiber = float(fiber) if fiber else None
         
         image_url = None
         if 'image' in request.files:
@@ -40,7 +76,24 @@ def products():
                 image_url = upload_file(file, file.filename, folder="products")
                 
         new_product = Product(
-            name=name, sku=sku, category=category, sale_price=float(sale_price), image_url=image_url
+            name=name, 
+            sku=sku, 
+            category=category, 
+            sale_price=sale_price,
+            mrp=mrp,
+            corporate_price=corporate_price,
+            available_qty=available_qty,
+            low_stock_threshold=low_stock_threshold,
+            promo_badge=promo_badge,
+            short_description=short_description,
+            description=description,
+            ingredients=ingredients,
+            calories=calories,
+            protein=protein,
+            fat=fat,
+            carbs=carbs,
+            fiber=fiber,
+            image_url=image_url
         )
         db.session.add(new_product)
         db.session.flush() # Get product ID
@@ -89,7 +142,28 @@ def edit_product(product_id):
     product.name = request.form.get('name')
     product.sku = request.form.get('sku')
     product.category = request.form.get('category')
-    product.sale_price = float(request.form.get('sale_price', 0.0))
+    product.sale_price = float(request.form.get('sale_price', 0.0) or 0.0)
+    product.mrp = float(request.form.get('mrp', 0.0) or 0.0)
+    product.corporate_price = float(request.form.get('corporate_price', 0.0) or 0.0)
+    product.available_qty = int(request.form.get('available_qty', 0) or 0)
+    product.low_stock_threshold = int(request.form.get('low_stock_threshold', 10) or 10)
+    product.promo_badge = request.form.get('promo_badge') or None
+    product.short_description = request.form.get('short_description') or ''
+    product.description = request.form.get('description') or ''
+    product.ingredients = request.form.get('ingredients') or ''
+    
+    # Nutrition
+    calories = request.form.get('calories')
+    protein = request.form.get('protein')
+    fat = request.form.get('fat')
+    carbs = request.form.get('carbs')
+    fiber = request.form.get('fiber')
+    
+    product.calories = float(calories) if calories else None
+    product.protein = float(protein) if protein else None
+    product.fat = float(fat) if fat else None
+    product.carbs = float(carbs) if carbs else None
+    product.fiber = float(fiber) if fiber else None
     
     # Handle main image replacement
     if 'image' in request.files:
@@ -154,6 +228,7 @@ def edit_product(product_id):
     db.session.commit()
     return redirect(url_for('admin.products'))
 
+
 @admin_bp.route('/orders')
 @admin_required
 def orders():
@@ -166,6 +241,9 @@ def update_order_status(order_id):
     order = Order.query.get_or_404(order_id)
     new_status = request.form.get('status')
     if new_status:
+        if new_status in ('Paid', 'Packing', 'Dispatched', 'Delivered') and not order.is_stock_deducted:
+            from routes.customer import deduct_order_stock
+            deduct_order_stock(order)
         order.status = new_status
         db.session.commit()
     # Check where we came from, to redirect back appropriately
@@ -215,10 +293,14 @@ def update_order_tracking(order_id):
     # Auto-align main order status with shipping steps
     if order.shipping_status == 'Packed' and order.status == 'Pending':
         order.status = 'Packing'
-    elif order.shipping_status == 'In Transit':
+    elif order.shipping_status == 'In Transit' and order.status in ('Pending', 'Packing'):
         order.status = 'Dispatched'
     elif order.shipping_status == 'Delivered':
         order.status = 'Delivered'
+        
+    if order.status in ('Paid', 'Packing', 'Dispatched', 'Delivered') and not order.is_stock_deducted:
+        from routes.customer import deduct_order_stock
+        deduct_order_stock(order)
         
     db.session.commit()
     

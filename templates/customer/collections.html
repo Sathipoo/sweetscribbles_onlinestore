@@ -4,135 +4,218 @@
 
 {% block content %}
 <div class="container py-5">
-    <h1 class="fw-bold text-center mb-5" style="color: var(--primary-color);">Our Collections</h1>
+    <h1 class="fw-bold text-center mb-5" style="color: var(--primary-color); font-family: 'Playfair Display', serif; font-weight: 800;">Our Collections</h1>
 
     <!-- Daily Nutritional Bites -->
-    <div class="mb-5" id="daily-nutritional-bites">
-        <h3 class="fw-bold mb-4 border-bottom pb-2" style="color: var(--secondary-color);">Daily Nutritional Bites</h3>
-        <div class="row g-4">
-            {% for product in bites %}
-            <div class="col-md-3">
-                <div class="card product-card glass-panel h-100">
-                    <!-- Out of stock badge -->
-                    {% if product.available_qty == 0 %}
-                    <div style="position: absolute; top: 15px; right: 15px; z-index: 10;">
-                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.7rem;">
-                            Out of stock
-                        </span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 1px solid #eee;">
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
-                        {% else %}
-                        <div class="text-muted text-center">
-                            <span style="font-size: 2.5rem;">🖼️</span>
-                            <p class="mt-2 mb-0 small text-secondary">no sugar dry fruit bites</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.9rem; min-height: 48px;">{{ product.name }}</h6>
-                        <p class="card-text text-muted small flex-grow-1">{{ product.short_description }}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="product-price">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">View Details</a>
-                        </div>
-                    </div>
-                </div>
+    <section class="collection-section-wrapper theme-bites py-5 px-3 px-md-5" id="daily-nutritional-bites">
+        <div class="collection-header-wrapper">
+            <h2 class="collection-title-serif">Daily Nutritional Bites | Pure Taste, Zero Guilt</h2>
+            <div class="d-flex gap-2">
+                <button class="collection-scroll-btn" onclick="scrollCollection('bites-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('bites-scroll', 'right')">›</button>
             </div>
-            {% else %}
-            <p class="text-muted">More nutritional bites coming soon.</p>
-            {% endfor %}
         </div>
-    </div>
+        
+        <div class="collection-scroll-wrapper">
+            <div class="collection-scroll-container" id="bites-scroll">
+                {% for product in bites %}
+                <div class="collection-card-item">
+                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
+                        <div class="collection-card-image-capsule">
+                            {% set discount = 0 %}
+                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
+                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                            {% endif %}
+                            {% if discount > 0 %}
+                            <div class="collection-discount-badge">{{ discount }}% Off</div>
+                            {% endif %}
+
+                            {% if product.available_qty == 0 %}
+                            <div class="collection-sold-out-badge">Sold out</div>
+                            {% endif %}
+
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="text-muted text-center py-4">
+                                <span style="font-size: 2.2rem;">🌴</span>
+                                <p class="mt-2 mb-0 small text-secondary">No Sugar Bite</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="collection-card-title">{{ product.name }}</h6>
+                        
+                        <div class="collection-card-stars">
+                            {% set ratings = [
+                                '★★★★★ (29)',
+                                '★★★★★ (32)',
+                                '★★★★☆ (18)',
+                                '★★★★★ (45)',
+                                '★★★★☆ (26)'
+                            ] %}
+                            {{ ratings[(product.id) % 5] }}
+                        </div>
+
+                        <div class="collection-card-price-row">
+                            {% if product.mrp and product.mrp > product.sale_price %}
+                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            {% endif %}
+                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                        </div>
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-muted p-3">More nutritional bites coming soon.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
 
     <!-- Choco Bliss Bites -->
-    <div class="mb-5" id="choco-bliss-collection">
-        <h3 class="fw-bold mb-4 border-bottom pb-2" style="color: var(--secondary-color);">Choco Bliss Bites</h3>
-        <div class="row g-4">
-            {% for product in choco %}
-            <div class="col-md-3">
-                <div class="card product-card glass-panel h-100">
-                    <!-- Out of stock badge -->
-                    {% if product.available_qty == 0 %}
-                    <div style="position: absolute; top: 15px; right: 15px; z-index: 10;">
-                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.7rem;">
-                            Out of stock
-                        </span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 1px solid #eee;">
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
-                        {% else %}
-                        <div class="text-muted text-center">
-                            <span style="font-size: 2.5rem;">🍫</span>
-                            <p class="mt-2 mb-0 small text-secondary">Choco Bliss Bites</p>
-                        </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.9rem; min-height: 48px;">{{ product.name }}</h6>
-                        <p class="card-text text-muted small flex-grow-1">{{ product.short_description }}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="product-price">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">View Details</a>
-                        </div>
-                    </div>
-                </div>
+    <section class="collection-section-wrapper theme-choco py-5 px-3 px-md-5" id="choco-bliss-collection">
+        <div class="collection-header-wrapper">
+            <h2 class="collection-title-serif">Choco Bliss Bites | Clean Indulgence, Honest Ingredients</h2>
+            <div class="d-flex gap-2">
+                <button class="collection-scroll-btn" onclick="scrollCollection('choco-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('choco-scroll', 'right')">›</button>
             </div>
-            {% else %}
-            <p class="text-muted">More chocolate bliss coming soon.</p>
-            {% endfor %}
         </div>
-    </div>
+        
+        <div class="collection-scroll-wrapper">
+            <div class="collection-scroll-container" id="choco-scroll">
+                {% for product in choco %}
+                <div class="collection-card-item">
+                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
+                        <div class="collection-card-image-capsule">
+                            {% set discount = 0 %}
+                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
+                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                            {% endif %}
+                            {% if discount > 0 %}
+                            <div class="collection-discount-badge">{{ discount }}% Off</div>
+                            {% endif %}
 
-    <!-- Gifting -->
-    <div class="mb-5" id="gifting-collection">
-        <h3 class="fw-bold mb-4 border-bottom pb-2" style="color: var(--secondary-color);">Gifting & Celebrations</h3>
-        <div class="row g-4">
-            {% for product in gifting %}
-            <div class="col-md-3">
-                <div class="card product-card glass-panel h-100">
-                    <!-- Out of stock badge -->
-                    {% if product.available_qty == 0 %}
-                    <div style="position: absolute; top: 15px; right: 15px; z-index: 10;">
-                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1 rounded-pill" style="font-size: 0.7rem;">
-                            Out of stock
-                        </span>
-                    </div>
-                    {% endif %}
-                    
-                    <div class="text-center rounded-4 overflow-hidden bg-light d-flex align-items-center justify-content-center" style="height: 200px; border: 1px solid #eee;">
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="{{ product.name }}" style="max-height: 100%; max-width: 100%; object-fit: cover;">
-                        {% else %}
-                        <div class="text-muted text-center">
-                            <span style="font-size: 2.5rem;">🎁</span>
-                            <p class="mt-2 mb-0 small text-secondary">Gifting Box</p>
+                            {% if product.available_qty == 0 %}
+                            <div class="collection-sold-out-badge">Sold out</div>
+                            {% endif %}
+
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="text-muted text-center py-4">
+                                <span style="font-size: 2.2rem;">🍫</span>
+                                <p class="mt-2 mb-0 small text-secondary">Choco Bliss Bite</p>
+                            </div>
+                            {% endif %}
                         </div>
-                        {% endif %}
-                    </div>
-                    
-                    <div class="card-body d-flex flex-column">
-                        <h6 class="card-title fw-bold text-dark lh-base flex-grow-1" style="font-size: 0.9rem; min-height: 48px;">{{ product.name }}</h6>
-                        <p class="card-text text-muted small flex-grow-1">{{ product.short_description }}</p>
-                        <div class="d-flex justify-content-between align-items-center mt-3">
-                            <span class="product-price">Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                            <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="btn btn-sm btn-outline-dark rounded-pill">View Details</a>
+
+                        <h6 class="collection-card-title">{{ product.name }}</h6>
+                        
+                        <div class="collection-card-stars">
+                            {% set ratings = [
+                                '★★★★★ (38)',
+                                '★★★★★ (24)',
+                                '★★★★☆ (19)',
+                                '★★★★★ (50)',
+                                '★★★★☆ (33)'
+                            ] %}
+                            {{ ratings[(product.id) % 5] }}
                         </div>
-                    </div>
+
+                        <div class="collection-card-price-row">
+                            {% if product.mrp and product.mrp > product.sale_price %}
+                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            {% endif %}
+                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                        </div>
+                    </a>
                 </div>
+                {% else %}
+                <p class="text-muted p-3">More chocolate bliss coming soon.</p>
+                {% endfor %}
             </div>
-            {% else %}
-            <p class="text-muted">Premium gifting boxes coming soon.</p>
-            {% endfor %}
         </div>
-    </div>
+    </section>
+
+    <!-- Gifting & Celebrations -->
+    <section class="collection-section-wrapper theme-gifting py-5 px-3 px-md-5" id="gifting-collection">
+        <div class="collection-header-wrapper">
+            <h2 class="collection-title-serif">Gifting & Celebrations | Handcrafted Happiness, Custom Curations</h2>
+            <div class="d-flex gap-2">
+                <button class="collection-scroll-btn" onclick="scrollCollection('gifting-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('gifting-scroll', 'right')">›</button>
+            </div>
+        </div>
+        
+        <div class="collection-scroll-wrapper">
+            <div class="collection-scroll-container" id="gifting-scroll">
+                {% for product in gifting %}
+                <div class="collection-card-item">
+                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
+                        <div class="collection-card-image-capsule">
+                            {% set discount = 0 %}
+                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
+                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                            {% endif %}
+                            {% if discount > 0 %}
+                            <div class="collection-discount-badge">{{ discount }}% Off</div>
+                            {% endif %}
+
+                            {% if product.available_qty == 0 %}
+                            <div class="collection-sold-out-badge">Sold out</div>
+                            {% endif %}
+
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
+                            {% else %}
+                            <div class="text-muted text-center py-4">
+                                <span style="font-size: 2.2rem;">🎁</span>
+                                <p class="mt-2 mb-0 small text-secondary">Gifting Box</p>
+                            </div>
+                            {% endif %}
+                        </div>
+
+                        <h6 class="collection-card-title">{{ product.name }}</h6>
+                        
+                        <div class="collection-card-stars">
+                            {% set ratings = [
+                                '★★★★★ (41)',
+                                '★★★★★ (19)',
+                                '★★★★☆ (25)',
+                                '★★★★★ (30)',
+                                '★★★★☆ (12)'
+                            ] %}
+                            {{ ratings[(product.id) % 5] }}
+                        </div>
+
+                        <div class="collection-card-price-row">
+                            {% if product.mrp and product.mrp > product.sale_price %}
+                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            {% endif %}
+                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                        </div>
+                    </a>
+                </div>
+                {% else %}
+                <p class="text-muted p-3">Premium gifting boxes coming soon.</p>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
 </div>
+
+<!-- Embedded JS helper for horizontal scroll actions -->
+<script>
+function scrollCollection(scrollId, direction) {
+    const container = document.getElementById(scrollId);
+    if (!container) return;
+    const scrollAmount = container.clientWidth * 0.75;
+    if (direction === 'left') {
+        container.scrollBy({ left: -scrollAmount, behavior: 'smooth' });
+    } else {
+        container.scrollBy({ left: scrollAmount, behavior: 'smooth' });
+    }
+}
+</script>
 {% endblock %}

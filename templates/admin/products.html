@@ -2,163 +2,270 @@
 
 {% block content %}
 <div class="d-flex justify-content-between align-items-center mb-4">
-    <h2>Products</h2>
-    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Add Product</button>
+    <h2>Product Catalog Management</h2>
+    <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#addProductModal">Add New Product</button>
 </div>
 
-<div class="card">
+<div class="card shadow-sm border-0 rounded-4">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Image</th>
-                    <th>Name</th>
-                    <th>SKU</th>
-                    <th>Category</th>
-                    <th>Price</th>
-                    <th>Actions</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for product in products %}
-                <tr>
-                    <td>
-                        {% if product.image_url %}
-                        <img src="{{ product.image_url }}" alt="Img" style="width: 50px; height: 50px; object-fit: cover; border-radius: 4px;">
-                        {% else %}
-                        <span class="text-muted small">No Img</span>
-                        {% endif %}
-                    </td>
-                    <td>{{ product.name }}</td>
-                    <td>{{ product.sku }}</td>
-                    <td><span class="badge bg-secondary">{{ product.category }}</span></td>
-                    <td>₹{{ product.sale_price }}</td>
-                    <td>
-                        <button class="btn btn-sm btn-outline-primary" data-bs-toggle="modal" data-bs-target="#editProductModal{{ product.id }}">Edit</button>
-                    </td>
-                </tr>
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light">
+                    <tr>
+                        <th style="padding-left: 20px;">Image</th>
+                        <th>Name</th>
+                        <th>SKU</th>
+                        <th>Category</th>
+                        <th>Stock Level</th>
+                        <th>Promo Badge</th>
+                        <th>Price</th>
+                        <th style="padding-right: 20px;">Actions</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for product in products %}
+                    <tr>
+                        <td style="padding-left: 20px;">
+                            {% if product.image_url %}
+                            <img src="{{ product.image_url }}" alt="Img" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
+                            {% else %}
+                            <span class="text-muted small">No Img</span>
+                            {% endif %}
+                        </td>
+                        <td class="fw-bold">{{ product.name }}</td>
+                        <td><code>{{ product.sku }}</code></td>
+                        <td><span class="badge bg-secondary">{{ product.category }}</span></td>
+                        <td>
+                            {% if product.available_qty == 0 %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">Out of Stock</span>
+                            {% elif product.available_qty <= product.low_stock_threshold %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning px-2 py-1">Low Stock ({{ product.available_qty }})</span>
+                            {% else %}
+                            <span class="badge bg-success-subtle text-success border border-success px-2 py-1">In Stock ({{ product.available_qty }})</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            {% if product.promo_badge %}
+                            <span class="badge bg-primary-subtle text-primary border border-primary px-2 py-1">{{ product.promo_badge }}</span>
+                            {% else %}
+                            <span class="text-muted small">-</span>
+                            {% endif %}
+                        </td>
+                        <td>
+                            <span class="fw-bold">₹{{ product.sale_price }}</span>
+                            {% if product.mrp > product.sale_price %}
+                            <br><small class="text-muted text-decoration-line-through">₹{{ product.mrp }}</small>
+                            {% endif %}
+                        </td>
+                        <td style="padding-right: 20px;">
+                            <button class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editProductModal{{ product.id }}">Edit</button>
+                        </td>
+                    </tr>
 
-                <!-- Edit Product Modal -->
-                <div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-lg">
-                    <div class="modal-content text-dark">
-                      <form action="{{ url_for('admin.edit_product', product_id=product.id) }}" method="POST" enctype="multipart/form-data">
-                          <div class="modal-header">
-                            <h5 class="modal-title">Edit Product: {{ product.name }}</h5>
-                            <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                          </div>
-                          <div class="modal-body text-start">
-                              <div class="row">
-                                  <div class="col-md-6 mb-3">
-                                      <label class="form-label">Name</label>
-                                      <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
-                                  </div>
-                                  <div class="col-md-6 mb-3">
-                                      <label class="form-label">SKU</label>
-                                      <input type="text" name="sku" class="form-control" value="{{ product.sku }}" required>
-                                  </div>
+                    <!-- Edit Product Modal -->
+                    <div class="modal fade" id="editProductModal{{ product.id }}" tabindex="-1" aria-hidden="true">
+                      <div class="modal-dialog modal-lg">
+                        <div class="modal-content text-dark rounded-4">
+                          <form action="{{ url_for('admin.edit_product', product_id=product.id) }}" method="POST" enctype="multipart/form-data">
+                              <div class="modal-header">
+                                <h5 class="modal-title fw-bold">Edit Product: {{ product.name }}</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
                               </div>
-                              <div class="row">
-                                  <div class="col-md-6 mb-3">
-                                      <label class="form-label">Category</label>
-                                      <select name="category" class="form-select">
-                                          <option value="bites" {% if product.category == 'bites' %}selected{% endif %}>Bites (Daily Nutritional)</option>
-                                          <option value="choco" {% if product.category == 'choco' %}selected{% endif %}>Choco Bliss Bites</option>
-                                          <option value="gifting" {% if product.category == 'gifting' %}selected{% endif %}>Gifting Box</option>
-                                          <option value="custom" {% if product.category == 'custom' %}selected{% endif %}>Custom</option>
-                                      </select>
+                              <div class="modal-body text-start" style="max-height: 70vh; overflow-y: auto;">
+                                  <!-- Section 1: Basic Details -->
+                                  <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Basic Details</h6>
+                                  <div class="row">
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">Name</label>
+                                          <input type="text" name="name" class="form-control" value="{{ product.name }}" required>
+                                      </div>
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">SKU</label>
+                                          <input type="text" name="sku" class="form-control" value="{{ product.sku }}" required>
+                                      </div>
                                   </div>
-                                  <div class="col-md-6 mb-3">
-                                      <label class="form-label">Sale Price (₹)</label>
-                                      <input type="number" step="0.01" name="sale_price" class="form-control" value="{{ product.sale_price }}" required>
+                                  <div class="row">
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">Category</label>
+                                          <select name="category" class="form-select">
+                                              <option value="bites" {% if product.category == 'bites' %}selected{% endif %}>Bites (Daily Nutritional)</option>
+                                              <option value="choco" {% if product.category == 'choco' %}selected{% endif %}>Choco Bliss Bites</option>
+                                              <option value="gifting" {% if product.category == 'gifting' %}selected{% endif %}>Gifting Box</option>
+                                              <option value="custom" {% if product.category == 'custom' %}selected{% endif %}>Custom</option>
+                                          </select>
+                                      </div>
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">Promo Tag / Badge</label>
+                                          <select name="promo_badge" class="form-select">
+                                              <option value="" {% if not product.promo_badge %}selected{% endif %}>-- None --</option>
+                                              <option value="Fast Seller" {% if product.promo_badge == 'Fast Seller' %}selected{% endif %}>Fast Seller</option>
+                                              <option value="Best Seller" {% if product.promo_badge == 'Best Seller' %}selected{% endif %}>Best Seller</option>
+                                              <option value="New Arrival" {% if product.promo_badge == 'New Arrival' %}selected{% endif %}>New Arrival</option>
+                                              <option value="Limited Edition" {% if product.promo_badge == 'Limited Edition' %}selected{% endif %}>Limited Edition</option>
+                                          </select>
+                                      </div>
                                   </div>
-                              </div>
-                              <div class="mb-3">
-                                  <label class="form-label fw-bold">Replace Main Product Image (Optional)</label>
-                                  <input type="file" name="image" class="form-control" accept="image/*">
-                                  {% if product.image_url %}
-                                  <div class="mt-2">
-                                      <span class="small text-muted">Current main image:</span><br>
-                                      <img src="{{ product.image_url }}" style="max-height: 80px; border-radius: 4px; border: 1px solid #ddd;">
+
+                                  <!-- Section 2: Pricing & Inventory -->
+                                  <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">2. Pricing & Inventory</h6>
+                                  <div class="row">
+                                      <div class="col-md-4 mb-3">
+                                          <label class="form-label">Sale Price (₹)</label>
+                                          <input type="number" step="0.01" name="sale_price" class="form-control" value="{{ product.sale_price }}" required>
+                                      </div>
+                                      <div class="col-md-4 mb-3">
+                                          <label class="form-label">MRP (₹)</label>
+                                          <input type="number" step="0.01" name="mrp" class="form-control" value="{{ product.mrp }}">
+                                      </div>
+                                      <div class="col-md-4 mb-3">
+                                          <label class="form-label">Corporate Price (₹)</label>
+                                          <input type="number" step="0.01" name="corporate_price" class="form-control" value="{{ product.corporate_price }}">
+                                      </div>
                                   </div>
-                                  {% endif %}
-                              </div>
-                              
-                              {% if product.media_items %}
-                              <div class="mb-3">
-                                  <label class="form-label fw-bold">Gallery Media Items</label>
-                                  <div class="row g-2">
-                                      {% for media in product.media_items %}
-                                      <div class="col-md-4 col-sm-6">
-                                          <div class="card p-2 h-100 position-relative">
-                                              {% if media.media_type == 'video' %}
-                                              <video src="{{ media.media_url }}" class="card-img-top rounded" style="height: 80px; object-fit: cover;" muted></video>
-                                              <span class="badge bg-danger position-absolute top-0 start-0 m-2">Video</span>
-                                              {% else %}
-                                              <img src="{{ media.media_url }}" class="card-img-top rounded" style="height: 80px; object-fit: cover;">
-                                              <span class="badge bg-secondary position-absolute top-0 start-0 m-2">Image</span>
-                                              {% endif %}
-                                              <div class="card-body p-1 mt-2">
-                                                  <div class="d-flex justify-content-between align-items-center mb-1">
-                                                      <label class="small text-muted mb-0">Order:</label>
-                                                      <input type="number" name="display_order_{{ media.id }}" value="{{ media.display_order }}" class="form-control form-control-sm" style="width: 60px;">
-                                                  </div>
-                                                  <div class="form-check">
-                                                      <input class="form-check-input" type="checkbox" name="delete_media" value="{{ media.id }}" id="delete_media_{{ media.id }}">
-                                                      <label class="form-check-label small text-danger" for="delete_media_{{ media.id }}">
-                                                          Delete
-                                                      </label>
+                                  <div class="row">
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label fw-bold text-success">Available Quantity (Stock)</label>
+                                          <input type="number" name="available_qty" class="form-control" value="{{ product.available_qty }}" required>
+                                      </div>
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">Low Stock Threshold</label>
+                                          <input type="number" name="low_stock_threshold" class="form-control" value="{{ product.low_stock_threshold }}" required>
+                                      </div>
+                                  </div>
+
+                                  <!-- Section 3: Descriptions -->
+                                  <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">3. Descriptions & Content</h6>
+                                  <div class="mb-3">
+                                      <label class="form-label">Short Description</label>
+                                      <input type="text" name="short_description" class="form-control" value="{{ product.short_description or '' }}">
+                                  </div>
+                                  <div class="mb-3">
+                                      <label class="form-label">Full Description</label>
+                                      <textarea name="description" class="form-control" rows="3">{{ product.description or '' }}</textarea>
+                                  </div>
+                                  <div class="mb-3">
+                                      <label class="form-label">Ingredients</label>
+                                      <textarea name="ingredients" class="form-control" rows="2" placeholder="e.g. Dates, Roasted Almonds, Honey">{{ product.ingredients or '' }}</textarea>
+                                  </div>
+
+                                  <!-- Section 4: Nutritional Facts -->
+                                  <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">4. Nutritional Info (per serving/bite)</h6>
+                                  <div class="row">
+                                      <div class="col-md-4 mb-3">
+                                          <label class="form-label">Calories (kcal)</label>
+                                          <input type="number" step="0.1" name="calories" class="form-control" value="{{ product.calories or '' }}">
+                                      </div>
+                                      <div class="col-md-4 mb-3">
+                                          <label class="form-label">Protein (g)</label>
+                                          <input type="number" step="0.1" name="protein" class="form-control" value="{{ product.protein or '' }}">
+                                      </div>
+                                      <div class="col-md-4 mb-3">
+                                          <label class="form-label">Fat (g)</label>
+                                          <input type="number" step="0.1" name="fat" class="form-control" value="{{ product.fat or '' }}">
+                                      </div>
+                                  </div>
+                                  <div class="row">
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">Carbs (g)</label>
+                                          <input type="number" step="0.1" name="carbs" class="form-control" value="{{ product.carbs or '' }}">
+                                      </div>
+                                      <div class="col-md-6 mb-3">
+                                          <label class="form-label">Fiber (g)</label>
+                                          <input type="number" step="0.1" name="fiber" class="form-control" value="{{ product.fiber or '' }}">
+                                      </div>
+                                  </div>
+
+                                  <!-- Section 5: Media -->
+                                  <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">5. Product Gallery Media</h6>
+                                  <div class="mb-3">
+                                      <label class="form-label fw-bold">Replace Main Product Image (Optional)</label>
+                                      <input type="file" name="image" class="form-control" accept="image/*">
+                                      {% if product.image_url %}
+                                      <div class="mt-2">
+                                          <span class="small text-muted">Current main image:</span><br>
+                                          <img src="{{ product.image_url }}" style="max-height: 80px; border-radius: 8px; border: 1px solid #ddd;" class="mt-1">
+                                      </div>
+                                      {% endif %}
+                                  </div>
+                                  
+                                  {% if product.media_items %}
+                                  <div class="mb-3">
+                                      <label class="form-label fw-bold">Gallery Media Items</label>
+                                      <div class="row g-2">
+                                          {% for media in product.media_items %}
+                                          <div class="col-md-4 col-sm-6">
+                                              <div class="card p-2 h-100 position-relative">
+                                                  {% if media.media_type == 'video' %}
+                                                  <video src="{{ media.media_url }}" class="card-img-top rounded" style="height: 80px; object-fit: cover;" muted></video>
+                                                  <span class="badge bg-danger position-absolute top-0 start-0 m-2">Video</span>
+                                                  {% else %}
+                                                  <img src="{{ media.media_url }}" class="card-img-top rounded" style="height: 80px; object-fit: cover;">
+                                                  <span class="badge bg-secondary position-absolute top-0 start-0 m-2">Image</span>
+                                                  {% endif %}
+                                                  <div class="card-body p-1 mt-2">
+                                                      <div class="d-flex justify-content-between align-items-center mb-1">
+                                                          <label class="small text-muted mb-0">Order:</label>
+                                                          <input type="number" name="display_order_{{ media.id }}" value="{{ media.display_order }}" class="form-control form-control-sm" style="width: 60px;">
+                                                      </div>
+                                                      <div class="form-check">
+                                                          <input class="form-check-input" type="checkbox" name="delete_media" value="{{ media.id }}" id="delete_media_{{ media.id }}">
+                                                          <label class="form-check-label small text-danger" for="delete_media_{{ media.id }}">
+                                                              Delete
+                                                          </label>
+                                                      </div>
                                                   </div>
                                               </div>
                                           </div>
+                                          {% endfor %}
                                       </div>
-                                      {% endfor %}
+                                  </div>
+                                  {% endif %}
+                                  
+                                  <div class="mb-3">
+                                      <label class="form-label fw-bold">Upload Additional Media (Images & Videos)</label>
+                                      <input type="file" name="new_media" class="form-control" accept="image/*,video/*" multiple>
+                                      <small class="text-muted">Upload multiple images or videos for this product's gallery.</small>
                                   </div>
                               </div>
-                              {% endif %}
-                              
-                              <div class="mb-3">
-                                  <label class="form-label fw-bold">Upload Additional Media (Images & Videos)</label>
-                                  <input type="file" name="new_media" class="form-control" accept="image/*,video/*" multiple>
-                                  <small class="text-muted">Upload multiple images or videos for this product's gallery.</small>
+                              <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                                <button type="submit" class="btn btn-primary">Save Changes</button>
                               </div>
-                          </div>
-                          <div class="modal-footer">
-                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                            <button type="submit" class="btn btn-primary">Save Changes</button>
-                          </div>
-                      </form>
+                          </form>
+                        </div>
+                      </div>
                     </div>
-                  </div>
-                </div>
-                {% else %}
-                <tr>
-                    <td colspan="6" class="text-center py-4">No products found. Add one to get started.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+                    {% else %}
+                    <tr>
+                        <td colspan="8" class="text-center py-4">No products found. Add one to get started.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
 
 <!-- Add Product Modal -->
 <div class="modal fade" id="addProductModal" tabindex="-1">
   <div class="modal-dialog modal-lg">
-    <div class="modal-content">
+    <div class="modal-content rounded-4">
       <form action="{{ url_for('admin.products') }}" method="POST" enctype="multipart/form-data">
           <div class="modal-header">
-            <h5 class="modal-title">Add New Product</h5>
+            <h5 class="modal-title fw-bold">Add New Product</h5>
             <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
           </div>
-          <div class="modal-body">
+          <div class="modal-body" style="max-height: 70vh; overflow-y: auto;">
+              <!-- Section 1: Basic Details -->
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3">1. Basic Details</h6>
               <div class="row">
                   <div class="col-md-6 mb-3">
                       <label class="form-label">Name</label>
-                      <input type="text" name="name" class="form-control" required>
+                      <input type="text" name="name" class="form-control" placeholder="e.g. Peanut Dates Bite" required>
                   </div>
                   <div class="col-md-6 mb-3">
                       <label class="form-label">SKU</label>
-                      <input type="text" name="sku" class="form-control" required>
+                      <input type="text" name="sku" class="form-control" placeholder="e.g. BB-PNT-01" required>
                   </div>
               </div>
               <div class="row">
@@ -172,10 +279,88 @@
                       </select>
                   </div>
                   <div class="col-md-6 mb-3">
-                      <label class="form-label">Sale Price (₹)</label>
-                      <input type="number" step="0.01" name="sale_price" class="form-control" required>
+                      <label class="form-label">Promo Tag / Badge</label>
+                      <select name="promo_badge" class="form-select">
+                          <option value="" selected>-- None --</option>
+                          <option value="Fast Seller">Fast Seller</option>
+                          <option value="Best Seller">Best Seller</option>
+                          <option value="New Arrival">New Arrival</option>
+                          <option value="Limited Edition">Limited Edition</option>
+                      </select>
                   </div>
               </div>
+
+              <!-- Section 2: Pricing & Inventory -->
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">2. Pricing & Inventory</h6>
+              <div class="row">
+                  <div class="col-md-4 mb-3">
+                      <label class="form-label">Sale Price (₹)</label>
+                      <input type="number" step="0.01" name="sale_price" class="form-control" placeholder="155.00" required>
+                  </div>
+                  <div class="col-md-4 mb-3">
+                      <label class="form-label">MRP (₹)</label>
+                      <input type="number" step="0.01" name="mrp" class="form-control" placeholder="180.00">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                      <label class="form-label">Corporate Price (₹)</label>
+                      <input type="number" step="0.01" name="corporate_price" class="form-control" placeholder="120.00">
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label fw-bold text-success">Available Quantity (Stock)</label>
+                      <input type="number" name="available_qty" class="form-control" value="0" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label">Low Stock Threshold</label>
+                      <input type="number" name="low_stock_threshold" class="form-control" value="10" required>
+                  </div>
+              </div>
+
+              <!-- Section 3: Descriptions -->
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">3. Descriptions & Content</h6>
+              <div class="mb-3">
+                  <label class="form-label">Short Description</label>
+                  <input type="text" name="short_description" class="form-control" placeholder="Brief tagline.">
+              </div>
+              <div class="mb-3">
+                  <label class="form-label">Full Description</label>
+                  <textarea name="description" class="form-control" rows="3" placeholder="Detailed product story, benefits, etc."></textarea>
+              </div>
+              <div class="mb-3">
+                  <label class="form-label">Ingredients</label>
+                  <textarea name="ingredients" class="form-control" rows="2" placeholder="e.g. Dates, Roasted Almonds, Honey"></textarea>
+              </div>
+
+              <!-- Section 4: Nutritional Facts -->
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">4. Nutritional Info (per serving/bite)</h6>
+              <div class="row">
+                  <div class="col-md-4 mb-3">
+                      <label class="form-label">Calories (kcal)</label>
+                      <input type="number" step="0.1" name="calories" class="form-control" placeholder="e.g. 85">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                      <label class="form-label">Protein (g)</label>
+                      <input type="number" step="0.1" name="protein" class="form-control" placeholder="e.g. 2.4">
+                  </div>
+                  <div class="col-md-4 mb-3">
+                      <label class="form-label">Fat (g)</label>
+                      <input type="number" step="0.1" name="fat" class="form-control" placeholder="e.g. 4.1">
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label">Carbs (g)</label>
+                      <input type="number" step="0.1" name="carbs" class="form-control" placeholder="e.g. 11.2">
+                  </div>
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label">Fiber (g)</label>
+                      <input type="number" step="0.1" name="fiber" class="form-control" placeholder="e.g. 1.8">
+                  </div>
+              </div>
+
+              <!-- Section 5: Media -->
+              <h6 class="fw-bold text-primary border-bottom pb-2 mb-3 mt-3">5. Product Gallery Media</h6>
               <div class="mb-3">
                   <label class="form-label fw-bold">Product Image (Main)</label>
                   <input type="file" name="image" class="form-control" accept="image/*">
@@ -195,3 +380,4 @@
   </div>
 </div>
 {% endblock %}
+

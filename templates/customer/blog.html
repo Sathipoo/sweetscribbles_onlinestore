@@ -1,0 +1,869 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}Blog - {{ blog.title }}{% endblock %}
+
+{% block content %}
+<style>
+/* Rich Aesthetics: Custom Theme Variables & Styles */
+:root {
+    --blog-theme: {{ blog.theme_color }};
+}
+
+.blog-container {
+    background-color: #fcfbfa;
+}
+
+/* Parallax Hero Banner */
+.parallax-hero {
+    position: relative;
+    height: 420px;
+    overflow: hidden;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background-color: #f7e6db;
+}
+.parallax-bg {
+    position: absolute;
+    top: -10%;
+    left: 0;
+    width: 100%;
+    height: 120%;
+    background-size: contain;
+    background-repeat: no-repeat;
+    background-position: center center;
+    z-index: 1;
+    opacity: 0.15;
+    will-change: transform;
+}
+.parallax-overlay {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(180deg, rgba(62, 39, 35, 0.05) 0%, rgba(62, 39, 35, 0.85) 100%);
+    z-index: 2;
+}
+.hero-content {
+    position: relative;
+    z-index: 3;
+    max-width: 800px;
+    padding: 0 20px;
+}
+.hero-category {
+    text-transform: uppercase;
+    letter-spacing: 2px;
+    font-size: 0.85rem;
+    font-weight: 800;
+    color: var(--secondary-color);
+    margin-bottom: 15px;
+}
+.hero-title {
+    font-family: 'Playfair Display', Georgia, serif;
+    font-size: 2.8rem;
+    font-weight: 800;
+    color: white;
+    line-height: 1.2;
+    text-shadow: 0 2px 10px rgba(0,0,0,0.15);
+}
+
+/* Metadata & Author card */
+.author-capsule {
+    background: white;
+    border-radius: 50px;
+    padding: 6px 20px;
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.02);
+}
+
+/* Main Layout */
+.blog-content-wrapper {
+    max-width: 800px;
+    margin: 0 auto;
+    font-size: 1.15rem;
+    line-height: 1.8;
+    color: #333;
+}
+
+.blog-para {
+    margin-bottom: 25px;
+    font-family: 'Inter', sans-serif;
+    font-weight: 400;
+    text-align: justify;
+}
+
+.blog-para:first-of-type::first-letter {
+    font-family: 'Playfair Display', serif;
+    font-size: 3.5rem;
+    font-weight: bold;
+    float: left;
+    margin-right: 10px;
+    line-height: 1;
+    color: var(--blog-theme);
+}
+
+/* Premium Highlighted Blockquote */
+.premium-quote {
+    position: relative;
+    border-left: 5px solid var(--blog-theme);
+    background: #fbf5f0;
+    padding: 30px;
+    border-radius: 0 20px 20px 0;
+    margin: 40px 0;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.02);
+}
+.premium-quote::before {
+    content: "“";
+    font-family: 'Playfair Display', serif;
+    font-size: 8rem;
+    position: absolute;
+    top: -40px;
+    left: 20px;
+    color: var(--blog-theme);
+    opacity: 0.12;
+    line-height: 1;
+}
+
+/* Reveal Animation */
+.scroll-reveal {
+    opacity: 0;
+    transform: translateY(30px);
+    transition: opacity 0.8s ease, transform 0.8s ease;
+}
+.scroll-reveal.active {
+    opacity: 1;
+    transform: translateY(0);
+}
+
+/* CTA Container Card */
+.blog-cta-card {
+    background: white;
+    border-radius: 24px;
+    padding: 40px;
+    border: 2px solid var(--blog-theme);
+    box-shadow: 0 15px 40px rgba(62,39,35,0.05);
+}
+
+/* Interactive Component Styles */
+.widget-box {
+    background: #fcfbfc;
+    border-radius: 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 10px 25px rgba(0,0,0,0.03);
+    overflow: hidden;
+}
+
+.widget-header {
+    background: var(--blog-theme);
+    color: white;
+    padding: 20px;
+    font-family: 'Playfair Display', serif;
+    text-align: center;
+}
+
+/* Glycemic chart SVG styling */
+.glycemic-line-traditional {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawLine 2s forwards ease-in-out;
+}
+.glycemic-line-sweet {
+    stroke-dasharray: 1000;
+    stroke-dashoffset: 1000;
+    animation: drawLine 2s 0.5s forwards ease-in-out;
+}
+@keyframes drawLine {
+    to {
+        stroke-dashoffset: 0;
+    }
+}
+
+/* Spin Roulette */
+.roulette-container {
+    position: relative;
+    width: 250px;
+    height: 250px;
+    margin: 0 auto;
+}
+.wheel {
+    width: 100%;
+    height: 100%;
+    border-radius: 50%;
+    border: 10px solid #333;
+    position: relative;
+    overflow: hidden;
+    transition: transform 4s cubic-bezier(0.1, 0.8, 0.1, 1);
+    box-shadow: 0 4px 15px rgba(0,0,0,0.15);
+}
+.wheel-pointer {
+    position: absolute;
+    top: -15px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 0;
+    height: 0;
+    border-left: 15px solid transparent;
+    border-right: 15px solid transparent;
+    border-top: 25px solid #d84315;
+    z-index: 10;
+}
+.wheel-segment {
+    position: absolute;
+    width: 50%;
+    height: 50%;
+    left: 50%;
+    top: 50%;
+    transform-origin: 0% 0%;
+}
+
+/* Gift Customizer Box Preview */
+.gift-box-preview {
+    width: 180px;
+    height: 180px;
+    background: #5d4037;
+    margin: 0 auto;
+    position: relative;
+    box-shadow: 0 10px 25px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    transition: background-color 0.3s ease;
+}
+.gift-ribbon-v {
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 20px;
+    height: 100%;
+    transform: translateX(-50%);
+    background: var(--secondary-color);
+}
+.gift-ribbon-h {
+    position: absolute;
+    top: 50%;
+    left: 0;
+    width: 100%;
+    height: 20px;
+    transform: translateY(-50%);
+    background: var(--secondary-color);
+}
+.gift-sleeve {
+    position: absolute;
+    top: 15%;
+    left: 0;
+    width: 100%;
+    height: 70%;
+    background: rgba(255,255,255,0.9);
+    border-top: 1px solid rgba(0,0,0,0.1);
+    border-bottom: 1px solid rgba(0,0,0,0.1);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    text-align: center;
+}
+</style>
+
+<div class="blog-container pb-5">
+    <!-- Parallax Hero Banner -->
+    <div class="parallax-hero">
+        <div class="parallax-bg" id="parallax-bg" style="background-image: url('{{ blog.icon_url }}');"></div>
+        <div class="parallax-overlay"></div>
+        <div class="hero-content text-center text-md-start">
+            <span class="hero-category">{{ blog.category }}</span>
+            <h1 class="hero-title my-3">{{ blog.title }}</h1>
+            <div class="d-flex flex-column flex-md-row align-items-center gap-3 mt-4">
+                <div class="author-capsule text-dark">
+                    <span class="fw-bold me-2">✍️ By {{ blog.author }}</span>
+                </div>
+                <span class="text-white opacity-75 small">• {{ blog.date }} • ⏱️ {{ blog.read_time }}</span>
+            </div>
+        </div>
+    </div>
+
+    <!-- Article Content -->
+    <div class="container py-5">
+        <div class="blog-content-wrapper">
+            <!-- Back to Home -->
+            <div class="mb-4">
+                <a href="{{ url_for('customer.home') }}" class="text-muted small text-decoration-none hover-gold">➔ Back to home</a>
+            </div>
+
+            <!-- Paragraph 1 & 2 -->
+            <div class="scroll-reveal">
+                <p class="blog-para">{{ blog.paragraphs[0] }}</p>
+                <p class="blog-para">{{ blog.paragraphs[1] }}</p>
+            </div>
+
+            <!-- Blockquote -->
+            <div class="premium-quote scroll-reveal">
+                <h5 class="italic fw-semibold text-dark mb-2 font-premium-header">"{{ blog.quote }}"</h5>
+                <small class="text-muted fw-bold">- {{ blog.quote_author }}</small>
+            </div>
+
+            <!-- Paragraph 3 & 4 -->
+            <div class="scroll-reveal">
+                <p class="blog-para">{{ blog.paragraphs[2] }}</p>
+                <p class="blog-para">{{ blog.paragraphs[3] }}</p>
+            </div>
+
+            <!-- INTERACTIVE WIDGET SECTION -->
+            <div class="my-5 scroll-reveal">
+                <div class="widget-box">
+                    <div class="widget-header">
+                        <h4 class="mb-0 fw-bold">Interactive Experience</h4>
+                    </div>
+                    <div class="p-4 bg-white" id="interactive-widget-content">
+                        
+                        <!-- 1. Productivity Calculator (Office Snack) -->
+                        {% if blog.interactive_component == 'office-calculator' %}
+                        <div class="text-center">
+                            <h5 class="fw-bold mb-3">Afternoon Productivity Crash Estimator</h5>
+                            <p class="text-muted small mb-4">Input your daily routine to see your estimated 3 PM brain productivity and sugar crash risk.</p>
+                            
+                            <div class="row g-3 justify-content-center text-start mb-4" style="max-width: 500px; margin: 0 auto;">
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Night Sleep (Hours):</label>
+                                    <input type="range" class="form-range" id="sleep-slider" min="4" max="9" value="7">
+                                    <span class="small text-muted" id="sleep-label">7 hours</span>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Afternoon Coffee / Tea (Cups):</label>
+                                    <input type="range" class="form-range" id="coffee-slider" min="0" max="4" value="2">
+                                    <span class="small text-muted" id="coffee-label">2 cups</span>
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold">Lunch Type:</label>
+                                    <select class="form-select form-select-sm" id="lunch-select">
+                                        <option value="heavy">Heavy Carb (Rice, Naan, Fried Dish)</option>
+                                        <option value="light">Balanced (Salad, Roti, Lean Protein)</option>
+                                        <option value="none">Skipped / Fast Food</option>
+                                    </select>
+                                </div>
+                                <div class="col-12 text-center mt-4">
+                                    <button class="btn btn-dark rounded-pill px-4" onclick="calculateProductivity()">Estimate My 3 PM State</button>
+                                </div>
+                            </div>
+                            
+                            <hr>
+                            
+                            <div id="productivity-result" class="d-none mt-4">
+                                <div class="row align-items-center">
+                                    <div class="col-md-6 mb-3 mb-md-0">
+                                        <h6 class="fw-bold">Your Estimated 3 PM State:</h6>
+                                        <div class="display-5 fw-extrabold" id="productivity-score">75%</div>
+                                        <div class="small fw-semibold mt-1" id="productivity-status">Slightly Alert</div>
+                                    </div>
+                                    <div class="col-md-6 text-start p-3 bg-light rounded-3">
+                                        <p class="small mb-1" id="productivity-desc"></p>
+                                        <p class="small text-success mb-0">💡 <strong>SweetScribbles Solution:</strong> Swapping 1 cup of coffee + cookie for 1 Sesame Dates Bite raises your stability score to <strong>95%</strong> by maintaining low glycemic energy release!</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Lunchbox Builder (Kids Lunchbox) -->
+                        {% elif blog.interactive_component == 'lunchbox-checklist' %}
+                        <div>
+                            <h5 class="fw-bold mb-3 text-center">Kid's Healthy Lunchbox Planner</h5>
+                            <p class="text-muted small text-center mb-4">Select items to pack in the lunchbox and evaluate the nutrition and school-day energy rating.</p>
+                            
+                            <div class="row g-3">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3 h-100">
+                                        <h6 class="fw-bold mb-3">Pack Your Box:</h6>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input lunchbox-item" type="checkbox" value="sandwich" data-nutrition="carb" id="item1">
+                                            <label class="form-check-label small" for="item1">Roti Roll / Jam Sandwich</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input lunchbox-item" type="checkbox" value="chips" data-nutrition="processed" id="item2">
+                                            <label class="form-check-label small" for="item2">Processed Potato Chips</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input lunchbox-item" type="checkbox" value="candy" data-nutrition="processed" id="item3">
+                                            <label class="form-check-label small" for="item3">Commercial Chocolate / Candy Bar</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input lunchbox-item" type="checkbox" value="apple" data-nutrition="fruit" id="item4">
+                                            <label class="form-check-label small" for="item4">Apple Slices / Cucumber</label>
+                                        </div>
+                                        <div class="form-check mb-2">
+                                            <input class="form-check-input lunchbox-item" type="checkbox" value="sweetscribbles" data-nutrition="superfood" id="item5" checked>
+                                            <label class="form-check-label small fw-bold text-success" for="item5">🍬 SweetScribbles Peanut Bite</label>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded-3 h-100 d-flex flex-column justify-content-center text-center">
+                                        <h6 class="fw-bold">Lunchbox Health Index:</h6>
+                                        <div class="display-6 fw-extrabold my-2 text-primary" id="lunchbox-rating">Excellent</div>
+                                        <p class="small text-muted mb-3" id="lunchbox-feedback">SweetScribbles peanut bite adds clean protein and healthy fats, ensuring your kid stays energetic without sugar tantrums.</p>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-success" id="lunchbox-progress" style="width: 80%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 3. Glycemic Chart (Post-Meal Sweet) -->
+                        {% elif blog.interactive_component == 'glycemic-slider' %}
+                        <div>
+                            <h5 class="fw-bold mb-3 text-center">Glycemic Impact Simulator</h5>
+                            <p class="text-muted small text-center mb-4">Compare blood sugar curves of eating refined sweets vs date-sweetened bites after meals.</p>
+                            
+                            <div class="row align-items-center">
+                                <div class="col-md-7 mb-4 mb-md-0">
+                                    <div class="border rounded p-2 bg-light">
+                                        <svg viewBox="0 0 400 200" class="w-100" style="background: white;">
+                                            <!-- Grid lines -->
+                                            <line x1="40" y1="20" x2="380" y2="20" stroke="#f0f0f0" stroke-width="1"/>
+                                            <line x1="40" y1="70" x2="380" y2="70" stroke="#f0f0f0" stroke-width="1"/>
+                                            <line x1="40" y1="120" x2="380" y2="120" stroke="#f0f0f0" stroke-width="1"/>
+                                            <line x1="40" y1="170" x2="380" y2="170" stroke="#e0e0e0" stroke-width="2"/>
+                                            <line x1="40" y1="20" x2="40" y2="170" stroke="#e0e0e0" stroke-width="2"/>
+                                            
+                                            <!-- Traditional Sweet Curve -->
+                                            <path d="M 40 170 C 100 10, 160 10, 240 170" fill="none" stroke="#d84315" stroke-width="3" class="glycemic-line-traditional" id="trad-path"/>
+                                            
+                                            <!-- SweetScribbles Curve -->
+                                            <path d="M 40 170 C 120 120, 200 120, 360 170" fill="none" stroke="#2e7d32" stroke-width="3" class="glycemic-line-sweet" id="sweet-path"/>
+                                            
+                                            <text x="50" y="35" fill="#d84315" font-size="10" font-weight="bold">Traditional Gulab Jamun / Chocolate</text>
+                                            <text x="50" y="110" fill="#2e7d32" font-size="10" font-weight="bold">SweetScribbles Fig/Dates Bite</text>
+                                            <text x="320" y="190" fill="#666" font-size="8">Time (Hours) ➔</text>
+                                            <text x="10" y="90" fill="#666" font-size="8" transform="rotate(-90 10 90)">Blood Glucose ➔</text>
+                                        </svg>
+                                    </div>
+                                </div>
+                                <div class="col-md-5 text-start">
+                                    <h6 class="fw-bold text-dark">Glycemic index analysis:</h6>
+                                    <p class="small text-muted mb-2">Notice the rapid blood glucose spike (red curve) that causes insomniac restlessness and sugar crash lethargy.</p>
+                                    <p class="small text-muted mb-0">Date fiber binds sugar molecules, leading to a steady, shallow curve (green line) promoting peaceful resting metabolism.</p>
+                                    <button class="btn btn-outline-dark btn-sm mt-3 w-100" onclick="animateChart()">Re-simulate digestion</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 4. Energy Comparison (Gym Fuel) -->
+                        {% elif blog.interactive_component == 'energy-selector' %}
+                        <div class="text-center">
+                            <h5 class="fw-bold mb-3">Athletic Fuel Evaluator</h5>
+                            <p class="text-muted small mb-4">Compare nutrition profiles of synthetic protein bars against SweetScribbles dates/nuts fuel.</p>
+                            
+                            <div class="btn-group btn-group-sm mb-4" role="group">
+                                <button type="button" class="btn btn-dark active" id="btn-show-sweetscribbles" onclick="showFuel('sweetscribbles')">SweetScribbles Bites</button>
+                                <button type="button" class="btn btn-outline-dark" id="btn-show-synthetic" onclick="showFuel('synthetic')">Commercial Protein Bar</button>
+                            </div>
+                            
+                            <div class="row align-items-center justify-content-center" style="max-width: 600px; margin: 0 auto;">
+                                <div class="col-md-6 mb-3 mb-md-0">
+                                    <div class="p-3 bg-light rounded-3 text-start">
+                                        <h6 class="fw-bold mb-2" id="fuel-title">SweetScribbles Energy Bites</h6>
+                                        <ul class="small list-unstyled mb-0" id="fuel-details">
+                                            <li class="mb-2">🌱 <strong>Source:</strong> 100% Whole Food Plant-Based</li>
+                                            <li class="mb-2">🍭 <strong>Sweetener:</strong> Pitted Dry Dates (0% Refined Sugar)</li>
+                                            <li class="mb-2">🧠 <strong>Additives:</strong> Zero artificial flavors, colors, or stabilizers</li>
+                                            <li class="mb-2">⏱️ <strong>Digestion Rate:</strong> Light on stomach, quick muscle glycogen release</li>
+                                        </ul>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="p-3 border rounded-3 text-center">
+                                        <div class="small fw-semibold text-muted">Stomach Cramps & Crash Risk</div>
+                                        <div class="display-6 fw-extrabold my-2 text-success" id="fuel-risk">0% (Safe)</div>
+                                        <div class="progress" style="height: 10px;">
+                                            <div class="progress-bar bg-success" id="fuel-progress" style="width: 100%;"></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 5. Gifting Customizer (Festive Gifting) -->
+                        {% elif blog.interactive_component == 'gifting-estimator' %}
+                        <div>
+                            <h5 class="fw-bold mb-3 text-center">Instant Gift Box Customizer</h5>
+                            <p class="text-muted small text-center mb-4">Choose details to customize a luxury SweetScribbles gift box in real-time.</p>
+                            
+                            <div class="row g-4 align-items-center">
+                                <div class="col-md-6">
+                                    <div class="p-3 bg-light rounded-3">
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Box Base Color:</label>
+                                            <select class="form-select form-select-sm" id="box-color-select" onchange="customizeBox()">
+                                                <option value="#5d4037">Luxury Royal Brown</option>
+                                                <option value="#b71c1c">Festive Deep Crimson</option>
+                                                <option value="#004d40">Imperial Teal Green</option>
+                                            </select>
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Custom Text on Sleeve:</label>
+                                            <input type="text" class="form-control form-control-sm" id="box-text-input" value="Made with Love" placeholder="e.g. Happy Holidays!" oninput="customizeBox()">
+                                        </div>
+                                        <div class="mb-3">
+                                            <label class="form-label small fw-semibold">Ribbon Color Accent:</label>
+                                            <select class="form-select form-select-sm" id="ribbon-color-select" onchange="customizeBox()">
+                                                <option value="#ffb300">Amber Gold</option>
+                                                <option value="#ff5722">Bright Orange</option>
+                                                <option value="#ffffff">Classic White</option>
+                                            </select>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="col-md-6 text-center">
+                                    <div class="gift-box-preview" id="gift-preview">
+                                        <div class="gift-ribbon-v" id="ribbon-v"></div>
+                                        <div class="gift-ribbon-h" id="ribbon-h"></div>
+                                        <div class="gift-sleeve" id="sleeve-text">Made with Love</div>
+                                    </div>
+                                    <small class="text-muted d-block mt-3">Interactive 3D-effect wrapper preview</small>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 6. Cravings Roulette (Midnight Cravings) -->
+                        {% elif blog.interactive_component == 'cravings-roulette' %}
+                        <div class="text-center">
+                            <h5 class="fw-bold mb-3">Late-Night Craving Roulette</h5>
+                            <p class="text-muted small mb-4">Spin the roulette to evaluate what your 1 AM snack choice does to your sleep and body!</p>
+                            
+                            <div class="roulette-container mb-4">
+                                <div class="wheel-pointer"></div>
+                                <div class="wheel" id="roulette-wheel">
+                                    <!-- Simple colored pie styling using CSS gradients -->
+                                    <div style="position: absolute; width: 100%; height: 100%; background: conic-gradient(#d84315 0deg 120deg, #ffb300 120deg 240deg, #2e7d32 240deg 360deg);"></div>
+                                </div>
+                            </div>
+                            
+                            <button class="btn btn-dark rounded-pill px-4" id="spin-btn" onclick="spinRoulette()">Spin the Wheel</button>
+                            
+                            <div id="roulette-result" class="mt-4 p-3 bg-light rounded-3 d-none">
+                                <h6 class="fw-bold" id="roulette-result-title">Selected Option: --</h6>
+                                <p class="small text-muted mb-0" id="roulette-result-desc"></p>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                    </div>
+                </div>
+            </div>
+
+            <!-- CTA Card -->
+            <div class="blog-cta-card text-center scroll-reveal my-5">
+                <h3 class="fw-bold mb-3" style="color: var(--primary-color);">Enjoy Wholesome Indulgence</h3>
+                <p class="text-muted small mx-auto mb-4" style="max-width: 500px;">
+                    Experience the natural dates & figs goodness handcrafted fresh in small batches. No sugar, no preservatives, maximum flavor.
+                </p>
+                <a href="{{ blog.cta_link }}" class="btn btn-premium px-5 py-3">{{ blog.cta_text }}</a>
+            </div>
+
+        </div>
+    </div>
+</div>
+
+<script>
+// Parallax Scrolling Effect
+window.addEventListener('scroll', function() {
+    const scrolled = window.pageYOffset;
+    const parallaxBg = document.getElementById('parallax-bg');
+    if (parallaxBg) {
+        parallaxBg.style.transform = 'translateY(' + (scrolled * 0.35) + 'px)';
+    }
+});
+
+// Reveal-on-scroll implementation
+document.addEventListener("DOMContentLoaded", function() {
+    const reveals = document.querySelectorAll(".scroll-reveal");
+    
+    function checkReveal() {
+        const triggerBottom = window.innerHeight * 0.85;
+        reveals.forEach(reveal => {
+            const top = reveal.getBoundingClientRect().top;
+            if (top < triggerBottom) {
+                reveal.classList.add("active");
+            }
+        });
+    }
+    
+    window.addEventListener("scroll", checkReveal);
+    checkReveal(); // Initial run
+});
+
+// Interactive JS Logic for Components
+// 1. Productivity Calculator
+function calculateProductivity() {
+    const sleep = parseInt(document.getElementById('sleep-slider').value);
+    const coffee = parseInt(document.getElementById('coffee-slider').value);
+    const lunch = document.getElementById('lunch-select').value;
+    
+    // Simple logic to compute productivity
+    let score = 50;
+    score += (sleep - 6) * 8; // More sleep is better, up to limit
+    score -= coffee * 5; // Excess coffee adds jitters/drop later
+    
+    if (lunch === 'heavy') {
+        score -= 25; // Massive sugar crash
+    } else if (lunch === 'light') {
+        score += 15;
+    } else {
+        score -= 10;
+    }
+    
+    score = Math.max(15, Math.min(95, score));
+    
+    // Labels
+    let status = '';
+    let desc = '';
+    
+    if (score < 35) {
+        status = '🔴 Severe Slump (Zombie State)';
+        desc = 'You are experiencing a major blood sugar crash combined with sleepiness. Your concentration is close to zero, and you are reaching for whatever sugar is nearby.';
+    } else if (score < 65) {
+        status = '🟡 Cognitive Fatigue (Brain Fog)';
+        desc = 'The heavy lunch or caffeine jitters are dragging your performance down. You find yourself reread the same sentence multiple times.';
+    } else if (score < 85) {
+        status = '🟢 Functioning (Needs Steady Fuel)';
+        desc = 'You are managing to get work done, but you can feel your energy levels waiver. A healthy desk snack will prevent a further decline.';
+    } else {
+        status = '🔵 Peak Performance (Focused)';
+        desc = 'Great sleep and a balanced routine have kept you alert. Keep up the clean habits!';
+    }
+    
+    document.getElementById('sleep-label').innerText = sleep + ' hours';
+    document.getElementById('coffee-label').innerText = coffee + ' cups';
+    
+    document.getElementById('productivity-score').innerText = score + '%';
+    document.getElementById('productivity-status').innerText = status;
+    document.getElementById('productivity-desc').innerText = desc;
+    
+    const resultBox = document.getElementById('productivity-result');
+    resultBox.classList.remove('d-none');
+    resultBox.style.opacity = '0';
+    setTimeout(() => {
+        resultBox.style.transition = 'opacity 0.5s ease';
+        resultBox.style.opacity = '1';
+    }, 50);
+}
+
+// Bind sliders if they exist
+document.addEventListener("DOMContentLoaded", function() {
+    const sleepSlider = document.getElementById('sleep-slider');
+    const coffeeSlider = document.getElementById('coffee-slider');
+    if (sleepSlider) {
+        sleepSlider.addEventListener('input', () => {
+            document.getElementById('sleep-label').innerText = sleepSlider.value + ' hours';
+        });
+    }
+    if (coffeeSlider) {
+        coffeeSlider.addEventListener('input', () => {
+            document.getElementById('coffee-label').innerText = coffeeSlider.value + ' cups';
+        });
+    }
+    
+    // Initialize builders
+    if (document.querySelector('.lunchbox-item')) {
+        const items = document.querySelectorAll('.lunchbox-item');
+        items.forEach(el => el.addEventListener('change', checkLunchbox));
+        checkLunchbox();
+    }
+    
+    if (document.getElementById('box-color-select')) {
+        customizeBox();
+    }
+});
+
+// 2. Lunchbox Builder Logic
+function checkLunchbox() {
+    const items = document.querySelectorAll('.lunchbox-item');
+    let hasProcessed = false;
+    let hasSuperfood = false;
+    let count = 0;
+    
+    items.forEach(item => {
+        if (item.checked) {
+            count++;
+            const type = item.getAttribute('data-nutrition');
+            if (type === 'processed') hasProcessed = true;
+            if (type === 'superfood') hasSuperfood = true;
+        }
+    });
+    
+    let rating = 'Poor';
+    let feedback = 'Your box is empty. Choose some wholesome ingredients!';
+    let percent = 10;
+    
+    if (count > 0) {
+        if (hasProcessed && !hasSuperfood) {
+            rating = '⚠️ Sugar High Risk';
+            feedback = 'Warning: packing commercial chocolates or chips introduces highly refined carbohydrates. This will lead to quick hyper-activity followed by school-day fatigue.';
+            percent = 35;
+        } else if (hasProcessed && hasSuperfood) {
+            rating = '🟡 Moderate Box';
+            feedback = 'Adding SweetScribbles mitigates some processed sugar spikes, but try eliminating chemical chips/candies for a fully active school day.';
+            percent = 60;
+        } else {
+            rating = '🟢 Superfood Balanced';
+            feedback = 'Fantastic! Pure whole foods, fruits, and SweetScribbles Peanut Bites give your child pure calcium, protein, and date fibers with zero sugar crashes.';
+            percent = 95;
+        }
+    }
+    
+    const ratingEl = document.getElementById('lunchbox-rating');
+    const feedbackEl = document.getElementById('lunchbox-feedback');
+    const progressEl = document.getElementById('lunchbox-progress');
+    
+    ratingEl.innerText = rating;
+    feedbackEl.innerText = feedback;
+    progressEl.style.width = percent + '%';
+    
+    if (percent > 75) {
+        progressEl.className = 'progress-bar bg-success';
+    } else if (percent > 45) {
+        progressEl.className = 'progress-bar bg-warning';
+    } else {
+        progressEl.className = 'progress-bar bg-danger';
+    }
+}
+
+// 3. Glycemic Chart Simulation
+function animateChart() {
+    const trad = document.getElementById('trad-path');
+    const sweet = document.getElementById('sweet-path');
+    if (trad && sweet) {
+        trad.style.animation = 'none';
+        sweet.style.animation = 'none';
+        trad.offsetHeight; /* trigger reflow */
+        sweet.offsetHeight; /* trigger reflow */
+        trad.style.animation = 'drawLine 2s forwards ease-in-out';
+        sweet.style.animation = 'drawLine 2s 0.5s forwards ease-in-out';
+    }
+}
+
+// 4. Energy Comparison Logic
+function showFuel(type) {
+    const btnSweet = document.getElementById('btn-show-sweetscribbles');
+    const btnSync = document.getElementById('btn-show-synthetic');
+    const title = document.getElementById('fuel-title');
+    const details = document.getElementById('fuel-details');
+    const risk = document.getElementById('fuel-risk');
+    const progress = document.getElementById('fuel-progress');
+    
+    if (type === 'sweetscribbles') {
+        btnSweet.className = 'btn btn-dark active';
+        btnSync.className = 'btn btn-outline-dark';
+        title.innerText = 'SweetScribbles Energy Bites';
+        details.innerHTML = `
+            <li class="mb-2">🌱 <strong>Source:</strong> 100% Whole Food Plant-Based</li>
+            <li class="mb-2">🍭 <strong>Sweetener:</strong> Pitted Dry Dates (0% Refined Sugar)</li>
+            <li class="mb-2">🧠 <strong>Additives:</strong> Zero artificial flavors, colors, or stabilizers</li>
+            <li class="mb-2">⏱️ <strong>Digestion Rate:</strong> Light on stomach, quick muscle glycogen release</li>
+        `;
+        risk.innerText = '0% (Safe)';
+        risk.className = 'display-6 fw-extrabold my-2 text-success';
+        progress.style.width = '100%';
+        progress.className = 'progress-bar bg-success';
+    } else {
+        btnSweet.className = 'btn btn-outline-dark';
+        btnSync.className = 'btn btn-dark active';
+        title.innerText = 'Commercial Protein Bar';
+        details.innerHTML = `
+            <li class="mb-2">🏭 <strong>Source:</strong> Highly processed isolates & fats</li>
+            <li class="mb-2">🧪 <strong>Sweeteners:</strong> Maltitol syrup, Sucralose (causes gas)</li>
+            <li class="mb-2">🍔 <strong>Additives:</strong> Soy lecithin, artificial chocolate flavorings</li>
+            <li class="mb-2">⏱️ <strong>Digestion Rate:</strong> Heavy, sitting in stomach during training</li>
+        `;
+        risk.innerText = '75% (High)';
+        risk.className = 'display-6 fw-extrabold my-2 text-danger';
+        progress.style.width = '25%';
+        progress.className = 'progress-bar bg-danger';
+    }
+}
+
+// 5. Gifting Customizer Box Preview
+function customizeBox() {
+    const boxColor = document.getElementById('box-color-select').value;
+    const boxText = document.getElementById('box-text-input').value;
+    const ribbonColor = document.getElementById('ribbon-color-select').value;
+    
+    const preview = document.getElementById('gift-preview');
+    const ribbonV = document.getElementById('ribbon-v');
+    const ribbonH = document.getElementById('ribbon-h');
+    const sleeve = document.getElementById('sleeve-text');
+    
+    if (preview) preview.style.backgroundColor = boxColor;
+    if (ribbonV) ribbonV.style.backgroundColor = ribbonColor;
+    if (ribbonH) ribbonH.style.backgroundColor = ribbonColor;
+    if (sleeve) sleeve.innerText = boxText || "Made with Love";
+}
+
+// 6. Cravings Roulette Wheel Spin
+let isSpinning = false;
+function spinRoulette() {
+    if (isSpinning) return;
+    isSpinning = true;
+    
+    const wheel = document.getElementById('roulette-wheel');
+    const spinBtn = document.getElementById('spin-btn');
+    const resultBox = document.getElementById('roulette-result');
+    
+    spinBtn.disabled = true;
+    resultBox.classList.add('d-none');
+    
+    // Generate random angle: at least 5 full rotations + random offset
+    const currentRotation = 3600 + Math.floor(Math.random() * 360);
+    wheel.style.transform = `rotate(${currentRotation}deg)`;
+    
+    // Result determination based on final offset
+    const offset = currentRotation % 360;
+    let selected = '';
+    let desc = '';
+    
+    // segment ranges:
+    // 0 to 120 deg: Crimson (conic sector 1: pizza/chips)
+    // 120 to 240 deg: Gold (conic sector 2: ice cream tub)
+    // 240 to 360 deg: Green (conic sector 3: SweetScribbles)
+    
+    // Since the wheel rotates counterclockwise, the pointer selects the segment opposite:
+    // we take 360 - offset
+    const selectionAngle = (360 - offset) % 360;
+    
+    if (selectionAngle < 120) {
+        selected = '🍕 Cold Leftover Pizza / Salty Chips';
+        desc = '⚠️ <strong>Result:</strong> Heavy fat and high sodium. It forces your digestive tract to run at full speed when you sleep, leading to vivid dreams, frequent wakeups, and morning puffiness.';
+    } else if (selectionAngle < 240) {
+        selected = '🍦 Half a Tub of Ice Cream / Candy';
+        desc = '⚠️ <strong>Result:</strong> Massive refined sugar spike. You will get instant dopamine, but your insulin will spike. Expect night sweats, an elevated heart rate, and waking up starving.';
+    } else {
+        selected = '🍬 SweetScribbles Sesame Dates Bite';
+        desc = '✅ <strong>Winner:</strong> The ultimate midnight snack! Satisfies sweet cravings, dates fibers ensure a flat metabolic curve, and magnesium from seeds helps your muscles relax for deep sleep.';
+    }
+    
+    setTimeout(() => {
+        isSpinning = false;
+        spinBtn.disabled = false;
+        
+        // Reset rotation transitionless to prevent huge angle resets next spin
+        wheel.style.transition = 'none';
+        wheel.style.transform = `rotate(${offset}deg)`;
+        wheel.offsetHeight; /* trigger reflow */
+        wheel.style.transition = 'transform 4s cubic-bezier(0.1, 0.8, 0.1, 1)';
+        
+        document.getElementById('roulette-result-title').innerHTML = `Your late-night selection:<br><span class="fs-5 fw-extrabold" style="color: var(--blog-theme);">${selected}</span>`;
+        document.getElementById('roulette-result-desc').innerHTML = desc;
+        
+        resultBox.classList.remove('d-none');
+        resultBox.style.opacity = '0';
+        setTimeout(() => {
+            resultBox.style.transition = 'opacity 0.5s ease';
+            resultBox.style.opacity = '1';
+        }, 50);
+    }, 4000);
+}
+</script>
+{% endblock %}

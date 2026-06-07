@@ -8,8 +8,26 @@ from utils.gcp_storage import upload_file
 from utils.zoho_utils import ZohoClient
 import uuid
 from datetime import datetime
+from utils.blog_data import BLOGS
 
 customer_bp = Blueprint('customer', __name__)
+
+def deduct_order_stock(order):
+    """
+    Helper to deduct stock for order items (bites and choco only).
+    Ensures that we don't deduct multiple times.
+    """
+    if order.is_stock_deducted:
+        return
+        
+    for item in order.items:
+        product = item.product
+        if product and product.category in ('bites', 'choco'):
+            product.available_qty = max(0, product.available_qty - item.quantity)
+            
+    order.is_stock_deducted = True
+    db.session.commit()
+
 
 @customer_bp.route('/')
 def home():
@@ -33,6 +51,16 @@ def product_detail(product_id):
     product = Product.query.get_or_404(product_id)
     if request.method == 'POST':
         qty = int(request.form.get('quantity', 1))
+        
+        # Enforce stock checks for bites and choco categories
+        if product.category in ('bites', 'choco'):
+            if product.available_qty <= 0:
+                flash(f'Sorry, "{product.name}" is currently out of stock.', 'danger')
+                return redirect(url_for('customer.product_detail', product_id=product.id))
+            if qty > product.available_qty:
+                flash(f'Sorry, only {product.available_qty} units of "{product.name}" are in stock.', 'warning')
+                return redirect(url_for('customer.product_detail', product_id=product.id))
+                
         custom_message = request.form.get('custom_message', '')
         
         custom_logo_url = None
@@ -114,6 +142,22 @@ def checkout():
         return redirect(url_for('customer.home'))
         
     if request.method == 'POST':
+        # Check stock levels for bites and choco products in cart
+        cart_totals = {}
+        for item in cart_items:
+            pid = item['product_id']
+            cart_totals[pid] = cart_totals.get(pid, 0) + item['quantity']
+            
+        for pid, total_qty in cart_totals.items():
+            prod = Product.query.get(pid)
+            if prod and prod.category in ('bites', 'choco'):
+                if prod.available_qty <= 0:
+                    flash(f'Sorry, "{prod.name}" has run out of stock. Please adjust your cart.', 'danger')
+                    return redirect(url_for('customer.cart'))
+                if total_qty > prod.available_qty:
+                    flash(f'Sorry, only {prod.available_qty} units of "{prod.name}" are in stock, but your cart has {total_qty}.', 'warning')
+                    return redirect(url_for('customer.cart'))
+                    
         customer_name = request.form.get('name')
         customer_email = request.form.get('email')
         customer_phone = request.form.get('phone')
@@ -203,6 +247,7 @@ def simulate_payment(order_number):
         action = request.form.get('action')
         if action == 'success':
             order.status = 'Paid'
+            deduct_order_stock(order)
             db.session.commit()
             return redirect(url_for('customer.pay_return', order_number=order.order_number))
         else:
@@ -220,6 +265,7 @@ def pay_return():
         order = Order.query.filter_by(order_number=order_number).first()
         if order and order.status == 'Pending':
             order.status = 'Paid'
+            deduct_order_stock(order)
             db.session.commit()
     return render_template('customer/order_success.html', order=order)
 
@@ -254,3 +300,11 @@ def update_profile():
     current_user.address = request.form.get('address')
     db.session.commit()
     return redirect(url_for('customer.profile'))
+
+@customer_bp.route('/blog/<slug>')
+def blog_detail(slug):
+    blog = BLOGS.get(slug)
+    if not blog:
+        flash("Blog post not found.", "warning")
+        return redirect(url_for('customer.home'))
+    return render_template('customer/blog.html', blog=blog)

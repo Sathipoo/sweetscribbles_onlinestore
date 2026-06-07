@@ -1,60 +1,118 @@
 {% extends 'admin/admin_base.html' %}
 
 {% block content %}
-<h2 class="mb-4">Dashboard</h2>
+<h2 class="mb-4">Operations Dashboard</h2>
 
 <div class="row mb-4">
-    <div class="col-md-6">
-        <div class="card text-white bg-primary mb-3">
+    <div class="col-md-4">
+        <div class="card text-white bg-primary mb-3 shadow-sm border-0 rounded-4">
             <div class="card-body">
-                <h5 class="card-title">Total Orders</h5>
-                <p class="card-text fs-2">{{ today_orders }}</p>
+                <h5 class="card-title opacity-75">Total Orders</h5>
+                <p class="card-text fs-2 fw-bold mb-0">{{ today_orders }}</p>
             </div>
         </div>
     </div>
-    <div class="col-md-6">
-        <div class="card text-white bg-warning mb-3">
-            <div class="card-body">
-                <h5 class="card-title">Pending Orders</h5>
-                <p class="card-text fs-2">{{ pending_orders }}</p>
+    <div class="col-md-4">
+        <div class="card text-white bg-warning mb-3 shadow-sm border-0 rounded-4">
+            <div class="card-body text-dark">
+                <h5 class="card-title opacity-75 fw-bold">Pending Orders</h5>
+                <p class="card-text fs-2 fw-bold mb-0">{{ pending_orders }}</p>
             </div>
         </div>
+    </div>
+    <div class="col-md-4">
+        <a href="{{ url_for('admin.products') }}" class="text-decoration-none d-block">
+            <div class="card text-white {% if low_stock_count > 0 %}bg-danger animate-pulse{% else %}bg-success{% endif %} mb-3 shadow-sm border-0 rounded-4">
+                <div class="card-body">
+                    <h5 class="card-title opacity-75">Low Stock Alerts</h5>
+                    <p class="card-text fs-2 fw-bold mb-0">
+                        {{ low_stock_count }}
+                        {% if low_stock_count > 0 %}
+                        <span class="fs-6 fw-normal ms-1">(Needs attention)</span>
+                        {% endif %}
+                    </p>
+                </div>
+            </div>
+        </a>
     </div>
 </div>
 
 <h4 class="mb-3">Recent Orders</h4>
-<div class="card">
+<div class="card shadow-sm border-0 rounded-4 mb-4">
     <div class="card-body p-0">
-        <table class="table table-hover mb-0">
-            <thead class="table-light">
-                <tr>
-                    <th>Order #</th>
-                    <th>Customer</th>
-                    <th>Amount</th>
-                    <th>Status</th>
-                    <th>Date</th>
-                </tr>
-            </thead>
-            <tbody>
-                {% for order in recent_orders %}
-                <tr>
-                    <td>{{ order.order_number }}</td>
-                    <td>{{ order.customer_name }}</td>
-                    <td>₹{{ order.total_amount }}</td>
-                    <td>
-                        <span class="badge {% if order.status == 'Pending' %}bg-warning{% elif order.status == 'Delivered' %}bg-success{% else %}bg-info{% endif %}">
-                            {{ order.status }}
-                        </span>
-                    </td>
-                    <td>{{ order.created_at.strftime('%Y-%m-%d') }}</td>
-                </tr>
-                {% else %}
-                <tr>
-                    <td colspan="5" class="text-center py-3">No orders found.</td>
-                </tr>
-                {% endfor %}
-            </tbody>
-        </table>
+        <div class="table-responsive">
+            <table class="table table-hover mb-0 align-middle">
+                <thead class="table-light">
+                    <tr>
+                        <th style="padding-left: 20px;">Order #</th>
+                        <th>Customer</th>
+                        <th>Amount</th>
+                        <th>Status</th>
+                        <th style="padding-right: 20px;">Date</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for order in recent_orders %}
+                    <tr>
+                        <td style="padding-left: 20px;"><strong>{{ order.order_number }}</strong></td>
+                        <td>{{ order.customer_name }}</td>
+                        <td>₹{{ order.total_amount }}</td>
+                        <td>
+                            <span class="badge {% if order.status == 'Pending' %}bg-warning text-dark{% elif order.status == 'Delivered' %}bg-success{% else %}bg-info{% endif %}">
+                                {{ order.status }}
+                            </span>
+                        </td>
+                        <td style="padding-right: 20px;">{{ order.created_at.strftime('%Y-%m-%d') }}</td>
+                    </tr>
+                    {% else %}
+                    <tr>
+                        <td colspan="5" class="text-center py-3 text-muted">No orders found.</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
     </div>
 </div>
+
+{% if low_stock_products %}
+<h4 class="mb-3 mt-5 text-danger fw-bold"><i class="bi bi-exclamation-triangle-fill"></i> Low Stock Warnings</h4>
+<div class="card shadow-sm border-0 rounded-4 mb-4">
+    <div class="card-body p-0">
+        <div class="table-responsive">
+            <table class="table table-hover align-middle mb-0">
+                <thead class="table-light text-danger">
+                    <tr>
+                        <th style="padding-left: 20px;">Product Name</th>
+                        <th>SKU</th>
+                        <th>Current Stock</th>
+                        <th>Min Threshold</th>
+                        <th style="padding-right: 20px;">Action</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for prod in low_stock_products %}
+                    <tr>
+                        <td style="padding-left: 20px;" class="fw-bold">{{ prod.name }}</td>
+                        <td><code>{{ prod.sku }}</code></td>
+                        <td>
+                            {% if prod.available_qty == 0 %}
+                            <span class="badge bg-danger-subtle text-danger border border-danger">Out of Stock</span>
+                            {% else %}
+                            <span class="badge bg-warning-subtle text-warning border border-warning">{{ prod.available_qty }} left</span>
+                            {% endif %}
+                        </td>
+                        <td>{{ prod.low_stock_threshold }}</td>
+                        <td style="padding-right: 20px;">
+                            <a href="{{ url_for('admin.products') }}" class="btn btn-sm btn-outline-danger rounded-pill px-3">Restock</a>
+                        </td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
+

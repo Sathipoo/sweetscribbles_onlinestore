@@ -29,6 +29,7 @@ class Product(db.Model):
     ingredients = db.Column(db.Text) # Comma-separated or JSON
     
     image_url = db.Column(db.String(255))
+    promo_badge = db.Column(db.String(50), nullable=True) # e.g. 'Fast Seller', 'New Arrival', etc.
 
 class ProductMedia(db.Model):
     __tablename__ = 'product_media'
