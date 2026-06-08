@@ -42,7 +42,8 @@ class TestZohoPayments(unittest.TestCase):
         db.session.flush()
 
         # Add a test coupon for 10% off
-        coupon = Coupon(code="TEST10", discount_type="percent", discount_value=10.0, is_active=True)
+        coupon_code = f"TEST10-{uuid.uuid4().hex[:6]}"
+        coupon = Coupon(code=coupon_code, discount_type="percent", discount_value=10.0, is_active=True)
         db.session.add(coupon)
         db.session.commit()
 
@@ -54,7 +55,7 @@ class TestZohoPayments(unittest.TestCase):
                 'custom_message': '',
                 'custom_logo_url': None
             }]
-            sess['coupon_code'] = "TEST10"
+            sess['coupon_code'] = coupon_code
 
         # Submit checkout
         response = self.client.post('/checkout', data={
@@ -143,6 +144,47 @@ class TestZohoPayments(unittest.TestCase):
         db.session.refresh(order)
         self.assertEqual(order.status, 'Paid')
         self.assertEqual(order.payment_status, 'Paid')
+
+    def test_restore_cart_rebuilds_session_cart(self):
+        prod = Product(
+            name="Restorable Product",
+            sku=f"TEST-RESTORE-{uuid.uuid4().hex[:6]}",
+            category="bites",
+            sale_price=150.0,
+            available_qty=10
+        )
+        db.session.add(prod)
+        db.session.flush()
+
+        order = Order(
+            order_number=f"SS-RESTORE-{uuid.uuid4().hex[:6]}",
+            total_amount=150.0,
+            status="Pending"
+        )
+        db.session.add(order)
+        db.session.flush()
+
+        order_item = OrderItem(
+            order_id=order.id,
+            product_id=prod.id,
+            quantity=2,
+            price_at_purchase=150.0,
+            custom_message="Gift wrap"
+        )
+        db.session.add(order_item)
+        db.session.commit()
+
+        # Visit the restore cart endpoint
+        response = self.client.get(f'/cart/restore/{order.order_number}')
+        self.assertEqual(response.status_code, 302)
+        self.assertIn('/cart', response.location)
+
+        # Verify cart was rebuilt in session
+        with self.client.session_transaction() as sess:
+            self.assertEqual(len(sess['cart']), 1)
+            self.assertEqual(sess['cart'][0]['product_id'], prod.id)
+            self.assertEqual(sess['cart'][0]['quantity'], 2)
+            self.assertEqual(sess['cart'][0]['custom_message'], "Gift wrap")
 
 if __name__ == '__main__':
     unittest.main()

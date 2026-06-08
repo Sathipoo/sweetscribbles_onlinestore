@@ -65,15 +65,19 @@
                     <li>Try **refreshing this page** in a few moments to re-verify status.</li>
                     <li>Or wait for our email confirmation once processing completes.</li>
                 </ul>
-                {% if order.payment_link %}
-                <div class="text-center mt-3">
-                    <a href="{{ order.payment_link }}" class="btn btn-sm btn-premium px-4 py-2 w-100">Retry Zoho Checkout</a>
+                <div class="d-flex gap-2 mt-3">
+                    {% if order.payment_link %}
+                    <a href="{{ order.payment_link }}" class="btn btn-sm btn-premium px-3 py-2 flex-fill text-center">Retry Zoho Checkout</a>
+                    {% endif %}
+                    <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-sm btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
                 </div>
-                {% endif %}
             </div>
-            {% elif order.status == 'Failed' and order.payment_link %}
-            <div class="text-center mt-3">
-                <a href="{{ order.payment_link }}" class="btn btn-premium px-4 py-2 w-100">Retry Payment</a>
+            {% elif order.status == 'Failed' %}
+            <div class="d-flex gap-2 mt-3">
+                {% if order.payment_link %}
+                <a href="{{ order.payment_link }}" class="btn btn-premium px-3 py-2 flex-fill text-center">Retry Payment</a>
+                {% endif %}
+                <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
             </div>
             {% endif %}
         </div>

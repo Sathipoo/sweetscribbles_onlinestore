@@ -89,7 +89,15 @@ class ZohoClient:
         first_name = full_name[0]
         last_name = " ".join(full_name[1:]) if len(full_name) > 1 else ""
 
-        base_url = os.environ.get("BASE_URL", "http://localhost:5001").rstrip("/")
+        base_url = os.environ.get("BASE_URL")
+        if not base_url:
+            try:
+                from flask import request
+                base_url = request.url_root.rstrip("/")
+            except Exception:
+                base_url = "http://localhost:5001"
+        else:
+            base_url = base_url.rstrip("/")
 
         payload = {
             "amount": float(amount),
@@ -144,7 +152,9 @@ class ZohoClient:
                 # Common patterns for ID
                 payment_link_id = (
                     (data.get("payment_link") or {}).get("payment_link_id")
+                    or (data.get("payment_links") or {}).get("payment_link_id")
                     or (data.get("payment_link") or {}).get("id")
+                    or (data.get("payment_links") or {}).get("id")
                     or data.get("payment_link_id")
                     or (data.get("data") or {}).get("payment_link_id")
                 )
@@ -202,7 +212,11 @@ class ZohoClient:
         """
         try:
             signature = headers.get('X-Zoho-Webhook-Signature') or headers.get('X-Zoho-Signature')
-            signing_key = os.environ.get('ZOHO_WEBHOOK_SIGNING_KEY') or self.ZOHO_WEBHOOK_SIGNING_KEY
+            signing_key = (
+                os.environ.get('ZOHO_WEBHOOK_SIGNING_KEY')
+                or os.environ.get('WEBHOOK_SIGNING_KEY')
+                or self.ZOHO_WEBHOOK_SIGNING_KEY
+            )
             
             if signature and signing_key:
                 import hmac
@@ -219,8 +233,10 @@ class ZohoClient:
                 if hmac.compare_digest(computed, signature):
                     return True
                 else:
-                    print(f"WARNING: Webhook signature mismatch! Computed: {computed}, Received: {signature}")
-                    # Returning True to prevent rejecting events during setup if keys are not fully aligned
+                    print(f"ERROR: Webhook signature mismatch! Computed: {computed}, Received: {signature}")
+                    # Enforce strict rejection in production (when a custom key is set)
+                    if signing_key != self.ZOHO_WEBHOOK_SIGNING_KEY:
+                        return False
                     return True
             
             return True

@@ -347,6 +347,26 @@ def pay_webhook():
 
     return "Event Ignored", 200
 
+@customer_bp.route('/cart/restore/<order_number>')
+def restore_cart(order_number):
+    order = Order.query.filter_by(order_number=order_number, status='Pending').first()
+    if not order:
+        flash("Order not found, or it has already been paid.", "warning")
+        return redirect(url_for('customer.cart'))
+        
+    # Rebuild cart from OrderItems
+    cart = []
+    for item in order.items:
+        cart.append({
+            'product_id': item.product_id,
+            'quantity': item.quantity,
+            'custom_message': item.custom_message or '',
+            'custom_logo_url': item.custom_logo_url
+        })
+    session['cart'] = cart
+    flash("Your shopping cart has been restored from the pending order.", "success")
+    return redirect(url_for('customer.cart'))
+
 @customer_bp.route('/terms')
 def terms():
     return render_template('customer/terms.html')
