@@ -40,3 +40,12 @@ class ProductMedia(db.Model):
     display_order = db.Column(db.Integer, default=0)
 
     product = db.relationship('Product', backref=db.backref('media_items', lazy=True, cascade='all, delete-orphan', order_by='ProductMedia.display_order'))
+
+class Collection(db.Model):
+    __tablename__ = 'collections'
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), unique=True, nullable=False)
+    slug = db.Column(db.String(100), unique=True, nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    theme_class = db.Column(db.String(50), default='theme-bites') # theme-bites, theme-choco, theme-gifting
+

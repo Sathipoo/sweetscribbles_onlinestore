@@ -52,9 +52,9 @@
                                     </div>
                                 </div>
                             </td>
-                            <td>₹{{ item.product.sale_price }}</td>
+                            <td class="price-professional">₹{{ "%.2f"|format(item.product.sale_price) }}</td>
                             <td class="text-center">{{ item.quantity }}</td>
-                            <td class="text-end fw-bold">₹{{ item.subtotal }}</td>
+                            <td class="text-end fw-bold price-professional">₹{{ "%.2f"|format(item.subtotal) }}</td>
                         </tr>
                         {% endfor %}
                     </tbody>
@@ -67,13 +67,13 @@
                 <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark">Order Summary</h5>
                 <div class="d-flex justify-content-between mb-2 text-dark">
                     <span>Subtotal</span>
-                    <span>₹{{ total }}</span>
+                    <span class="price-professional">₹{{ "%.2f"|format(total) }}</span>
                 </div>
                 
                 {% if discount > 0 %}
                 <div class="d-flex justify-content-between mb-2 text-success">
                     <span>Discount ({{ coupon_code }})</span>
-                    <span>-₹{{ discount }}</span>
+                    <span class="price-professional text-success">-₹{{ "%.2f"|format(discount) }}</span>
                 </div>
                 {% endif %}
                 
@@ -83,7 +83,7 @@
                 </div>
                 <div class="d-flex justify-content-between mb-4 pt-2 border-top text-dark">
                     <span class="fw-bold fs-5">Total</span>
-                    <span class="fw-bold fs-5" style="color: var(--secondary-color);">₹{{ grand_total }}</span>
+                    <span class="fw-bold fs-5 price-professional">₹{{ "%.2f"|format(grand_total) }}</span>
                 </div>
                 <a href="{{ url_for('customer.checkout') }}" class="btn btn-premium w-100 py-3 mb-2">Proceed to Checkout</a>
             </div>

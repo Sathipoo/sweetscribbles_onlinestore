@@ -19,12 +19,13 @@
                         <th>Stock Level</th>
                         <th>Promo Badge</th>
                         <th>Price</th>
-                        <th style="padding-right: 20px;">Actions</th>
+                        <th>Status</th>
+                        <th style="padding-right: 20px; text-align: right;">Actions</th>
                     </tr>
                 </thead>
                 <tbody>
                     {% for product in products %}
-                    <tr>
+                    <tr {% if not product.is_active %}style="opacity: 0.6; background-color: #fafafa;"{% endif %}>
                         <td style="padding-left: 20px;">
                             {% if product.image_url %}
                             <img src="{{ product.image_url }}" alt="Img" style="width: 50px; height: 50px; object-fit: cover; border-radius: 8px; border: 1px solid #eee;">
@@ -57,8 +58,22 @@
                             <br><small class="text-muted text-decoration-line-through">₹{{ product.mrp }}</small>
                             {% endif %}
                         </td>
-                        <td style="padding-right: 20px;">
+                        <td>
+                            {% if product.is_active %}
+                            <span class="badge bg-success">Active</span>
+                            {% else %}
+                            <span class="badge bg-danger">Inactive</span>
+                            {% endif %}
+                        </td>
+                        <td style="padding-right: 20px; text-align: right;">
                             <button class="btn btn-sm btn-outline-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#editProductModal{{ product.id }}">Edit</button>
+                            <form action="{{ url_for('admin.toggle_product_status', product_id=product.id) }}" method="POST" class="d-inline ms-1">
+                                {% if product.is_active %}
+                                <button type="submit" class="btn btn-sm btn-outline-danger rounded-pill px-2">Deactivate</button>
+                                {% else %}
+                                <button type="submit" class="btn btn-sm btn-outline-success rounded-pill px-2">Activate</button>
+                                {% endif %}
+                            </form>
                         </td>
                     </tr>
 
@@ -88,10 +103,10 @@
                                       <div class="col-md-6 mb-3">
                                           <label class="form-label">Category</label>
                                           <select name="category" class="form-select">
-                                              <option value="bites" {% if product.category == 'bites' %}selected{% endif %}>Bites (Daily Nutritional)</option>
-                                              <option value="choco" {% if product.category == 'choco' %}selected{% endif %}>Choco Bliss Bites</option>
-                                              <option value="gifting" {% if product.category == 'gifting' %}selected{% endif %}>Gifting Box</option>
-                                              <option value="custom" {% if product.category == 'custom' %}selected{% endif %}>Custom</option>
+                                              {% for col in collections %}
+                                              <option value="{{ col.slug }}" {% if product.category == col.slug %}selected{% endif %}>{{ col.name }}</option>
+                                              {% endfor %}
+                                              <option value="custom" {% if product.category == 'custom' or not product.category %}selected{% endif %}>Custom</option>
                                           </select>
                                       </div>
                                       <div class="col-md-6 mb-3">
@@ -272,9 +287,9 @@
                   <div class="col-md-6 mb-3">
                       <label class="form-label">Category</label>
                       <select name="category" class="form-select">
-                          <option value="bites">Bites (Daily Nutritional)</option>
-                          <option value="choco">Choco Bliss Bites</option>
-                          <option value="gifting">Gifting Box</option>
+                          {% for col in collections %}
+                          <option value="{{ col.slug }}">{{ col.name }}</option>
+                          {% endfor %}
                           <option value="custom">Custom</option>
                       </select>
                   </div>

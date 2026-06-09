@@ -7,7 +7,7 @@
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Pacifico&family=Caveat:wght@700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Outfit:wght@400;500;600;700;800&family=Pacifico&family=Caveat:wght@700&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
     <!-- Custom CSS -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/style.css') }}">
     <style>
@@ -86,7 +86,18 @@
         }
     </style>
 </head>
-<body>
+<body class="loading">
+
+    <!-- Preloader Overlay -->
+    <div id="preloader">
+        <div class="preloader-content">
+            <div class="preloader-logo">
+                <span class="preloader-text-logo">Sweet Scribbles</span>
+                <div class="preloader-tagline">Celebrate Better</div>
+            </div>
+            <div class="preloader-spinner"></div>
+        </div>
+    </div>
 
     <!-- Header / Navbar Capsule -->
     <header class="container sticky-top" style="z-index: 1050;">
@@ -218,5 +229,26 @@
 
     <!-- Bootstrap JS -->
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    
+    <!-- Preloader JS -->
+    <script>
+        // Fade out preloader on window load (once all images and assets load)
+        window.addEventListener('load', function() {
+            fadePreloader();
+        });
+        
+        // Fallback timeout in case loading takes too long
+        setTimeout(fadePreloader, 3500);
+
+        function fadePreloader() {
+            const preloader = document.getElementById('preloader');
+            if (preloader && !preloader.classList.contains('faded')) {
+                preloader.classList.add('faded');
+                preloader.style.opacity = '0';
+                preloader.style.visibility = 'hidden';
+                document.body.classList.remove('loading');
+            }
+        }
+    </script>
 </body>
 </html>

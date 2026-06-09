@@ -1,6 +1,6 @@
 from flask import Blueprint, render_template, request, redirect, url_for, session, current_app, flash
 from flask_login import login_required, current_user
-from models.product import Product
+from models.product import Product, Collection
 from models.order import Order, OrderItem
 from models.coupon import Coupon
 from extensions import db
@@ -31,9 +31,9 @@ def deduct_order_stock(order):
 
 @customer_bp.route('/')
 def home():
-    featured_products = Product.query.filter_by(category='bites').limit(4).all()
-    bites_products = Product.query.filter_by(category='bites').all()
-    choco_products = Product.query.filter_by(category='choco').all()
+    featured_products = Product.query.filter_by(category='bites', is_active=True).limit(4).all()
+    bites_products = Product.query.filter_by(category='bites', is_active=True).all()
+    choco_products = Product.query.filter_by(category='choco', is_active=True).all()
     return render_template('customer/home.html', 
                            featured=featured_products, 
                            bites=bites_products, 
@@ -41,14 +41,19 @@ def home():
 
 @customer_bp.route('/collections')
 def collections():
-    bites = Product.query.filter_by(category='bites').all()
-    choco = Product.query.filter_by(category='choco').all()
-    gifting = Product.query.filter_by(category='gifting').all()
-    return render_template('customer/collections.html', bites=bites, choco=choco, gifting=gifting)
+    all_collections = Collection.query.order_by(Collection.id).all()
+    collections_data = []
+    for col in all_collections:
+        products = Product.query.filter_by(category=col.slug, is_active=True).order_by(Product.id.desc()).all()
+        collections_data.append({
+            'collection': col,
+            'products': products
+        })
+    return render_template('customer/collections.html', collections=collections_data)
 
 @customer_bp.route('/product/<int:product_id>', methods=['GET', 'POST'])
 def product_detail(product_id):
-    product = Product.query.get_or_404(product_id)
+    product = Product.query.filter_by(id=product_id, is_active=True).first_or_404()
     if request.method == 'POST':
         qty = int(request.form.get('quantity', 1))
         

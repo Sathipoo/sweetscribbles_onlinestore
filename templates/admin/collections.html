@@ -1,0 +1,101 @@
+{% extends 'admin/admin_base.html' %}
+
+{% block content %}
+<div class="row">
+    <div class="col-lg-8">
+        <div class="d-flex justify-content-between align-items-center mb-4">
+            <h2 class="fw-bold">Collections (Categories)</h2>
+        </div>
+
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-0">
+                <div class="table-responsive">
+                    <table class="table table-hover align-middle mb-0">
+                        <thead class="table-light">
+                            <tr>
+                                <th style="padding-left: 20px;">Name</th>
+                                <th>Slug / Identifier</th>
+                                <th>Description</th>
+                                <th>Theme Style</th>
+                                <th style="padding-right: 20px; text-align: right;">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for col in collections %}
+                            <tr>
+                                <td style="padding-left: 20px;" class="fw-bold text-dark">
+                                    {{ col.name }}
+                                    {% if col.slug in ('bites', 'choco', 'gifting') %}
+                                    <span class="badge bg-dark-subtle text-dark-emphasis ms-1" style="font-size: 0.65rem;">System Default</span>
+                                    {% endif %}
+                                </td>
+                                <td><code>{{ col.slug }}</code></td>
+                                <td class="text-muted small">{{ col.description or '-' }}</td>
+                                <td>
+                                    {% if col.theme_class == 'theme-bites' %}
+                                    <span class="badge bg-success-subtle text-success border border-success">Sage Green (Bites)</span>
+                                    {% elif col.theme_class == 'theme-choco' %}
+                                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning">Cocoa Cream (Choco)</span>
+                                    {% elif col.theme_class == 'theme-gifting' %}
+                                    <span class="badge bg-danger-subtle text-danger border border-danger">Gold Champagne (Gifting)</span>
+                                    {% else %}
+                                    <span class="badge bg-secondary-subtle text-secondary border border-secondary">{{ col.theme_class }}</span>
+                                    {% endif %}
+                                </td>
+                                <td style="padding-right: 20px; text-align: right;">
+                                    {% if col.slug in ('bites', 'choco', 'gifting') %}
+                                    <button class="btn btn-sm btn-outline-secondary rounded-pill px-3" disabled title="System collections cannot be deleted">🔒 Locked</button>
+                                    {% else %}
+                                    <form action="{{ url_for('admin.delete_collection', collection_id=col.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Are you sure you want to delete this collection? All products in it will be reassigned to the custom category.');">
+                                        <button type="submit" class="btn btn-sm btn-danger rounded-pill px-3">Delete</button>
+                                    </form>
+                                    {% endif %}
+                                </td>
+                            </tr>
+                            {% else %}
+                            <tr>
+                                <td colspan="5" class="text-center py-4 text-muted">No collections found. Run migrations to seed defaults.</td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Create Collection Card -->
+    <div class="col-lg-4 mt-4 mt-lg-0">
+        <div class="card shadow-sm border-0 rounded-4">
+            <div class="card-body p-4">
+                <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Create Collection</h5>
+                <form action="{{ url_for('admin.collections') }}" method="POST">
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Collection Name</label>
+                        <input type="text" name="name" class="form-control" placeholder="e.g. Monsoon Specials" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Slug (Optional)</label>
+                        <input type="text" name="slug" class="form-control" placeholder="e.g. monsoon-specials (auto-generated if empty)">
+                        <small class="text-muted" style="font-size: 0.75rem;">URL-friendly identifier. Must be unique.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label fw-semibold">Description</label>
+                        <textarea name="description" class="form-control" rows="2" placeholder="e.g. Healthy seasonal treats"></textarea>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label fw-semibold">Theme Style (Aesthetics)</label>
+                        <select name="theme_class" class="form-select">
+                            <option value="theme-bites">Sage Green (Bites style)</option>
+                            <option value="theme-choco">Cocoa Cream (Choco style)</option>
+                            <option value="theme-gifting">Gold Champagne (Gifting style)</option>
+                        </select>
+                        <small class="text-muted" style="font-size: 0.75rem;">Determines the background colors and fonts on the storefront collections list.</small>
+                    </div>
+                    <button type="submit" class="btn btn-primary w-100 py-2.5 rounded-3">Create Collection</button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -439,3 +439,98 @@ h1, h2, h3, h4, .font-premium-header {
   }
 }
 
+/* Preloader styling */
+#preloader {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: #ffffff; /* Clean light background */
+  z-index: 999999;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: opacity 0.5s cubic-bezier(0.25, 0.46, 0.45, 0.94), visibility 0.5s;
+}
+
+.preloader-content {
+  text-align: center;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 20px;
+}
+
+.preloader-logo {
+  animation: pulseLogo 1.5s infinite ease-in-out;
+}
+
+.preloader-text-logo {
+  font-family: 'Pacifico', cursive;
+  font-size: 2.8rem;
+  color: #3e2723; /* primary-color */
+  display: block;
+}
+
+.preloader-tagline {
+  font-family: 'Inter', sans-serif;
+  font-weight: 700;
+  font-size: 0.95rem;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  color: #ffb300; /* secondary-color */
+}
+
+.preloader-spinner {
+  width: 44px;
+  height: 44px;
+  border: 3.5px solid rgba(62, 39, 35, 0.1);
+  border-top-color: #3e2723;
+  border-radius: 50%;
+  animation: spinPreloader 0.8s linear infinite;
+}
+
+@keyframes pulseLogo {
+  0%, 100% {
+    transform: scale(0.98);
+    opacity: 0.85;
+  }
+  50% {
+    transform: scale(1.02);
+    opacity: 1;
+  }
+}
+
+@keyframes spinPreloader {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+body.loading {
+  overflow: hidden;
+}
+
+/* Professional Pricing Styling */
+.price-professional {
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif !important;
+  font-weight: 700 !important;
+  color: #000000 !important;
+  letter-spacing: -0.01em;
+}
+
+/* Override existing pricing sizes/styles to adapt nicely */
+.collection-sale-price.price-professional {
+  font-size: 1.05rem !important;
+}
+
+.collection-mrp-strike.price-professional {
+  font-family: 'Outfit', 'Inter', -apple-system, sans-serif !important;
+  font-weight: 500 !important;
+  color: #8c8c8c !important;
+  text-decoration: line-through !important;
+  margin-right: 8px;
+}
+
+

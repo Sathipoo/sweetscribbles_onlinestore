@@ -6,19 +6,26 @@
 <div class="container py-5">
     <h1 class="fw-bold text-center mb-5" style="color: var(--primary-color); font-family: 'Playfair Display', serif; font-weight: 800;">Our Collections</h1>
 
-    <!-- Daily Nutritional Bites -->
-    <section class="collection-section-wrapper theme-bites py-5 px-3 px-md-5" id="daily-nutritional-bites">
+    {% for col_item in collections %}
+    <section class="collection-section-wrapper {{ col_item.collection.theme_class }} py-5 px-3 px-md-5" id="collection-{{ col_item.collection.slug }}">
         <div class="collection-header-wrapper">
-            <h2 class="collection-title-serif">Daily Nutritional Bites | Pure Taste, Zero Guilt</h2>
+            <h2 class="collection-title-serif">
+                {{ col_item.collection.name }}
+                {% if col_item.collection.description %}
+                <span class="fs-5 fw-normal opacity-75 d-block d-md-inline ms-0 ms-md-2 border-start-md ps-0 ps-md-2" style="border-left: 2px solid rgba(0,0,0,0.15)">
+                    {{ col_item.collection.description }}
+                </span>
+                {% endif %}
+            </h2>
             <div class="d-flex gap-2">
-                <button class="collection-scroll-btn" onclick="scrollCollection('bites-scroll', 'left')">‹</button>
-                <button class="collection-scroll-btn" onclick="scrollCollection('bites-scroll', 'right')">›</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('{{ col_item.collection.slug }}-scroll', 'left')">‹</button>
+                <button class="collection-scroll-btn" onclick="scrollCollection('{{ col_item.collection.slug }}-scroll', 'right')">›</button>
             </div>
         </div>
         
         <div class="collection-scroll-wrapper">
-            <div class="collection-scroll-container" id="bites-scroll">
-                {% for product in bites %}
+            <div class="collection-scroll-container" id="{{ col_item.collection.slug }}-scroll">
+                {% for product in col_item.products %}
                 <div class="collection-card-item">
                     <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
                         <div class="collection-card-image-capsule">
@@ -39,7 +46,7 @@
                             {% else %}
                             <div class="text-muted text-center py-4">
                                 <span style="font-size: 2.2rem;">🌴</span>
-                                <p class="mt-2 mb-0 small text-secondary">No Sugar Bite</p>
+                                <p class="mt-2 mb-0 small text-secondary">Pure Sweet</p>
                             </div>
                             {% endif %}
                         </div>
@@ -59,150 +66,24 @@
 
                         <div class="collection-card-price-row">
                             {% if product.mrp and product.mrp > product.sale_price %}
-                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
+                            <span class="collection-mrp-strike price-professional">Rs.{{ "%.2f"|format(product.mrp) }}</span>
                             {% endif %}
-                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
+                            <span class="collection-sale-price price-professional">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
                         </div>
                     </a>
                 </div>
                 {% else %}
-                <p class="text-muted p-3">More nutritional bites coming soon.</p>
+                <p class="text-muted p-3">More items coming soon in this collection.</p>
                 {% endfor %}
             </div>
         </div>
     </section>
-
-    <!-- Choco Bliss Bites -->
-    <section class="collection-section-wrapper theme-choco py-5 px-3 px-md-5" id="choco-bliss-collection">
-        <div class="collection-header-wrapper">
-            <h2 class="collection-title-serif">Choco Bliss Bites | Clean Indulgence, Honest Ingredients</h2>
-            <div class="d-flex gap-2">
-                <button class="collection-scroll-btn" onclick="scrollCollection('choco-scroll', 'left')">‹</button>
-                <button class="collection-scroll-btn" onclick="scrollCollection('choco-scroll', 'right')">›</button>
-            </div>
-        </div>
-        
-        <div class="collection-scroll-wrapper">
-            <div class="collection-scroll-container" id="choco-scroll">
-                {% for product in choco %}
-                <div class="collection-card-item">
-                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
-                        <div class="collection-card-image-capsule">
-                            {% set discount = 0 %}
-                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
-                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
-                            {% endif %}
-                            {% if discount > 0 %}
-                            <div class="collection-discount-badge">{{ discount }}% Off</div>
-                            {% endif %}
-
-                            {% if product.available_qty == 0 %}
-                            <div class="collection-sold-out-badge">Sold out</div>
-                            {% endif %}
-
-                            {% if product.image_url %}
-                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
-                            {% else %}
-                            <div class="text-muted text-center py-4">
-                                <span style="font-size: 2.2rem;">🍫</span>
-                                <p class="mt-2 mb-0 small text-secondary">Choco Bliss Bite</p>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <h6 class="collection-card-title">{{ product.name }}</h6>
-                        
-                        <div class="collection-card-stars">
-                            {% set ratings = [
-                                '★★★★★ (38)',
-                                '★★★★★ (24)',
-                                '★★★★☆ (19)',
-                                '★★★★★ (50)',
-                                '★★★★☆ (33)'
-                            ] %}
-                            {{ ratings[(product.id) % 5] }}
-                        </div>
-
-                        <div class="collection-card-price-row">
-                            {% if product.mrp and product.mrp > product.sale_price %}
-                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
-                            {% endif %}
-                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                        </div>
-                    </a>
-                </div>
-                {% else %}
-                <p class="text-muted p-3">More chocolate bliss coming soon.</p>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
-
-    <!-- Gifting & Celebrations -->
-    <section class="collection-section-wrapper theme-gifting py-5 px-3 px-md-5" id="gifting-collection">
-        <div class="collection-header-wrapper">
-            <h2 class="collection-title-serif">Gifting & Celebrations | Handcrafted Happiness, Custom Curations</h2>
-            <div class="d-flex gap-2">
-                <button class="collection-scroll-btn" onclick="scrollCollection('gifting-scroll', 'left')">‹</button>
-                <button class="collection-scroll-btn" onclick="scrollCollection('gifting-scroll', 'right')">›</button>
-            </div>
-        </div>
-        
-        <div class="collection-scroll-wrapper">
-            <div class="collection-scroll-container" id="gifting-scroll">
-                {% for product in gifting %}
-                <div class="collection-card-item">
-                    <a href="{{ url_for('customer.product_detail', product_id=product.id) }}" class="collection-card">
-                        <div class="collection-card-image-capsule">
-                            {% set discount = 0 %}
-                            {% if product.mrp and product.sale_price and product.mrp > product.sale_price %}
-                                {% set discount = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
-                            {% endif %}
-                            {% if discount > 0 %}
-                            <div class="collection-discount-badge">{{ discount }}% Off</div>
-                            {% endif %}
-
-                            {% if product.available_qty == 0 %}
-                            <div class="collection-sold-out-badge">Sold out</div>
-                            {% endif %}
-
-                            {% if product.image_url %}
-                            <img src="{{ product.image_url }}" alt="{{ product.name }}">
-                            {% else %}
-                            <div class="text-muted text-center py-4">
-                                <span style="font-size: 2.2rem;">🎁</span>
-                                <p class="mt-2 mb-0 small text-secondary">Gifting Box</p>
-                            </div>
-                            {% endif %}
-                        </div>
-
-                        <h6 class="collection-card-title">{{ product.name }}</h6>
-                        
-                        <div class="collection-card-stars">
-                            {% set ratings = [
-                                '★★★★★ (41)',
-                                '★★★★★ (19)',
-                                '★★★★☆ (25)',
-                                '★★★★★ (30)',
-                                '★★★★☆ (12)'
-                            ] %}
-                            {{ ratings[(product.id) % 5] }}
-                        </div>
-
-                        <div class="collection-card-price-row">
-                            {% if product.mrp and product.mrp > product.sale_price %}
-                            <span class="collection-mrp-strike">Rs.{{ "%.2f"|format(product.mrp) }}</span>
-                            {% endif %}
-                            <span class="collection-sale-price">From Rs.{{ "%.2f"|format(product.sale_price) }}</span>
-                        </div>
-                    </a>
-                </div>
-                {% else %}
-                <p class="text-muted p-3">Premium gifting boxes coming soon.</p>
-                {% endfor %}
-            </div>
-        </div>
-    </section>
+    {% else %}
+    <div class="text-center py-5 glass-panel">
+        <h4>No collections available.</h4>
+        <p class="text-muted">Please create collections in the Admin Panel to display products.</p>
+    </div>
+    {% endfor %}
 </div>
 
 <!-- Embedded JS helper for horizontal scroll actions -->

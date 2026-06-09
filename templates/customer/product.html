@@ -46,7 +46,7 @@
         <div class="col-md-6 px-md-4">
             <h1 class="fw-bold" style="color: var(--primary-color);">{{ product.name }}</h1>
             <p class="text-muted">{{ product.short_description }}</p>
-            <h3 class="fw-bold my-3" style="color: var(--secondary-color);">₹{{ product.sale_price }}</h3>
+            <h3 class="fw-bold my-3 price-professional">₹{{ "%.2f"|format(product.sale_price) }}</h3>
             
             <!-- Dynamic Stock Status Display -->
             <div class="mb-4">

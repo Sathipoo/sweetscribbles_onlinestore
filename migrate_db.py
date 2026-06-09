@@ -32,5 +32,32 @@ with app.app_context():
     except Exception as e:
         print(f"Error adding zoho_payment_link_id: {e}")
         
+    try:
+        # Check and create collections table
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS collections (
+                id SERIAL PRIMARY KEY,
+                name VARCHAR(100) UNIQUE NOT NULL,
+                slug VARCHAR(100) UNIQUE NOT NULL,
+                description TEXT,
+                theme_class VARCHAR(50) DEFAULT 'theme-bites'
+            );
+        """))
+        print("Table 'collections' checked/created.")
+        
+        # Seed default collections
+        db.session.execute(text("""
+            INSERT INTO collections (name, slug, description, theme_class)
+            VALUES 
+                ('Daily Nutritional Bites', 'bites', 'Pure Taste, Zero Guilt', 'theme-bites'),
+                ('Choco Bliss Bites', 'choco', 'Clean Indulgence, Honest Ingredients', 'theme-choco'),
+                ('Gifting & Celebrations', 'gifting', 'Handcrafted Happiness, Custom Curations', 'theme-gifting')
+            ON CONFLICT (slug) DO NOTHING;
+        """))
+        print("Default collections seeded.")
+    except Exception as e:
+        print(f"Error creating/seeding collections: {e}")
+        
     db.session.commit()
     print("Migration completed successfully.")
+

@@ -119,10 +119,37 @@ class TestStockManagement(unittest.TestCase):
         self.assertTrue(order.is_stock_deducted)
         self.assertEqual(order.status, 'Paid')
 
-        # Run payment simulation success again, available qty should STILL be 7 (no double-deduction)
+        # Run payment simulation success again, available qty should STILL be 7 (no double-deductions)
         response = self.client.post(f'/pay/simulate/{order.order_number}', data={'action': 'success'})
         db.session.refresh(prod)
         self.assertEqual(prod.available_qty, 7)
+
+    def test_deactivated_product_inaccessible_and_hidden(self):
+        # Create a deactivated product
+        deactivated_prod = Product(
+            name="Ghost Bite",
+            sku=f"TEST-GHOST-{uuid.uuid4().hex[:6]}",
+            category="bites",
+            sale_price=100.0,
+            available_qty=10,
+            is_active=False
+        )
+        db.session.add(deactivated_prod)
+        db.session.commit()
+
+        # 1. Product detail page should return 404
+        response = self.client.get(f'/product/{deactivated_prod.id}')
+        self.assertEqual(response.status_code, 404)
+
+        # 2. Should not appear in home page lists
+        response = self.client.get('/')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Ghost Bite", response.data)
+
+        # 3. Should not appear in collections dynamic loops
+        response = self.client.get('/collections')
+        self.assertEqual(response.status_code, 200)
+        self.assertNotIn(b"Ghost Bite", response.data)
 
 if __name__ == '__main__':
     unittest.main()

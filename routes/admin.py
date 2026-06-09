@@ -1,9 +1,11 @@
 from flask import Blueprint, render_template, request, redirect, url_for
 from flask_login import login_required, current_user
 from functools import wraps
-from models.product import Product, ProductMedia
+from models.product import Product, ProductMedia, Collection
 from models.order import Order
 from extensions import db
+
+
 from utils.gcp_storage import upload_file
 
 admin_bp = Blueprint('admin', __name__)
@@ -132,8 +134,9 @@ def products():
         db.session.commit()
         return redirect(url_for('admin.products'))
         
-    all_products = Product.query.all()
-    return render_template('admin/products.html', products=all_products)
+    all_products = Product.query.order_by(Product.id.desc()).all()
+    all_collections = Collection.query.order_by(Collection.name).all()
+    return render_template('admin/products.html', products=all_products, collections=all_collections)
 
 @admin_bp.route('/product/<int:product_id>/edit', methods=['POST'])
 @admin_required
@@ -308,3 +311,44 @@ def update_order_tracking(order_id):
     if referrer and 'customers' in referrer:
         return redirect(url_for('admin.customers'))
     return redirect(url_for('admin.orders'))
+
+@admin_bp.route('/product/<int:product_id>/toggle_status', methods=['POST'])
+@admin_required
+def toggle_product_status(product_id):
+    product = Product.query.get_or_404(product_id)
+    product.is_active = not product.is_active
+    db.session.commit()
+    return redirect(url_for('admin.products'))
+
+@admin_bp.route('/collections', methods=['GET', 'POST'])
+@admin_required
+def collections():
+    if request.method == 'POST':
+        name = request.form.get('name')
+        slug = request.form.get('slug')
+        if not slug:
+            slug = name.lower().strip().replace(' ', '-').replace('&', 'and')
+            import re
+            slug = re.sub(r'[^a-z0-9\-]', '', slug)
+        
+        description = request.form.get('description')
+        theme_class = request.form.get('theme_class', 'theme-bites')
+        
+        new_col = Collection(name=name, slug=slug, description=description, theme_class=theme_class)
+        db.session.add(new_col)
+        db.session.commit()
+        return redirect(url_for('admin.collections'))
+        
+    all_collections = Collection.query.order_by(Collection.name).all()
+    return render_template('admin/collections.html', collections=all_collections)
+
+@admin_bp.route('/collection/<int:collection_id>/delete', methods=['POST'])
+@admin_required
+def delete_collection(collection_id):
+    col = Collection.query.get_or_404(collection_id)
+    # Reassign products in this collection to 'custom' to avoid losing them
+    Product.query.filter_by(category=col.slug).update({Product.category: 'custom'})
+    db.session.delete(col)
+    db.session.commit()
+    return redirect(url_for('admin.collections'))
+
