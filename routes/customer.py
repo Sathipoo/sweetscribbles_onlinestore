@@ -339,8 +339,8 @@ def pay_webhook():
                     print(f"INFO: Webhook event ignored, order {order_number} is already '{order.status}'.")
                     return "Already Processed", 200
             else:
-                print(f"ERROR: Webhook reference order {order_number} not found.")
-                return "Order Not Found", 404
+                print(f"INFO: Webhook reference order {order_number} not found in this storefront. Acknowledging event to prevent retries.")
+                return "Order Not Found in Storefront", 200
         else:
             print("ERROR: No reference_id/order_number found in webhook payload.")
             return "No Reference Found", 400

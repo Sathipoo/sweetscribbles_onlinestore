@@ -186,5 +186,20 @@ class TestZohoPayments(unittest.TestCase):
             self.assertEqual(sess['cart'][0]['quantity'], 2)
             self.assertEqual(sess['cart'][0]['custom_message'], "Gift wrap")
 
+    def test_pay_webhook_unrecognized_order_returns_200(self):
+        # Send mock Zoho webhook payload for an order that doesn't exist
+        payload = {
+            "event_type": "payment_link.paid",
+            "event_object": {
+                "payment_link": {
+                    "reference_id": "SS-NONEXISTENT-ORDER"
+                }
+            }
+        }
+
+        response = self.client.post('/pay/webhook', json=payload)
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Order Not Found in Storefront", response.data)
+
 if __name__ == '__main__':
     unittest.main()
