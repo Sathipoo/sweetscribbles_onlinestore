@@ -67,10 +67,12 @@ If creating a new service, finish configuring the Cloud Run service details:
 ### Step 6: Environment Variables & Secrets (Database, etc.)
 Under the **Container(s), Volumes, Connections** configuration tabs (expand **Variables & Secrets**):
 1. Add any environment variables your app requires (e.g. `FLASK_ENV=production`, `ADMIN_PASSWORD`, etc.).
-2. **Database Integration**:
+2. **Base URL Configuration**:
+   - Add `BASE_URL`: Set this to the public URL mapped to your Cloud Run service (e.g., `https://sweetscribbles.pikachooz.com`). This is required for Zoho Payments to validate the return and notify webhooks.
+3. **Database Integration**:
    - If using Cloud SQL (PostgreSQL), configure the connection string in variables: e.g., `DATABASE_URL=postgresql://<user>:<password>@<db-ip>/<db-name>`.
    - *Note*: If connecting to a local/sandbox database or external cloud instance, ensure the Cloud Run container has network permissions or a VPC connector to reach it.
-3. Click **Create** or **Deploy** at the bottom.
+4. Click **Create** or **Deploy** at the bottom.
 
 ---
 

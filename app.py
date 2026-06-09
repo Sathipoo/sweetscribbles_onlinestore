@@ -1,10 +1,14 @@
 from flask import Flask
 from config import Config
 from extensions import db, login_manager
+from werkzeug.middleware.proxy_fix import ProxyFix
 
 def create_app(config_class=Config):
     app = Flask(__name__)
     app.config.from_object(config_class)
+    
+    # Configure ProxyFix to support Cloud Run reverse proxies / load balancers
+    app.wsgi_app = ProxyFix(app.wsgi_app, x_for=1, x_proto=1, x_host=1, x_port=1, x_prefix=1)
 
     db.init_app(app)
     login_manager.init_app(app)
