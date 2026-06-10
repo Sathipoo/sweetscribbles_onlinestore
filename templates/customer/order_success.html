@@ -4,7 +4,7 @@
     {% if order and order.status == 'Failed' %}
         Payment Failed
     {% elif order and order.status == 'Pending' %}
-        Order Received
+        Verifying Payment
     {% else %}
         Order Successful
     {% endif %}
@@ -12,74 +12,101 @@
 
 {% block content %}
 <div class="container py-5 text-center">
-    <div class="glass-panel p-5 mx-auto" style="max-width: 600px;">
-        {% if order and order.status == 'Failed' %}
-            <!-- Failed state -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#dc3545" class="bi bi-x-circle-fill mb-4" viewBox="0 0 16 16">
-              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
-            </svg>
-            <h2 class="fw-bold mb-3" style="color: #dc3545;">Payment Unsuccessful</h2>
-            <p class="text-muted mb-4">It seems there was an issue processing your payment. Your order is registered in our system but remains unpaid.</p>
-        {% elif order and order.status == 'Pending' %}
-            <!-- Pending state -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="var(--secondary-color)" class="bi bi-clock-history mb-4" viewBox="0 0 16 16">
-              <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7 7 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.657.755zm1.452 1.107a7 7 0 0 0-.64-.537l.64-.768a8 8 0 0 1 .856.77l-.856.535zM8 3a.5.5 0 0 0-.5.5v5a.5.5 0 0 0 .25.433l3 1.732a.5.5 0 0 0 .5-.866L8.5 7.723V3.5A.5.5 0 0 0 8 3z"/>
-              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8z"/>
-            </svg>
-            <h2 class="fw-bold mb-3" style="color: var(--primary-color);">Order Received!</h2>
-            <p class="text-muted mb-4">We've received your order. We are currently verifying the payment status with Zoho Payments.</p>
-        {% else %}
-            <!-- Success state -->
-            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="var(--secondary-color)" class="bi bi-check-circle-fill mb-4" viewBox="0 0 16 16">
-              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
-            </svg>
-            <h2 class="fw-bold mb-3" style="color: var(--primary-color);">Order Placed Successfully!</h2>
-            <p class="text-muted mb-4">Thank you for choosing Sweet Scribbles. We've received your payment and will start preparing your handcrafted healthy delights soon.</p>
-        {% endif %}
+    <div class="glass-panel p-5 mx-auto animate-fade-in" style="max-width: 600px;">
+        
+        <div id="status-icon-area" class="mb-4 d-flex justify-content-center align-items-center">
+            {% if order and order.status == 'Failed' %}
+                <!-- Failed state -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#dc3545" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+                </svg>
+            {% elif order and order.status == 'Pending' %}
+                <!-- Pending state: Modern spinner with clock -->
+                <div class="position-relative d-inline-block" style="width: 90px; height: 90px;">
+                    <div class="spinner-border text-warning" role="status" style="width: 90px; height: 90px; border-width: 4px; position: absolute; top: 0; left: 0; animation-duration: 1.2s; z-index: 1;">
+                        <span class="visually-hidden">Verifying...</span>
+                    </div>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="56" height="56" fill="var(--secondary-color)" class="bi bi-clock-history" viewBox="0 0 16 16" style="position: absolute; top: 17px; left: 17px; z-index: 2;">
+                      <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7 7 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.657.755zm1.452 1.107a7 7 0 0 0-.64-.537l.64-.768a8 8 0 0 1 .856.77l-.856.535zM8 3a.5.5 0 0 0-.5.5v5a.5.5 0 0 0 .25.433l3 1.732a.5.5 0 0 0 .5-.866L8.5 7.723V3.5A.5.5 0 0 0 8 3z"/>
+                      <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8z"/>
+                    </svg>
+                </div>
+            {% else %}
+                <!-- Success state -->
+                <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#097969" class="bi bi-check-circle-fill animate-success-badge" viewBox="0 0 16 16">
+                  <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+                </svg>
+            {% endif %}
+        </div>
+
+        <h2 id="status-heading" class="fw-bold mb-3" style="color: var(--primary-color); font-family: 'Playfair Display', serif;">
+            {% if order and order.status == 'Failed' %}
+                Payment Unsuccessful
+            {% elif order and order.status == 'Pending' %}
+                Verifying Payment...
+            {% else %}
+                Order Placed Successfully!
+            {% endif %}
+        </h2>
+
+        <p id="status-paragraph" class="text-muted mb-4 px-3" style="font-size: 1.05rem; line-height: 1.5;">
+            {% if order and order.status == 'Failed' %}
+                It seems there was an issue processing your payment. Your order is registered in our system but remains unpaid.
+            {% elif order and order.status == 'Pending' %}
+                We are currently confirming your transaction with Zoho Payments. Please don't close this window.
+            {% else %}
+                Thank you for choosing Sweet Scribbles. We've received your payment and will start preparing your handcrafted healthy delights soon.
+            {% endif %}
+        </p>
         
         {% if order %}
-        <div class="card border-0 bg-light p-4 mb-4 rounded-3 text-start mx-auto shadow-sm" style="max-width: 440px; font-size: 0.95rem; border: 1px solid rgba(62, 39, 35, 0.08) !important;">
+        <div class="card border-0 bg-light p-4 mb-4 rounded-3 text-start mx-auto shadow-sm" style="max-width: 460px; font-size: 0.95rem; border: 1px solid rgba(62, 39, 35, 0.08) !important;">
             <div class="d-flex justify-content-between mb-2 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
                 <span class="text-muted">Order ID:</span>
                 <span class="fw-bold text-dark">{{ order.order_number }}</span>
             </div>
             <div class="d-flex justify-content-between mb-2 pb-2 border-bottom" style="border-color: rgba(0,0,0,0.05) !important;">
                 <span class="text-muted">Amount due:</span>
-                <span class="fw-bold text-dark">₹{{ order.total_amount }}</span>
+                <span class="fw-bold text-dark price-professional">₹{{ "%.2f"|format(order.total_amount) }}</span>
             </div>
             <div class="d-flex justify-content-between align-items-center">
                 <span class="text-muted">Payment Status:</span>
-                {% if order.status == 'Paid' %}
-                    <span class="badge bg-success-subtle text-success border border-success px-3 py-1.5 rounded-pill fw-semibold">✅ Paid</span>
-                {% elif order.status == 'Pending' %}
-                    <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-1.5 rounded-pill fw-semibold">🕒 Verification Pending</span>
-                {% else %}
-                    <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1.5 rounded-pill fw-semibold">❌ {{ order.status }}</span>
-                {% endif %}
+                <span id="status-badge">
+                    {% if order.status == 'Paid' %}
+                        <span class="badge bg-success-subtle text-success border border-success px-3 py-1.5 rounded-pill fw-semibold">✅ Paid</span>
+                    {% elif order.status == 'Pending' %}
+                        <span class="badge bg-warning-subtle text-warning-emphasis border border-warning px-3 py-1.5 rounded-pill fw-semibold">🕒 Verification Pending</span>
+                    {% else %}
+                        <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1.5 rounded-pill fw-semibold">❌ {{ order.status }}</span>
+                    {% endif %}
+                </span>
             </div>
 
-            {% if order.status == 'Pending' %}
-            <div class="alert alert-warning border border-warning-subtle p-3 mt-3 mb-0 small text-start rounded-3 bg-warning-subtle text-warning-emphasis">
-                <i class="bi bi-info-circle me-1"></i> We are waiting for Zoho Payments to confirm your transaction. If you've already completed the payment:
-                <ul class="mb-2 mt-1 ps-3">
-                    <li>Try **refreshing this page** in a few moments to re-verify status.</li>
-                    <li>Or wait for our email confirmation once processing completes.</li>
-                </ul>
+            <!-- Action Alerts -->
+            <div id="status-alert-container" style="{% if order.status != 'Pending' and order.status != 'Failed' %}display: none;{% endif %}">
+                {% if order.status == 'Pending' %}
+                <div id="pending-alert-box" class="alert alert-warning border border-warning-subtle p-3 mt-3 mb-0 small text-start rounded-3 bg-warning-subtle text-warning-emphasis">
+                    <i class="bi bi-info-circle me-1"></i> We are waiting for Zoho Payments to confirm your transaction. If you've already completed the payment:
+                    <ul class="mb-2 mt-1 ps-3">
+                        <li>Try **refreshing this page** in a few moments to re-verify status.</li>
+                        <li>Or wait for our email confirmation once processing completes.</li>
+                    </ul>
+                    <div class="d-flex gap-2 mt-3">
+                        {% if order.payment_link %}
+                        <a href="{{ order.payment_link }}" class="btn btn-sm btn-premium px-3 py-2 flex-fill text-center">Retry Zoho Checkout</a>
+                        {% endif %}
+                        <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-sm btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
+                    </div>
+                </div>
+                {% elif order.status == 'Failed' %}
                 <div class="d-flex gap-2 mt-3">
                     {% if order.payment_link %}
-                    <a href="{{ order.payment_link }}" class="btn btn-sm btn-premium px-3 py-2 flex-fill text-center">Retry Zoho Checkout</a>
+                    <a href="{{ order.payment_link }}" class="btn btn-premium px-3 py-2 flex-fill text-center">Retry Payment</a>
                     {% endif %}
-                    <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-sm btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
+                    <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
                 </div>
-            </div>
-            {% elif order.status == 'Failed' %}
-            <div class="d-flex gap-2 mt-3">
-                {% if order.payment_link %}
-                <a href="{{ order.payment_link }}" class="btn btn-premium px-3 py-2 flex-fill text-center">Retry Payment</a>
                 {% endif %}
-                <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
             </div>
-            {% endif %}
         </div>
         {% endif %}
         
@@ -91,4 +118,121 @@
         </div>
     </div>
 </div>
+
+{% if order and order.status == 'Pending' %}
+<!-- Dynamic Payment Status Polling Script -->
+<script>
+document.addEventListener("DOMContentLoaded", function() {
+    let attempts = 0;
+    const maxAttempts = 15; // 30 seconds total (15 * 2s)
+    const orderNumber = "{{ order.order_number }}";
+    const alertContainer = document.getElementById("status-alert-container");
+    const pendingAlertBox = document.getElementById("pending-alert-box");
+    
+    // Hide the initial action buttons until polling fails/times out
+    if (pendingAlertBox) {
+        pendingAlertBox.style.display = "none";
+    }
+
+    const intervalId = setInterval(checkStatus, 2000);
+
+    function checkStatus() {
+        attempts++;
+        fetch(`/api/order/status/${orderNumber}`)
+            .then(res => res.json())
+            .then(data => {
+                if (data.status === 'Paid') {
+                    clearInterval(intervalId);
+                    showSuccessState();
+                } else if (data.status === 'Failed') {
+                    clearInterval(intervalId);
+                    showFailedState();
+                } else if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    showTimeoutState();
+                }
+            })
+            .catch(err => {
+                console.error("Error polling order status:", err);
+                if (attempts >= maxAttempts) {
+                    clearInterval(intervalId);
+                    showTimeoutState();
+                }
+            });
+    }
+
+    function showSuccessState() {
+        document.title = "Order Successful - Sweet Scribbles";
+        
+        // 1. Success Animation Icon
+        const iconArea = document.getElementById("status-icon-area");
+        iconArea.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#097969" class="bi bi-check-circle-fill animate-success-badge" viewBox="0 0 16 16">
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zm-3.97-3.03a.75.75 0 0 0-1.08.022L7.477 9.417 5.384 7.323a.75.75 0 0 0-1.06 1.06L6.97 11.03a.75.75 0 0 0 1.079-.02l3.992-4.99a.75.75 0 0 0-.01-1.05z"/>
+            </svg>
+        `;
+        
+        // 2. Adjust text content
+        document.getElementById("status-heading").innerText = "Order Placed Successfully!";
+        document.getElementById("status-heading").style.color = "#097969";
+        document.getElementById("status-paragraph").innerText = "Thank you for choosing Sweet Scribbles. We've received your payment and will start preparing your handcrafted healthy delights soon.";
+        
+        // 3. Update status badge
+        document.getElementById("status-badge").innerHTML = `
+            <span class="badge bg-success-subtle text-success border border-success px-3 py-1.5 rounded-pill fw-semibold">✅ Paid</span>
+        `;
+        
+        // 4. Hide all alerts
+        alertContainer.style.display = "none";
+    }
+
+    function showFailedState() {
+        document.title = "Payment Failed - Sweet Scribbles";
+        
+        const iconArea = document.getElementById("status-icon-area");
+        iconArea.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="#dc3545" class="bi bi-x-circle-fill" viewBox="0 0 16 16">
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM5.354 4.646a.5.5 0 1 0-.708.708L7.293 8l-2.647 2.646a.5.5 0 0 0 .708.708L8 8.707l2.646 2.647a.5.5 0 0 0 .708-.708L8.707 8l2.647-2.646a.5.5 0 0 0-.708-.708L8 7.293 5.354 4.646z"/>
+            </svg>
+        `;
+        
+        document.getElementById("status-heading").innerText = "Payment Unsuccessful";
+        document.getElementById("status-heading").style.color = "#dc3545";
+        document.getElementById("status-paragraph").innerText = "It seems there was an issue processing your payment. Your order is registered in our system but remains unpaid.";
+        
+        document.getElementById("status-badge").innerHTML = `
+            <span class="badge bg-danger-subtle text-danger border border-danger px-3 py-1.5 rounded-pill fw-semibold">❌ Failed</span>
+        `;
+        
+        alertContainer.style.display = "block";
+        alertContainer.innerHTML = `
+            <div class="d-flex gap-2 mt-3">
+                {% if order.payment_link %}
+                <a href="{{ order.payment_link }}" class="btn btn-premium px-3 py-2 flex-fill text-center">Retry Payment</a>
+                {% endif %}
+                <a href="{{ url_for('customer.restore_cart', order_number=order.order_number) }}" class="btn btn-outline-secondary px-3 py-2 flex-fill text-center">Restore Cart to Edit</a>
+            </div>
+        `;
+    }
+
+    function showTimeoutState() {
+        document.getElementById("status-heading").innerText = "Order Received";
+        document.getElementById("status-paragraph").innerText = "We've received your order. We are currently verifying the payment status with Zoho Payments.";
+        
+        if (pendingAlertBox) {
+            pendingAlertBox.style.display = "block";
+        }
+        alertContainer.style.display = "block";
+        
+        const iconArea = document.getElementById("status-icon-area");
+        iconArea.innerHTML = `
+            <svg xmlns="http://www.w3.org/2000/svg" width="80" height="80" fill="var(--secondary-color)" class="bi bi-clock-history" viewBox="0 0 16 16">
+              <path d="M8.515 1.019A7 7 0 0 0 8 1V0a8 8 0 0 1 .589.022l-.074.997zm2.004.45a7 7 0 0 0-.985-.299l.219-.976c.383.086.76.2 1.126.342l-.36.933zm1.37.71a7 7 0 0 0-.439-.27l.493-.87a8 8 0 0 1 .979.654l-.657.755zm1.452 1.107a7 7 0 0 0-.64-.537l.64-.768a8 8 0 0 1 .856.77l-.856.535zM8 3a.5.5 0 0 0-.5.5v5a.5.5 0 0 0 .25.433l3 1.732a.5.5 0 0 0 .5-.866L8.5 7.723V3.5A.5.5 0 0 0 8 3z"/>
+              <path d="M16 8A8 8 0 1 1 0 8a8 8 0 0 1 16 0zM1 8a7 7 0 1 0 14 0A7 7 0 0 0 1 8z"/>
+            </svg>
+        `;
+    }
+});
+</script>
+{% endif %}
 {% endblock %}

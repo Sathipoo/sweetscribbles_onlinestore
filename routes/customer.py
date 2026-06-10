@@ -297,6 +297,27 @@ def pay_return():
                 
     return render_template('customer/order_success.html', order=order)
 
+@customer_bp.route('/api/order/status/<order_number>')
+def order_status_api(order_number):
+    order = Order.query.filter_by(order_number=order_number).first_or_404()
+    
+    if order.status == 'Pending':
+        if order.zoho_payment_link_id:
+            zoho = ZohoClient()
+            zoho_status = zoho.check_payment_link_status(order.zoho_payment_link_id)
+            if zoho_status == 'paid':
+                order.status = 'Paid'
+                order.payment_status = 'Paid'
+                deduct_order_stock(order)
+                db.session.commit()
+                print(f"SUCCESS: API verified and marked order {order.order_number} as Paid.")
+                
+    return {
+        "status": order.status,
+        "payment_status": order.payment_status or "Unpaid"
+    }
+
+
 @customer_bp.route('/pay/webhook', methods=['POST'])
 def pay_webhook():
     import json

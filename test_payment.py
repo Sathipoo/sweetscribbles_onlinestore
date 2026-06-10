@@ -201,5 +201,29 @@ class TestZohoPayments(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Order Not Found in Storefront", response.data)
 
+    @patch('routes.customer.ZohoClient')
+    def test_order_status_api_checks_status(self, mock_zoho_class):
+        mock_zoho = mock_zoho_class.return_value
+        mock_zoho.check_payment_link_status.return_value = 'paid'
+
+        order = Order(
+            order_number=f"SS-API-{uuid.uuid4().hex[:6]}",
+            total_amount=120.0,
+            status="Pending",
+            zoho_payment_link_id="PL_API_123"
+        )
+        db.session.add(order)
+        db.session.commit()
+
+        # Query status API
+        response = self.client.get(f'/api/order/status/{order.order_number}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json
+        self.assertEqual(data['status'], 'Paid')
+        self.assertEqual(data['payment_status'], 'Paid')
+
+        db.session.refresh(order)
+        self.assertEqual(order.status, 'Paid')
+
 if __name__ == '__main__':
     unittest.main()
