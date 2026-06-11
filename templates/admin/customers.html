@@ -35,79 +35,6 @@
                         </button>
                     </td>
                 </tr>
-
-                <!-- Customer Profile Detail Modal -->
-                <div class="modal fade" id="customerProfileModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
-                  <div class="modal-dialog modal-lg">
-                    <div class="modal-content text-dark">
-                      <div class="modal-header bg-light">
-                        <h5 class="modal-title">Customer Profile: {{ profile.name }}</h5>
-                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                      </div>
-                      <div class="modal-body text-start">
-                          <div class="row g-3 mb-4">
-                              <div class="col-md-6">
-                                  <div class="card p-3 h-100 border bg-light">
-                                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Contact Details</h6>
-                                      <p class="mb-1"><strong>Name:</strong> {{ profile.name }}</p>
-                                      <p class="mb-1"><strong>Email:</strong> {{ profile.email }}</p>
-                                      <p class="mb-1"><strong>Phone:</strong> {{ profile.phone or 'N/A' }}</p>
-                                  </div>
-                              </div>
-                              <div class="col-md-6">
-                                  <div class="card p-3 h-100 border bg-light">
-                                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Shipping Address</h6>
-                                      <p class="mb-0 small" style="white-space: pre-wrap;">{{ profile.address or 'No shipping address recorded.' }}</p>
-                                  </div>
-                              </div>
-                          </div>
-
-                          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Order History ({{ profile.orders|length }} Orders)</h6>
-                          <div class="table-responsive">
-                              <table class="table table-bordered table-sm align-middle small">
-                                  <thead class="table-light">
-                                      <tr>
-                                          <th>Order #</th>
-                                          <th>Date</th>
-                                          <th>Total Amount</th>
-                                          <th>Status</th>
-                                          <th>Update Status</th>
-                                      </tr>
-                                  </thead>
-                                  <tbody>
-                                      {% for order in profile.orders %}
-                                      <tr>
-                                          <td><span class="fw-semibold">{{ order.order_number }}</span></td>
-                                          <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
-                                          <td class="fw-bold text-success">₹{{ order.total_amount }}</td>
-                                          <td>
-                                              <span class="badge bg-{% if order.status == 'Paid' %}success{% else %}warning{% endif %}">
-                                                  {{ order.status }}
-                                              </span>
-                                          </td>
-                                          <td>
-                                              <form action="{{ url_for('admin.update_order_status', order_id=order.id) }}" method="POST" class="d-inline">
-                                                  <select name="status" class="form-select form-select-sm d-inline-block w-auto me-1" onchange="this.form.submit()">
-                                                      <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
-                                                      <option value="Packing" {% if order.status == 'Packing' %}selected{% endif %}>Packing</option>
-                                                      <option value="Chocolate Etching" {% if order.status == 'Chocolate Etching' %}selected{% endif %}>Chocolate Etching</option>
-                                                      <option value="Dispatched" {% if order.status == 'Dispatched' %}selected{% endif %}>Dispatched</option>
-                                                      <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
-                                                  </select>
-                                              </form>
-                                          </td>
-                                      </tr>
-                                      {% endfor %}
-                                  </tbody>
-                              </table>
-                          </div>
-                      </div>
-                      <div class="modal-footer">
-                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
                 {% else %}
                 <tr>
                     <td colspan="7" class="text-center py-4 text-muted">No customer profiles found. Profiles are compiled from orders.</td>
@@ -117,4 +44,79 @@
         </table>
     </div>
 </div>
+
+<!-- Customer Profile Detail Modals -->
+{% for profile in customers %}
+<div class="modal fade" id="customerProfileModal{{ loop.index }}" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-lg">
+    <div class="modal-content text-dark">
+      <div class="modal-header bg-light">
+        <h5 class="modal-title">Customer Profile: {{ profile.name }}</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-start">
+          <div class="row g-3 mb-4">
+              <div class="col-md-6">
+                  <div class="card p-3 h-100 border bg-light">
+                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Contact Details</h6>
+                      <p class="mb-1"><strong>Name:</strong> {{ profile.name }}</p>
+                      <p class="mb-1"><strong>Email:</strong> {{ profile.email }}</p>
+                      <p class="mb-1"><strong>Phone:</strong> {{ profile.phone or 'N/A' }}</p>
+                  </div>
+              </div>
+              <div class="col-md-6">
+                  <div class="card p-3 h-100 border bg-light">
+                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Shipping Address</h6>
+                      <p class="mb-0 small" style="white-space: pre-wrap;">{{ profile.address or 'No shipping address recorded.' }}</p>
+                  </div>
+              </div>
+          </div>
+
+          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Order History ({{ profile.orders|length }} Orders)</h6>
+          <div class="table-responsive">
+              <table class="table table-bordered table-sm align-middle small">
+                  <thead class="table-light">
+                      <tr>
+                          <th>Order #</th>
+                          <th>Date</th>
+                          <th>Total Amount</th>
+                          <th>Status</th>
+                          <th>Update Status</th>
+                      </tr>
+                  </thead>
+                  <tbody>
+                      {% for order in profile.orders %}
+                      <tr>
+                          <td><span class="fw-semibold">{{ order.order_number }}</span></td>
+                          <td>{{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</td>
+                          <td class="fw-bold text-success">₹{{ order.total_amount }}</td>
+                          <td>
+                              <span class="badge bg-{% if order.status == 'Paid' %}success{% else %}warning{% endif %}">
+                                  {{ order.status }}
+                              </span>
+                          </td>
+                          <td>
+                              <form action="{{ url_for('admin.update_order_status', order_id=order.id) }}" method="POST" class="d-inline">
+                                  <select name="status" class="form-select form-select-sm d-inline-block w-auto me-1" onchange="this.form.submit()">
+                                      <option value="Pending" {% if order.status == 'Pending' %}selected{% endif %}>Pending</option>
+                                      <option value="Packing" {% if order.status == 'Packing' %}selected{% endif %}>Packing</option>
+                                      <option value="Chocolate Etching" {% if order.status == 'Chocolate Etching' %}selected{% endif %}>Chocolate Etching</option>
+                                      <option value="Dispatched" {% if order.status == 'Dispatched' %}selected{% endif %}>Dispatched</option>
+                                      <option value="Delivered" {% if order.status == 'Delivered' %}selected{% endif %}>Delivered</option>
+                                  </select>
+                              </form>
+                          </td>
+                      </tr>
+                      {% endfor %}
+                  </tbody>
+              </table>
+          </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+      </div>
+    </div>
+  </div>
+</div>
+{% endfor %}
 {% endblock %}
