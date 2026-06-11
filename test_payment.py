@@ -274,5 +274,77 @@ class TestZohoPayments(unittest.TestCase):
         db.session.refresh(order)
         self.assertEqual(order.status, 'Paid')
 
+    @patch('routes.customer.ZohoClient')
+    def test_checkout_simulator_fallback_on_localhost(self, mock_zoho_class):
+        mock_zoho = mock_zoho_class.return_value
+        # Mock API failure
+        mock_zoho.create_payment_link.return_value = (None, None)
+
+        prod = Product(
+            name="Test Bite",
+            sku=f"TEST-{uuid.uuid4().hex[:6]}",
+            category="bites",
+            sale_price=200.0,
+            available_qty=10
+        )
+        db.session.add(prod)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess['cart'] = [{
+                'product_id': prod.id,
+                'quantity': 1,
+                'custom_message': '',
+                'custom_logo_url': None
+            }]
+
+        # Send request with localhost headers (default)
+        response = self.client.post('/checkout', data={
+            'customer_name': 'Test User',
+            'customer_email': 'test@user.com',
+            'customer_phone': '9999999999',
+            'shipping_address': '123 Sweet Lane'
+        })
+
+        self.assertEqual(response.status_code, 302)
+        # Should redirect to simulator
+        self.assertIn('/pay/simulate/', response.location)
+
+    @patch('routes.customer.ZohoClient')
+    def test_checkout_no_simulator_on_prod_host(self, mock_zoho_class):
+        mock_zoho = mock_zoho_class.return_value
+        # Mock API failure
+        mock_zoho.create_payment_link.return_value = (None, None)
+
+        prod = Product(
+            name="Test Bite",
+            sku=f"TEST-{uuid.uuid4().hex[:6]}",
+            category="bites",
+            sale_price=200.0,
+            available_qty=10
+        )
+        db.session.add(prod)
+        db.session.commit()
+
+        with self.client.session_transaction() as sess:
+            sess['cart'] = [{
+                'product_id': prod.id,
+                'quantity': 1,
+                'custom_message': '',
+                'custom_logo_url': None
+            }]
+
+        # Send request with production host header
+        response = self.client.post('/checkout', data={
+            'customer_name': 'Test User',
+            'customer_email': 'test@user.com',
+            'customer_phone': '9999999999',
+            'shipping_address': '123 Sweet Lane'
+        }, headers={'X-Forwarded-Host': 'sweetscribbles.pikachooz.com'})
+
+        self.assertEqual(response.status_code, 302)
+        # Should redirect back to cart instead of simulator
+        self.assertIn('/cart', response.location)
+
 if __name__ == '__main__':
     unittest.main()

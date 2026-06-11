@@ -58,7 +58,7 @@ class ZohoClient:
         """
         token = self.get_access_token()
         if not token:
-            return None
+            return None, None
 
         headers = {
             'Authorization': f'Zoho-oauthtoken {token}',
@@ -131,7 +131,7 @@ class ZohoClient:
                 print("ERROR: Zoho response was not valid JSON")
 
             if response.status_code not in [200, 201]:
-                return None
+                return None, None
 
             # Print parsed JSON for clarity
             print("DEBUG: Zoho Response JSON:", data)

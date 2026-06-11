@@ -7,6 +7,7 @@ from extensions import db
 from utils.gcp_storage import upload_file
 from utils.zoho_utils import ZohoClient
 import uuid
+import os
 from datetime import datetime
 from utils.blog_data import BLOGS
 
@@ -241,6 +242,18 @@ def checkout():
             session.pop('cart', None)
             return redirect(payment_link)
         else:
+            # Check if running in production
+            is_prod = (
+                current_app.config.get('ENV') == 'production'
+                or os.environ.get('FLASK_ENV') == 'production'
+                or ('localhost' not in request.host and '127.0.0.1' not in request.host)
+            )
+            
+            if is_prod:
+                flash("We are unable to initiate payment with Zoho Payments at this time. Please try again later.", "danger")
+                # We do NOT pop 'cart' from session so the customer's cart is not lost.
+                return redirect(url_for('customer.cart'))
+
             # Fallback to simulated payment flow for local development / Zoho error
             print("INFO: Falling back to simulated payment flow.")
             simulated_url = url_for('customer.simulate_payment', order_number=order.order_number, _external=True)
