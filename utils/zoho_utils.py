@@ -196,7 +196,7 @@ class ZohoClient:
             
             if response.status_code == 200:
                 data = response.json()
-                payment_link = data.get("payment_link") or {}
+                payment_link = data.get("payment_link") or data.get("payment_links") or {}
                 # The status could be 'paid', 'generated', 'expired', 'partially_paid', etc.
                 return payment_link.get("status")
             return None
