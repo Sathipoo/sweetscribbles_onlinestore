@@ -76,177 +76,179 @@
                                     </button>
                                 </td>
                             </tr>
-
-                            <!-- User Order Details Modal -->
-                            <div class="modal fade" id="userOrderModal{{ order.id }}" tabindex="-1" aria-hidden="true">
-                              <div class="modal-dialog modal-lg">
-                                <div class="modal-content text-dark">
-                                  <div class="modal-header bg-light">
-                                    <h5 class="modal-title fw-bold">Order Details: {{ order.order_number }}</h5>
-                                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
-                                  </div>
-                                  <div class="modal-body text-start">
-                                      <!-- Details Summary Cards -->
-                                      <div class="row g-3 mb-4">
-                                          <div class="col-md-6">
-                                              <div class="card p-3 h-100 border bg-light">
-                                                  <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Order Information</h6>
-                                                  <p class="mb-1"><strong>Date:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
-                                                  <p class="mb-1"><strong>Total Paid:</strong> ₹{{ order.total_amount }}</p>
-                                                  <p class="mb-1">
-                                                      <strong>Status:</strong> 
-                                                      <span class="badge bg-{% if order.status == 'Paid' or order.status == 'Delivered' %}success{% elif order.status == 'Pending' %}warning{% else %}info{% endif %}">
-                                                          {{ order.status }}
-                                                      </span>
-                                                  </p>
-                                                  {% if order.payment_link and order.status == 'Pending' %}
-                                                  <p class="mb-0 mt-2">
-                                                      <a href="{{ order.payment_link }}" class="btn btn-xs btn-success py-1 px-3 text-white fw-bold">Complete Payment Now</a>
-                                                  </p>
-                                                  {% endif %}
-                                              </div>
-                                          </div>
-                                          <div class="col-md-6">
-                                              <div class="card p-3 h-100 border bg-light">
-                                                  <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Shipping Address</h6>
-                                                  <p class="mb-0 small" style="white-space: pre-wrap;">{{ order.shipping_address or 'No delivery address provided.' }}</p>
-                                              </div>
-                                          </div>
-                                      </div>
-
-                                      <!-- Visual Shipment Stepper -->
-                                      <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4">Shipment Tracking</h6>
-                                      
-                                      {% set current_step = 1 %}
-                                      {% if order.shipping_status == 'Packed' %}
-                                          {% set current_step = 2 %}
-                                      {% elif order.shipping_status == 'In Transit' %}
-                                          {% set current_step = 3 %}
-                                      {% elif order.shipping_status == 'Out for Delivery' %}
-                                          {% set current_step = 4 %}
-                                      {% elif order.shipping_status == 'Delivered' or order.status == 'Delivered' %}
-                                          {% set current_step = 5 %}
-                                      {% endif %}
-
-                                      <div class="d-flex justify-content-between align-items-center mb-4 position-relative px-2">
-                                          <!-- Stepper line background -->
-                                          <div class="position-absolute start-0 end-0 bg-secondary opacity-25" style="height: 3px; top: 18px; z-index: 1;"></div>
-                                          <div class="position-absolute start-0 bg-success" style="height: 3px; top: 18px; z-index: 1; width: {{ (current_step - 1) * 25 }}%; transition: width 0.4s ease;"></div>
-                                          
-                                          <!-- Step 1: Ordered -->
-                                          <div class="text-center position-relative" style="z-index: 2; width: 60px;">
-                                              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm bg-success text-white" style="width: 36px; height: 36px; font-weight: bold;">
-                                                  ✓
-                                              </div>
-                                              <span class="small fw-semibold mt-1 d-block text-success" style="font-size: 0.7rem;">Ordered</span>
-                                          </div>
-                                          
-                                          <!-- Step 2: Packed -->
-                                          <div class="text-center position-relative" style="z-index: 2; width: 60px;">
-                                              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 2 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
-                                                  {% if current_step >= 2 %}✓{% else %}2{% endif %}
-                                              </div>
-                                              <span class="small mt-1 d-block {% if current_step >= 2 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">Packed</span>
-                                          </div>
-
-                                          <!-- Step 3: Shipped -->
-                                          <div class="text-center position-relative" style="z-index: 2; width: 60px;">
-                                              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 3 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
-                                                  {% if current_step >= 3 %}✓{% else %}3{% endif %}
-                                              </div>
-                                              <span class="small mt-1 d-block {% if current_step >= 3 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">Shipped</span>
-                                          </div>
-
-                                          <!-- Step 4: Out for Delivery -->
-                                          <div class="text-center position-relative" style="z-index: 2; width: 60px;">
-                                              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 4 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
-                                                  {% if current_step >= 4 %}✓{% else %}4{% endif %}
-                                              </div>
-                                              <span class="small mt-1 d-block {% if current_step >= 4 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">In Transit</span>
-                                          </div>
-
-                                          <!-- Step 5: Delivered -->
-                                          <div class="text-center position-relative" style="z-index: 2; width: 60px;">
-                                              <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 5 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
-                                                  {% if current_step >= 5 %}✓{% else %}5{% endif %}
-                                              </div>
-                                              <span class="small mt-1 d-block {% if current_step >= 5 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">Delivered</span>
-                                          </div>
-                                      </div>
-
-                                      <!-- Courier partner details -->
-                                      {% if order.tracking_number %}
-                                      <div class="p-3 bg-light border rounded-3 mb-4">
-                                          <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
-                                              <div>
-                                                  <h6 class="fw-bold mb-1" style="color: #3e2723;">Shipping Info</h6>
-                                                  <p class="mb-0 small text-muted">Courier: <strong>{{ order.courier_name }}</strong></p>
-                                                  <p class="mb-0 small text-muted">Tracking AWB: <code>{{ order.tracking_number }}</code></p>
-                                              </div>
-                                              <div>
-                                                  {% if order.courier_name.lower() == 'delhivery' %}
-                                                  <a href="https://www.delhivery.com/track/package/{{ order.tracking_number }}" target="_blank" class="btn btn-sm btn-dark px-3">Track Delhivery</a>
-                                                  {% elif order.courier_name.lower() == 'shiprocket' %}
-                                                  <a href="https://www.shiprocket.in/shipment-tracking/{{ order.tracking_number }}" target="_blank" class="btn btn-sm btn-dark px-3">Track Shiprocket</a>
-                                                  {% else %}
-                                                  <a href="https://www.google.com/search?q={{ order.courier_name }}+tracking+{{ order.tracking_number }}" target="_blank" class="btn btn-sm btn-secondary px-3">Track Shipment</a>
-                                                  {% endif %}
-                                              </div>
-                                          </div>
-                                      </div>
-                                      {% else %}
-                                      <div class="alert alert-secondary py-2 px-3 rounded mb-4" style="font-size: 0.85rem;">
-                                          ℹ️ Once your items are dispatched with Shiprocket or Delhivery, your AWB tracking link will appear here.
-                                      </div>
-                                      {% endif %}
-
-                                      <!-- Order Items Table -->
-                                      <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Items Summary</h6>
-                                      <div class="table-responsive">
-                                          <table class="table table-bordered table-sm align-middle small">
-                                              <thead class="table-light">
-                                                  <tr>
-                                                      <th>Delight Product</th>
-                                                      <th>Price</th>
-                                                      <th>Quantity</th>
-                                                      <th>Subtotal</th>
-                                                      <th>Customizations</th>
-                                                  </tr>
-                                              </thead>
-                                              <tbody>
-                                                  {% for item in order.items %}
-                                                  <tr>
-                                                      <td><span class="fw-semibold">{{ item.product.name }}</span></td>
-                                                      <td>₹{{ item.price_at_purchase }}</td>
-                                                      <td>{{ item.quantity }}</td>
-                                                      <td class="fw-bold text-success">₹{{ item.price_at_purchase * item.quantity }}</td>
-                                                      <td>
-                                                          {% if item.custom_message %}
-                                                          <div class="mb-1"><span class="badge bg-secondary">Custom Message</span> {{ item.custom_message }}</div>
-                                                          {% endif %}
-                                                          {% if item.custom_logo_url %}
-                                                          <div><span class="badge bg-primary">Logo uploaded</span> <a href="{{ item.custom_logo_url }}" target="_blank">View Logo</a></div>
-                                                          {% endif %}
-                                                          {% if not item.custom_message and not item.custom_logo_url %}
-                                                          <span class="text-muted">None</span>
-                                                          {% endif %}
-                                                      </td>
-                                                  </tr>
-                                                  {% endfor %}
-                                              </tbody>
-                                          </table>
-                                      </div>
-                                  </div>
-                                  <div class="modal-footer">
-                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
-                                  </div>
-                                </div>
-                              </div>
-                            </div>
                             {% endfor %}
                         </tbody>
                     </table>
                 </div>
+
+                <!-- User Order Details Modals -->
+                {% for order in orders %}
+                <div class="modal fade" id="userOrderModal{{ order.id }}" tabindex="-1" aria-hidden="true">
+                  <div class="modal-dialog modal-lg">
+                    <div class="modal-content text-dark">
+                      <div class="modal-header bg-light">
+                        <h5 class="modal-title fw-bold">Order Details: {{ order.order_number }}</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                      </div>
+                      <div class="modal-body text-start">
+                          <!-- Details Summary Cards -->
+                          <div class="row g-3 mb-4">
+                              <div class="col-md-6">
+                                  <div class="card p-3 h-100 border bg-light">
+                                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Order Information</h6>
+                                      <p class="mb-1"><strong>Date:</strong> {{ order.created_at.strftime('%Y-%m-%d %H:%M') }}</p>
+                                      <p class="mb-1"><strong>Total Paid:</strong> ₹{{ order.total_amount }}</p>
+                                      <p class="mb-1">
+                                          <strong>Status:</strong> 
+                                          <span class="badge bg-{% if order.status == 'Paid' or order.status == 'Delivered' %}success{% elif order.status == 'Pending' %}warning{% else %}info{% endif %}">
+                                              {{ order.status }}
+                                          </span>
+                                      </p>
+                                      {% if order.payment_link and order.status == 'Pending' %}
+                                      <p class="mb-0 mt-2">
+                                          <a href="{{ order.payment_link }}" class="btn btn-xs btn-success py-1 px-3 text-white fw-bold">Complete Payment Now</a>
+                                      </p>
+                                      {% endif %}
+                                  </div>
+                              </div>
+                              <div class="col-md-6">
+                                  <div class="card p-3 h-100 border bg-light">
+                                      <h6 class="fw-bold text-secondary border-bottom pb-2 mb-2">Shipping Address</h6>
+                                      <p class="mb-0 small" style="white-space: pre-wrap;">{{ order.shipping_address or 'No delivery address provided.' }}</p>
+                                  </div>
+                              </div>
+                          </div>
+
+                          <!-- Visual Shipment Stepper -->
+                          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3 mt-4">Shipment Tracking</h6>
+                          
+                          {% set current_step = 1 %}
+                          {% if order.shipping_status == 'Packed' %}
+                              {% set current_step = 2 %}
+                          {% elif order.shipping_status == 'In Transit' %}
+                              {% set current_step = 3 %}
+                          {% elif order.shipping_status == 'Out for Delivery' %}
+                              {% set current_step = 4 %}
+                          {% elif order.shipping_status == 'Delivered' or order.status == 'Delivered' %}
+                              {% set current_step = 5 %}
+                          {% endif %}
+
+                          <div class="d-flex justify-content-between align-items-center mb-4 position-relative px-2">
+                              <!-- Stepper line background -->
+                              <div class="position-absolute start-0 end-0 bg-secondary opacity-25" style="height: 3px; top: 18px; z-index: 1;"></div>
+                              <div class="position-absolute start-0 bg-success" style="height: 3px; top: 18px; z-index: 1; width: {{ (current_step - 1) * 25 }}%; transition: width 0.4s ease;"></div>
+                              
+                              <!-- Step 1: Ordered -->
+                              <div class="text-center position-relative" style="z-index: 2; width: 60px;">
+                                  <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm bg-success text-white" style="width: 36px; height: 36px; font-weight: bold;">
+                                      ✓
+                                  </div>
+                                  <span class="small fw-semibold mt-1 d-block text-success" style="font-size: 0.7rem;">Ordered</span>
+                              </div>
+                              
+                              <!-- Step 2: Packed -->
+                              <div class="text-center position-relative" style="z-index: 2; width: 60px;">
+                                  <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 2 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
+                                      {% if current_step >= 2 %}✓{% else %}2{% endif %}
+                                  </div>
+                                  <span class="small mt-1 d-block {% if current_step >= 2 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">Packed</span>
+                              </div>
+
+                              <!-- Step 3: Shipped -->
+                              <div class="text-center position-relative" style="z-index: 2; width: 60px;">
+                                  <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 3 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
+                                      {% if current_step >= 3 %}✓{% else %}3{% endif %}
+                                  </div>
+                                  <span class="small mt-1 d-block {% if current_step >= 3 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">Shipped</span>
+                              </div>
+
+                              <!-- Step 4: Out for Delivery -->
+                              <div class="text-center position-relative" style="z-index: 2; width: 60px;">
+                                  <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 4 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
+                                      {% if current_step >= 4 %}✓{% else %}4{% endif %}
+                                  </div>
+                                  <span class="small mt-1 d-block {% if current_step >= 4 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">In Transit</span>
+                              </div>
+
+                              <!-- Step 5: Delivered -->
+                              <div class="text-center position-relative" style="z-index: 2; width: 60px;">
+                                  <div class="rounded-circle d-flex align-items-center justify-content-center mx-auto shadow-sm {% if current_step >= 5 %}bg-success text-white{% else %}bg-white text-muted border border-secondary-subtle{% endif %}" style="width: 36px; height: 36px; font-weight: bold;">
+                                      {% if current_step >= 5 %}✓{% else %}5{% endif %}
+                                  </div>
+                                  <span class="small mt-1 d-block {% if current_step >= 5 %}fw-semibold text-success{% else %}text-muted{% endif %}" style="font-size: 0.7rem;">Delivered</span>
+                              </div>
+                          </div>
+
+                          <!-- Courier partner details -->
+                          {% if order.tracking_number %}
+                          <div class="p-3 bg-light border rounded-3 mb-4">
+                              <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                  <div>
+                                      <h6 class="fw-bold mb-1" style="color: #3e2723;">Shipping Info</h6>
+                                      <p class="mb-0 small text-muted">Courier: <strong>{{ order.courier_name }}</strong></p>
+                                      <p class="mb-0 small text-muted">Tracking AWB: <code>{{ order.tracking_number }}</code></p>
+                                  </div>
+                                  <div>
+                                      {% if order.courier_name.lower() == 'delhivery' %}
+                                      <a href="https://www.delhivery.com/track/package/{{ order.tracking_number }}" target="_blank" class="btn btn-sm btn-dark px-3">Track Delhivery</a>
+                                      {% elif order.courier_name.lower() == 'shiprocket' %}
+                                      <a href="https://www.shiprocket.in/shipment-tracking/{{ order.tracking_number }}" target="_blank" class="btn btn-sm btn-dark px-3">Track Shiprocket</a>
+                                      {% else %}
+                                      <a href="https://www.google.com/search?q={{ order.courier_name }}+tracking+{{ order.tracking_number }}" target="_blank" class="btn btn-sm btn-secondary px-3">Track Shipment</a>
+                                      {% endif %}
+                                  </div>
+                              </div>
+                          </div>
+                          {% else %}
+                          <div class="alert alert-secondary py-2 px-3 rounded mb-4" style="font-size: 0.85rem;">
+                              ℹ️ Once your items are dispatched with Shiprocket or Delhivery, your AWB tracking link will appear here.
+                          </div>
+                          {% endif %}
+
+                          <!-- Order Items Table -->
+                          <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Items Summary</h6>
+                          <div class="table-responsive">
+                              <table class="table table-bordered table-sm align-middle small">
+                                  <thead class="table-light">
+                                      <tr>
+                                          <th>Delight Product</th>
+                                          <th>Price</th>
+                                          <th>Quantity</th>
+                                          <th>Subtotal</th>
+                                          <th>Customizations</th>
+                                      </tr>
+                                  </thead>
+                                  <tbody>
+                                      {% for item in order.items %}
+                                      <tr>
+                                          <td><span class="fw-semibold">{{ item.product.name }}</span></td>
+                                          <td>₹{{ item.price_at_purchase }}</td>
+                                          <td>{{ item.quantity }}</td>
+                                          <td class="fw-bold text-success">₹{{ item.price_at_purchase * item.quantity }}</td>
+                                          <td>
+                                              {% if item.custom_message %}
+                                              <div class="mb-1"><span class="badge bg-secondary">Custom Message</span> {{ item.custom_message }}</div>
+                                              {% endif %}
+                                              {% if item.custom_logo_url %}
+                                              <div><span class="badge bg-primary">Logo uploaded</span> <a href="{{ item.custom_logo_url }}" target="_blank">View Logo</a></div>
+                                              {% endif %}
+                                              {% if not item.custom_message and not item.custom_logo_url %}
+                                              <span class="text-muted">None</span>
+                                              {% endif %}
+                                          </td>
+                                      </tr>
+                                      {% endfor %}
+                                  </tbody>
+                              </table>
+                          </div>
+                      </div>
+                      <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Close</button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+                {% endfor %}
                 {% else %}
                 <div class="text-center py-5 text-muted">
                     <p class="fs-4 mb-3">No orders found.</p>
