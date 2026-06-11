@@ -278,8 +278,11 @@ def pay_return():
             if order.zoho_payment_link_id:
                 zoho = ZohoClient()
                 zoho_status = zoho.check_payment_link_status(order.zoho_payment_link_id)
+                zoho_status_lower = zoho_status.lower() if zoho_status else ""
+                print(f"DEBUG: check_payment_link_status returned '{zoho_status}' for order {order.order_number}")
                 # Zoho payment link statuses typically include: 'paid', 'generated', 'expired', 'partially_paid', etc.
-                if zoho_status == 'paid':
+                # Payment transaction status can also be 'succeeded' or 'completed'.
+                if zoho_status_lower in ('paid', 'succeeded', 'completed', 'success'):
                     order.status = 'Paid'
                     order.payment_status = 'Paid'
                     deduct_order_stock(order)
@@ -305,7 +308,9 @@ def order_status_api(order_number):
         if order.zoho_payment_link_id:
             zoho = ZohoClient()
             zoho_status = zoho.check_payment_link_status(order.zoho_payment_link_id)
-            if zoho_status == 'paid':
+            zoho_status_lower = zoho_status.lower() if zoho_status else ""
+            print(f"DEBUG: API check_payment_link_status returned '{zoho_status}' for order {order.order_number}")
+            if zoho_status_lower in ('paid', 'succeeded', 'completed', 'success'):
                 order.status = 'Paid'
                 order.payment_status = 'Paid'
                 deduct_order_stock(order)

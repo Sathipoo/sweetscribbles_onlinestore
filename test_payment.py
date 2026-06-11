@@ -225,5 +225,54 @@ class TestZohoPayments(unittest.TestCase):
         db.session.refresh(order)
         self.assertEqual(order.status, 'Paid')
 
+    @patch('routes.customer.ZohoClient')
+    def test_pay_return_verifies_zoho_succeeded_status(self, mock_zoho_class):
+        mock_zoho = mock_zoho_class.return_value
+        # Mock payment status to be 'succeeded' (case-insensitive check covers this)
+        mock_zoho.check_payment_link_status.return_value = 'SUCCEEDED'
+
+        # Create pending order
+        order = Order(
+            order_number=f"SS-RETURN-{uuid.uuid4().hex[:6]}",
+            total_amount=100.0,
+            status="Pending",
+            zoho_payment_link_id="PL_VERIFY_SUCCEEDED"
+        )
+        db.session.add(order)
+        db.session.commit()
+
+        # Visit return URL (should verify and mark Paid)
+        response = self.client.get(f'/pay/return?order_number={order.order_number}')
+        self.assertEqual(response.status_code, 200)
+
+        db.session.refresh(order)
+        self.assertEqual(order.status, 'Paid')
+        mock_zoho.check_payment_link_status.assert_called_once_with("PL_VERIFY_SUCCEEDED")
+
+    @patch('routes.customer.ZohoClient')
+    def test_order_status_api_checks_succeeded_status(self, mock_zoho_class):
+        mock_zoho = mock_zoho_class.return_value
+        # Mock payment status to be 'succeeded'
+        mock_zoho.check_payment_link_status.return_value = 'succeeded'
+
+        order = Order(
+            order_number=f"SS-API-{uuid.uuid4().hex[:6]}",
+            total_amount=120.0,
+            status="Pending",
+            zoho_payment_link_id="PL_API_SUCCEEDED"
+        )
+        db.session.add(order)
+        db.session.commit()
+
+        # Query status API
+        response = self.client.get(f'/api/order/status/{order.order_number}')
+        self.assertEqual(response.status_code, 200)
+        data = response.json
+        self.assertEqual(data['status'], 'Paid')
+        self.assertEqual(data['payment_status'], 'Paid')
+
+        db.session.refresh(order)
+        self.assertEqual(order.status, 'Paid')
+
 if __name__ == '__main__':
     unittest.main()
