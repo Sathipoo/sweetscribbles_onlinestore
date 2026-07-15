@@ -59,8 +59,14 @@
                     </button>
                 </form>
                 {% else %}
-                <!-- Login Form -->
-                <form action="{{ url_for('auth.login') }}" method="POST">
+                <!-- Login Method Sub-Tabs -->
+                <div class="d-flex justify-content-center gap-2 mb-4 border-bottom pb-2">
+                    <button type="button" id="subtabEmail" class="btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3">Email Login</button>
+                    <button type="button" id="subtabOtp" class="btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3">Mobile OTP Login</button>
+                </div>
+
+                <!-- Email Login Form -->
+                <form action="{{ url_for('auth.login') }}" method="POST" id="emailLoginForm">
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary">Email Address</label>
                         <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
@@ -73,10 +79,286 @@
                         Login to Account
                     </button>
                 </form>
+
+                <!-- Mobile OTP Login Form -->
+                <div id="otpLoginForm" class="d-none">
+                    <div id="loginOtpStatusAlert" class="alert d-none py-2 small mb-3"></div>
+                    
+                    <!-- Step 1: Send OTP -->
+                    <div id="loginStepSendOtp">
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold text-secondary">Phone Number</label>
+                            <input type="tel" id="loginPhoneInput" class="form-control" placeholder="+91 9876543210" required>
+                            <small class="text-muted">Enter phone number with country code (e.g., +91)</small>
+                        </div>
+                        <button type="button" id="btnLoginSendOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
+                            Send OTP Code
+                        </button>
+                    </div>
+                    
+                    <!-- Step 2: Verify OTP -->
+                    <div id="loginStepVerifyOtp" class="d-none">
+                        <div id="loginDevOtpBanner" class="alert alert-warning py-2 mb-3 small d-none">
+                            <strong>[Dev Mode]</strong> Simulated OTP: <code id="loginDevOtpVal"></code>
+                        </div>
+                        <div class="mb-4">
+                            <label class="form-label small fw-semibold text-secondary">Enter OTP</label>
+                            <input type="text" id="loginOtpInput" class="form-control text-center fs-4 fw-bold" placeholder="123456" maxlength="6" autocomplete="off" style="letter-spacing: 0.5rem;">
+                        </div>
+                        <button type="button" id="btnLoginVerifyOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
+                            Verify & Sign In
+                        </button>
+                        <button type="button" id="btnLoginResendOtp" class="btn btn-link w-100 text-muted small mt-2">Resend OTP</button>
+                    </div>
+                </div>
                 {% endif %}
+
+                <!-- Divider -->
+                <div class="position-relative text-center my-4">
+                    <hr class="text-muted">
+                    <span class="position-absolute top-50 start-50 translate-middle bg-white px-3 text-muted small">or continue with</span>
+                </div>
+
+                <!-- Google Sign-In Button -->
+                <div class="d-flex flex-column gap-2">
+                    <!-- Standard Google Sign-In Button -->
+                    <div id="googleSignInContainer" class="d-flex justify-content-center">
+                        <div id="g_id_onload"
+                             data-client_id="{{ config.GOOGLE_CLIENT_ID or '' }}"
+                             data-context="signin"
+                             data-ux_mode="popup"
+                             data-callback="handleGoogleCredentialResponse"
+                             data-auto_prompt="false">
+                        </div>
+                        <div class="g_id_signin"
+                             data-type="standard"
+                             data-shape="pill"
+                             data-theme="outline"
+                             data-text="signin_with"
+                             data-size="large"
+                             data-logo_alignment="left"
+                             data-width="280">
+                        </div>
+                    </div>
+                    
+                    <!-- Simulated Google Sign-In Button (Visible in Debug mode) -->
+                    {% if config.DEBUG %}
+                    <button type="button" id="btnSimulateGoogle" class="btn btn-outline-danger w-100 py-2.5 rounded-pill fw-semibold d-flex align-items-center justify-content-center gap-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" fill="currentColor" class="bi bi-google" viewBox="0 0 16 16">
+                          <path d="M15.545 6.558a9.42 9.42 0 0 1 .139 1.626c0 2.434-.87 4.492-2.384 5.885h.002C11.978 15.292 10.158 16 8 16A8 8 0 1 1 8 0c2.204 0 4.09.811 5.61 2.237l-2.37 2.37C10.042 3.54 8.978 3 8 3c-2.76 0-5 2.24-5 5s2.24 5 5 5c3.21 0 4.145-2.292 4.348-3.442H8V6.558z"/>
+                        </svg>
+                        Simulate Google Sign-In
+                    </button>
+                    
+                    <!-- Simulated Google Input Modal (Mocked) -->
+                    <div id="simulationGoogleModal" class="d-none p-3 border rounded-3 bg-light mt-2 text-start">
+                        <h6 class="fw-bold text-danger mb-2 small">Simulate Google Authentication</h6>
+                        <div class="mb-2">
+                            <label class="small text-secondary">Mock Email</label>
+                            <input type="email" id="simGoogleEmail" class="form-control form-control-sm" value="google_mock@example.com">
+                        </div>
+                        <div class="mb-2">
+                            <label class="small text-secondary">Mock Name</label>
+                            <input type="text" id="simGoogleName" class="form-control form-control-sm" value="Google Mock User">
+                        </div>
+                        <button type="button" id="btnSubmitSimulateGoogle" class="btn btn-danger btn-sm w-100">Authenticate (Simulated)</button>
+                    </div>
+                    {% endif %}
+                </div>
 
             </div>
         </div>
     </div>
 </div>
+
+<!-- Google SDK -->
+<script src="https://accounts.google.com/gsi/client" async defer></script>
+
+<script>
+// Callback for Google Identity Services Credential
+async function handleGoogleCredentialResponse(response) {
+    console.log("Encoded JWT ID token received");
+    try {
+        const res = await fetch('/google-login', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ id_token: response.credential })
+        });
+        const result = await res.json();
+        if (result.success) {
+            window.location.href = '/profile';
+        } else {
+            alert(result.message || 'Google Sign-In failed.');
+        }
+    } catch (err) {
+        alert('Network error during Google Sign-In.');
+    }
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    // 1. Google Simulation Mode
+    const btnSimulateGoogle = document.getElementById('btnSimulateGoogle');
+    const simGoogleModal = document.getElementById('simulationGoogleModal');
+    const btnSubmitSimGoogle = document.getElementById('btnSubmitSimulateGoogle');
+    const simGoogleEmail = document.getElementById('simGoogleEmail');
+    const simGoogleName = document.getElementById('simGoogleName');
+    
+    if (btnSimulateGoogle) {
+        btnSimulateGoogle.addEventListener('click', function() {
+            simGoogleModal.classList.toggle('d-none');
+        });
+    }
+    
+    if (btnSubmitSimGoogle) {
+        btnSubmitSimGoogle.addEventListener('click', async function() {
+            const email = simGoogleEmail.value.trim();
+            const name = simGoogleName.value.trim();
+            btnSubmitSimGoogle.disabled = true;
+            
+            try {
+                const response = await fetch('/google-login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ simulation: true, email: email, name: name })
+                });
+                const result = await response.json();
+                if (result.success) {
+                    window.location.href = '/profile';
+                } else {
+                    alert(result.message);
+                    btnSubmitSimGoogle.disabled = false;
+                }
+            } catch (err) {
+                alert('Simulation authentication failed.');
+                btnSubmitSimGoogle.disabled = false;
+            }
+        });
+    }
+
+    // 2. Mobile OTP Toggles
+    const subtabEmail = document.getElementById('subtabEmail');
+    const subtabOtp = document.getElementById('subtabOtp');
+    const emailLoginForm = document.getElementById('emailLoginForm');
+    const otpLoginForm = document.getElementById('otpLoginForm');
+    
+    if (subtabEmail && subtabOtp && emailLoginForm && otpLoginForm) {
+        subtabEmail.addEventListener('click', function() {
+            subtabEmail.className = "btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3";
+            subtabOtp.className = "btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3";
+            emailLoginForm.classList.remove('d-none');
+            otpLoginForm.classList.add('d-none');
+        });
+        
+        subtabOtp.addEventListener('click', function() {
+            subtabOtp.className = "btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3";
+            subtabEmail.className = "btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3";
+            otpLoginForm.classList.remove('d-none');
+            emailLoginForm.classList.add('d-none');
+        });
+    }
+    
+    // 3. Send/Verify Mobile OTP
+    const btnSendOtp = document.getElementById('btnLoginSendOtp');
+    const btnResendOtp = document.getElementById('btnLoginResendOtp');
+    const btnVerifyOtp = document.getElementById('btnLoginVerifyOtp');
+    
+    const phoneInput = document.getElementById('loginPhoneInput');
+    const otpInput = document.getElementById('loginOtpInput');
+    
+    const stepSend = document.getElementById('loginStepSendOtp');
+    const stepVerify = document.getElementById('loginStepVerifyOtp');
+    const statusAlert = document.getElementById('loginOtpStatusAlert');
+    
+    const devOtpBanner = document.getElementById('loginDevOtpBanner');
+    const devOtpVal = document.getElementById('loginDevOtpVal');
+    
+    function showAlert(msg, type='danger') {
+        statusAlert.className = `alert alert-${type} py-2 small mb-3`;
+        statusAlert.textContent = msg;
+        statusAlert.classList.remove('d-none');
+    }
+    
+    async function triggerSendMobileOtp() {
+        const phone = phoneInput.value.trim();
+        if (!phone) {
+            showAlert('Please enter your phone number.', 'danger');
+            return;
+        }
+        
+        btnSendOtp.disabled = true;
+        if (btnResendOtp) btnResendOtp.disabled = true;
+        showAlert('Requesting OTP code...', 'info');
+        
+        try {
+            const response = await fetch('/send-mobile-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone })
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert('OTP code has been sent to your phone.', 'success');
+                stepSend.classList.add('d-none');
+                stepVerify.classList.remove('d-none');
+                
+                if (result.dev_otp) {
+                    if (devOtpBanner && devOtpVal) {
+                        devOtpVal.textContent = result.dev_otp;
+                        devOtpBanner.classList.remove('d-none');
+                    }
+                }
+            } else {
+                showAlert(result.message || 'Failed to send OTP.', 'danger');
+                btnSendOtp.disabled = false;
+            }
+        } catch (err) {
+            showAlert('Network error occurred.', 'danger');
+            btnSendOtp.disabled = false;
+        } finally {
+            if (btnResendOtp) btnResendOtp.disabled = false;
+        }
+    }
+    
+    if (btnSendOtp) btnSendOtp.addEventListener('click', triggerSendMobileOtp);
+    if (btnResendOtp) btnResendOtp.addEventListener('click', triggerSendMobileOtp);
+    
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', async function() {
+            const otp = otpInput.value.trim();
+            const phone = phoneInput.value.trim();
+            
+            if (otp.length !== 6) {
+                showAlert('Please enter the 6-digit verification code.', 'danger');
+                return;
+            }
+            
+            btnVerifyOtp.disabled = true;
+            showAlert('Verifying code...', 'info');
+            
+            try {
+                const response = await fetch('/verify-mobile-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: phone, otp: otp })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    setTimeout(() => {
+                        window.location.href = '/profile';
+                    }, 1000);
+                } else {
+                    showAlert(result.message || 'Verification failed.', 'danger');
+                    btnVerifyOtp.disabled = false;
+                }
+            } catch (err) {
+                showAlert('Network error occurred.', 'danger');
+                btnVerifyOtp.disabled = false;
+            }
+        });
+    }
+});
+</script>
 {% endblock %}

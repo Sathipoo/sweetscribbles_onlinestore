@@ -450,3 +450,67 @@ def blog_detail(slug):
         flash("Blog post not found.", "warning")
         return redirect(url_for('customer.home'))
     return render_template('customer/blog.html', blog=blog)
+
+@customer_bp.route('/send-email-otp', methods=['POST'])
+@login_required
+def send_email_otp_route():
+    from utils.otp_utils import generate_otp, send_email_otp
+    from datetime import datetime, timedelta
+    
+    otp = generate_otp()
+    expiry = (datetime.utcnow() + timedelta(minutes=5)).timestamp()
+    
+    session['email_otp'] = {
+        'email': current_user.email,
+        'otp': otp,
+        'expires': expiry
+    }
+    
+    sent_real = send_email_otp(current_user.email, otp)
+    
+    return {
+        'success': True,
+        'message': 'OTP sent successfully to your email.',
+        'dev_otp': otp if current_app.debug else None,
+        'sent_real': sent_real
+    }
+
+@customer_bp.route('/change-password-otp', methods=['POST'])
+@login_required
+def change_password_otp_route():
+    from datetime import datetime
+    
+    otp_data = session.get('email_otp')
+    if not otp_data:
+        return {'success': False, 'message': 'No active OTP verification session. Please request a new OTP.'}, 400
+        
+    data = request.get_json(silent=True) or {}
+    entered_otp = (data.get('otp') or request.form.get('otp', '')).strip()
+    new_password = data.get('new_password') or request.form.get('new_password')
+    
+    if not entered_otp or not new_password:
+        return {'success': False, 'message': 'OTP and new password are required.'}, 400
+        
+    if otp_data['email'] != current_user.email:
+        return {'success': False, 'message': 'Session mismatch error.'}, 400
+        
+    if otp_data['otp'] != entered_otp:
+        return {'success': False, 'message': 'Incorrect OTP. Please try again.'}, 400
+        
+    if datetime.utcnow().timestamp() > otp_data['expires']:
+        return {'success': False, 'message': 'OTP has expired. Please request a new one.'}, 400
+        
+    current_user.set_password(new_password)
+    db.session.commit()
+    session.pop('email_otp', None)
+    
+    return {'success': True, 'message': 'Your password has been changed successfully!'}
+
+@customer_bp.route('/products/dark-choco-bliss-bites/329542500000065585')
+def old_dark_choco_redirect():
+    # 301 Permanent Redirect for the old URL structure to the current product detail URL
+    # Look up by SKU "CB-DRK-01" to handle dynamic product ID assignment, fallback to ID 5
+    product = Product.query.filter_by(sku='CB-DRK-01').first()
+    target_id = product.id if product else 5
+    return redirect(url_for('customer.product_detail', product_id=target_id), code=301)
+

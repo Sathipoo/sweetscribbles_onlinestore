@@ -29,3 +29,6 @@ class Config:
     
     # Admin
     ADMIN_PASSWORD = os.environ.get('ADMIN_PASSWORD', 'admin')
+
+    # Google OAuth
+    GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')

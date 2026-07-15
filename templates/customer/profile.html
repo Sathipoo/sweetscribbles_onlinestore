@@ -39,6 +39,9 @@
                     <label class="text-muted small d-block">Default Shipping Address</label>
                     <p class="mb-0 text-muted bg-light p-2 rounded small" style="white-space: pre-wrap;">{{ current_user.address or 'No default address saved.' }}</p>
                 </div>
+                <div class="mt-4 pt-3 border-top">
+                    <button class="btn btn-sm btn-outline-secondary w-100" data-bs-toggle="modal" data-bs-target="#changePasswordModal">Change Password</button>
+                </div>
             </div>
         </div>
 
@@ -291,4 +294,149 @@
     </div>
   </div>
 </div>
+
+<!-- Change Password Modal -->
+<div class="modal fade" id="changePasswordModal" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content text-dark rounded-4">
+      <div class="modal-header">
+        <h5 class="modal-title fw-bold">Change Password via Email OTP</h5>
+        <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body text-start">
+        <div id="otpStatusAlert" class="alert d-none py-2 small"></div>
+        
+        <!-- Step 1: Send OTP -->
+        <div id="stepSendOtp">
+          <p class="small text-muted mb-3">We will send a 6-digit verification code to your registered email: <strong>{{ current_user.email }}</strong>.</p>
+          <button type="button" id="btnSendEmailOtp" class="btn btn-primary w-100 py-2 fw-semibold">Send Verification Code</button>
+        </div>
+        
+        <!-- Step 2: Verify & Reset -->
+        <div id="stepVerifyOtp" class="d-none">
+          <div id="devOtpBanner" class="alert alert-warning py-2 mb-3 small d-none">
+            <strong>[Dev Mode]</strong> Simulated OTP: <code id="devOtpVal"></code>
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">Verification Code (OTP)</label>
+            <input type="text" id="emailOtpInput" class="form-control text-center fs-4 fw-bold" placeholder="123456" maxlength="6" autocomplete="off" style="letter-spacing: 0.5rem;">
+          </div>
+          <div class="mb-3">
+            <label class="form-label small fw-semibold text-secondary">New Password</label>
+            <input type="password" id="newPasswordInput" class="form-control" placeholder="••••••••" minlength="4">
+          </div>
+          <button type="button" id="btnVerifyAndChangePassword" class="btn btn-success w-100 py-2 fw-semibold">Update Password</button>
+          <button type="button" id="btnResendEmailOtp" class="btn btn-link w-100 text-muted small mt-2">Resend Code</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const btnSendOtp = document.getElementById('btnSendEmailOtp');
+    const btnResendOtp = document.getElementById('btnResendEmailOtp');
+    const btnVerify = document.getElementById('btnVerifyAndChangePassword');
+    
+    const stepSend = document.getElementById('stepSendOtp');
+    const stepVerify = document.getElementById('stepVerifyOtp');
+    const statusAlert = document.getElementById('otpStatusAlert');
+    
+    const otpInput = document.getElementById('emailOtpInput');
+    const passwordInput = document.getElementById('newPasswordInput');
+    
+    const devOtpBanner = document.getElementById('devOtpBanner');
+    const devOtpVal = document.getElementById('devOtpVal');
+    
+    function showAlert(msg, type='danger') {
+        statusAlert.className = `alert alert-${type} py-2 small mb-3`;
+        statusAlert.textContent = msg;
+        statusAlert.classList.remove('d-none');
+    }
+    
+    function hideAlert() {
+        statusAlert.classList.add('d-none');
+    }
+    
+    async function triggerSendOtp() {
+        btnSendOtp.disabled = true;
+        if (btnResendOtp) btnResendOtp.disabled = true;
+        showAlert('Sending verification code...', 'info');
+        
+        try {
+            const response = await fetch('/send-email-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' }
+            });
+            const result = await response.json();
+            
+            if (result.success) {
+                showAlert(result.message, 'success');
+                stepSend.classList.add('d-none');
+                stepVerify.classList.remove('d-none');
+                
+                if (result.dev_otp) {
+                    if (devOtpBanner && devOtpVal) {
+                        devOtpVal.textContent = result.dev_otp;
+                        devOtpBanner.classList.remove('d-none');
+                    }
+                }
+            } else {
+                showAlert(result.message || 'Failed to send OTP.', 'danger');
+                btnSendOtp.disabled = false;
+            }
+        } catch (err) {
+            showAlert('Network error occurred. Please try again.', 'danger');
+            btnSendOtp.disabled = false;
+        } finally {
+            if (btnResendOtp) btnResendOtp.disabled = false;
+        }
+    }
+    
+    if (btnSendOtp) btnSendOtp.addEventListener('click', triggerSendOtp);
+    if (btnResendOtp) btnResendOtp.addEventListener('click', triggerSendOtp);
+    
+    if (btnVerify) {
+        btnVerify.addEventListener('click', async function() {
+            const otp = otpInput.value.trim();
+            const password = passwordInput.value;
+            
+            if (otp.length !== 6) {
+                showAlert('Please enter the 6-digit code.', 'danger');
+                return;
+            }
+            if (password.length < 4) {
+                showAlert('Password must be at least 4 characters long.', 'danger');
+                return;
+            }
+            
+            btnVerify.disabled = true;
+            showAlert('Verifying and resetting password...', 'info');
+            
+            try {
+                const response = await fetch('/change-password-otp', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ otp: otp, new_password: password })
+                });
+                const result = await response.json();
+                
+                if (result.success) {
+                    showAlert(result.message, 'success');
+                    setTimeout(() => {
+                        window.location.reload();
+                    }, 1500);
+                } else {
+                    showAlert(result.message || 'Verification failed.', 'danger');
+                    btnVerify.disabled = false;
+                }
+            } catch (err) {
+                showAlert('Network error occurred. Please try again.', 'danger');
+                btnVerify.disabled = false;
+            }
+        });
+    }
+});
+</script>
 {% endblock %}
