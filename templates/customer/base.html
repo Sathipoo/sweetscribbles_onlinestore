@@ -4,6 +4,9 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>{% block title %}Sweet Scribbles{% endblock %} - Celebrate Better</title>
+    <!-- Favicon -->
+    <link rel="icon" type="image/png" href="{{ url_for('static', filename='favicon.png') }}">
+    <link rel="shortcut icon" href="{{ url_for('static', filename='favicon.ico') }}">
     <!-- Bootstrap CSS -->
     <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <!-- Google Fonts -->
@@ -90,10 +93,10 @@
 
     <!-- Preloader Overlay -->
     <div id="preloader">
-        <div class="preloader-content">
-            <div class="preloader-logo">
-                <span class="preloader-text-logo">Sweet Scribbles</span>
-                <div class="preloader-tagline">Celebrate Better</div>
+        <div class="preloader-content text-center">
+            <div class="preloader-logo mb-2">
+                <img src="{{ url_for('static', filename='images/official_logo_gold.png') }}" alt="Sweet Scribbles" style="height: 60px; max-width: 260px; object-fit: contain;">
+                <div class="preloader-tagline mt-1">Celebrate Better</div>
             </div>
             <div class="preloader-spinner"></div>
         </div>
@@ -104,9 +107,9 @@
         <nav class="navbar navbar-expand-lg nav-capsule">
             <div class="container-fluid p-0 align-items-center">
                 <!-- Brand Logo Capsule -->
-                <div class="brand-capsule">
-                    <a class="brand-logo-text" href="{{ url_for('customer.home') }}">
-                        Sweet <span style="font-family: 'Pacifico', cursive; text-transform: none; letter-spacing: 0; display: inline; font-size: 1.6rem; color: #3e2723;">Scribbles</span>
+                <div class="brand-capsule py-1 px-3">
+                    <a class="d-flex align-items-center text-decoration-none" href="{{ url_for('customer.home') }}">
+                        <img src="{{ url_for('static', filename='images/official_logo.png') }}" alt="Sweet Scribbles" style="height: 38px; max-width: 180px; object-fit: contain;">
                     </a>
                 </div>
                 
@@ -163,7 +166,7 @@
             <div class="row py-4">
                 <!-- Brand & Contact -->
                 <div class="col-lg-4 mb-4 mb-lg-0">
-                    <h2 class="mb-3" style="font-family: 'Pacifico', cursive; color: #ffb300;">Sweet Scribbles</h2>
+                    <img src="{{ url_for('static', filename='images/official_logo_gold.png') }}" alt="Sweet Scribbles" class="mb-3" style="height: 52px; max-width: 240px; object-fit: contain;">
                     <ul class="list-unstyled text-light opacity-75">
                         <li class="mb-3">
                             <span style="color: #ffb300; font-size: 1.2rem; margin-right: 5px;">•</span> 

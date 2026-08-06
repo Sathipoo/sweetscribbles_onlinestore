@@ -27,7 +27,13 @@ def create_app(config_class=Config):
     app.register_blueprint(auth_bp, url_prefix='/auth')
 
     # Register Global Error Handlers for SEO/Indexation and user experience
-    from flask import render_template
+    from flask import render_template, send_from_directory
+    import os
+
+    @app.route('/favicon.ico')
+    def favicon():
+        return send_from_directory(os.path.join(app.root_path, 'static'),
+                                   'favicon.ico', mimetype='image/vnd.microsoft.icon')
 
     @app.errorhandler(400)
     def bad_request(e):

@@ -13,7 +13,10 @@
 <body>
     <div class="container">
         <div class="card login-card p-4">
-            <h3 class="text-center mb-4" style="color: #6d4c41; font-weight: bold;">Sweet Scribbles Admin</h3>
+            <div class="text-center mb-4">
+                <img src="{{ url_for('static', filename='images/official_logo.png') }}" alt="Sweet Scribbles" style="height: 48px; max-width: 200px; object-fit: contain;" class="mb-2"><br>
+                <span class="badge bg-dark text-warning px-3 py-1">Admin Portal</span>
+            </div>
             
             {% with messages = get_flashed_messages() %}
               {% if messages %}
