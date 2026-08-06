@@ -352,3 +352,26 @@ def delete_collection(collection_id):
     db.session.commit()
     return redirect(url_for('admin.collections'))
 
+@admin_bp.route('/catalog-agent/run', methods=['POST'])
+@admin_required
+def run_catalog_agent_route():
+    from scripts.product_catalog_agent import run_catalog_agent
+    from flask import current_app
+    res = run_catalog_agent(current_app, db, Product, ProductMedia)
+    return {'success': True, 'result': res}
+
+@admin_bp.route('/catalog-agent/logs', methods=['GET'])
+@admin_required
+def get_catalog_agent_logs():
+    import json, os
+    log_file = os.path.join(current_app.root_path, 'agent_logs', 'activity.json')
+    if os.path.exists(log_file):
+        try:
+            with open(log_file, 'r', encoding='utf-8') as f:
+                activities = json.load(f)
+            return {'success': True, 'activities': activities}
+        except Exception as e:
+            return {'success': False, 'error': str(e)}
+    return {'success': True, 'activities': []}
+
+
