@@ -3,6 +3,8 @@ from flask_login import login_required, current_user
 from functools import wraps
 from models.product import Product, ProductMedia, Collection
 from models.order import Order
+from models.coupon import Coupon
+from datetime import datetime
 from extensions import db
 
 
@@ -54,6 +56,8 @@ def products():
         available_qty = int(request.form.get('available_qty', 0) or 0)
         low_stock_threshold = int(request.form.get('low_stock_threshold', 10) or 10)
         promo_badge = request.form.get('promo_badge') or None
+        box_weight = request.form.get('box_weight', '250g') or '250g'
+        box_quantity = int(request.form.get('box_quantity', 12) or 12)
         short_description = request.form.get('short_description') or ''
         description = request.form.get('description') or ''
         ingredients = request.form.get('ingredients') or ''
@@ -87,6 +91,8 @@ def products():
             available_qty=available_qty,
             low_stock_threshold=low_stock_threshold,
             promo_badge=promo_badge,
+            box_weight=box_weight,
+            box_quantity=box_quantity,
             short_description=short_description,
             description=description,
             ingredients=ingredients,
@@ -151,6 +157,8 @@ def edit_product(product_id):
     product.available_qty = int(request.form.get('available_qty', 0) or 0)
     product.low_stock_threshold = int(request.form.get('low_stock_threshold', 10) or 10)
     product.promo_badge = request.form.get('promo_badge') or None
+    product.box_weight = request.form.get('box_weight', '250g') or '250g'
+    product.box_quantity = int(request.form.get('box_quantity', 12) or 12)
     product.short_description = request.form.get('short_description') or ''
     product.description = request.form.get('description') or ''
     product.ingredients = request.form.get('ingredients') or ''
@@ -351,4 +359,76 @@ def delete_collection(collection_id):
     db.session.delete(col)
     db.session.commit()
     return redirect(url_for('admin.collections'))
+
+
+@admin_bp.route('/coupons', methods=['GET', 'POST'])
+@admin_required
+def coupons():
+    if request.method == 'POST':
+        code = request.form.get('code', '').strip().upper()
+        discount_type = request.form.get('discount_type', 'percent')
+        discount_value = float(request.form.get('discount_value', 0.0) or 0.0)
+        
+        max_discount_raw = request.form.get('max_discount')
+        max_discount = float(max_discount_raw) if max_discount_raw and float(max_discount_raw) > 0 else None
+        
+        min_order_raw = request.form.get('min_order_amount')
+        min_order_amount = float(min_order_raw) if min_order_raw else 0.0
+        
+        expiry_str = request.form.get('expiry_date')
+        expiry_date = None
+        if expiry_str:
+            try:
+                if 'T' in expiry_str:
+                    expiry_date = datetime.strptime(expiry_str, '%Y-%m-%dT%H:%M')
+                else:
+                    expiry_date = datetime.strptime(expiry_str, '%Y-%m-%d').replace(hour=23, minute=59, second=59)
+            except ValueError:
+                expiry_date = None
+                
+        is_active = True if request.form.get('is_active') == 'on' or request.form.get('is_active') == 'true' else True
+        
+        if code and discount_value > 0:
+            existing = Coupon.query.filter_by(code=code).first()
+            if existing:
+                existing.discount_type = discount_type
+                existing.discount_value = discount_value
+                existing.max_discount = max_discount
+                existing.min_order_amount = min_order_amount
+                existing.expiry_date = expiry_date
+                existing.is_active = is_active
+            else:
+                new_coupon = Coupon(
+                    code=code,
+                    discount_type=discount_type,
+                    discount_value=discount_value,
+                    max_discount=max_discount,
+                    min_order_amount=min_order_amount,
+                    expiry_date=expiry_date,
+                    is_active=is_active
+                )
+                db.session.add(new_coupon)
+            db.session.commit()
+        return redirect(url_for('admin.coupons'))
+        
+    all_coupons = Coupon.query.order_by(Coupon.id.desc()).all()
+    now = datetime.utcnow()
+    return render_template('admin/coupons.html', coupons=all_coupons, now=now)
+
+@admin_bp.route('/coupon/<int:coupon_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_coupon(coupon_id):
+    coupon = Coupon.query.get_or_404(coupon_id)
+    coupon.is_active = not coupon.is_active
+    db.session.commit()
+    return redirect(url_for('admin.coupons'))
+
+@admin_bp.route('/coupon/<int:coupon_id>/delete', methods=['POST'])
+@admin_required
+def delete_coupon(coupon_id):
+    coupon = Coupon.query.get_or_404(coupon_id)
+    db.session.delete(coupon)
+    db.session.commit()
+    return redirect(url_for('admin.coupons'))
+
 

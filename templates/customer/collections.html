@@ -52,6 +52,7 @@
                         </div>
 
                         <h6 class="collection-card-title">{{ product.name }}</h6>
+                        <div class="small text-muted mb-1" style="font-size: 0.78rem;">📦 {{ product.box_weight or '250g' }} ({{ product.box_quantity or 12 }} pcs)</div>
                         
                         <div class="collection-card-stars">
                             {% set ratings = [

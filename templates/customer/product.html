@@ -46,7 +46,39 @@
         <div class="col-md-6 px-md-4">
             <h1 class="fw-bold" style="color: var(--primary-color);">{{ product.name }}</h1>
             <p class="text-muted">{{ product.short_description }}</p>
-            <h3 class="fw-bold my-3 price-professional">₹{{ "%.2f"|format(product.sale_price) }}</h3>
+            <!-- Price & Discount Section -->
+            <div class="my-3 p-3 rounded-4" style="background: rgba(255, 255, 255, 0.7); border: 1px solid rgba(62, 39, 35, 0.08); backdrop-filter: blur(8px);">
+                <div class="d-flex align-items-baseline flex-wrap gap-2">
+                    <span class="display-6 fw-extrabold text-dark price-professional me-1" style="font-weight: 800; color: var(--primary-color) !important;">
+                        ₹{{ "%.2f"|format(product.sale_price) }}
+                    </span>
+                    
+                    {% if product.mrp and product.mrp > product.sale_price %}
+                        {% set discount_pct = (((product.mrp - product.sale_price) / product.mrp) * 100) | round | int %}
+                        {% set savings = product.mrp - product.sale_price %}
+                        <span class="fs-5 text-muted text-decoration-line-through fw-medium me-2" style="opacity: 0.7;">
+                            MRP ₹{{ "%.2f"|format(product.mrp) }}
+                        </span>
+                        <span class="badge rounded-pill text-white px-3 py-2 fw-bold align-self-center shadow-sm" 
+                              style="background: linear-gradient(135deg, #e53935 0%, #c62828 100%); font-size: 0.85rem; letter-spacing: 0.5px;">
+                            🔥 {{ discount_pct }}% OFF
+                        </span>
+                    {% endif %}
+                </div>
+                
+                {% if product.mrp and product.mrp > product.sale_price %}
+                <div class="mt-1 d-flex align-items-center gap-2 flex-wrap">
+                    <span class="badge bg-success-subtle text-success border border-success-subtle rounded-pill px-2.5 py-1 small fw-semibold" style="font-size: 0.78rem;">
+                        ✨ You Save ₹{{ "%.2f"|format(savings) }}
+                    </span>
+                    <span class="text-muted small" style="font-size: 0.78rem;">Inclusive of all taxes</span>
+                </div>
+                {% else %}
+                <div class="mt-1">
+                    <span class="text-muted small" style="font-size: 0.78rem;">Inclusive of all taxes</span>
+                </div>
+                {% endif %}
+            </div>
             
             <!-- Dynamic Stock Status Display -->
             <div class="mb-4">
@@ -73,6 +105,28 @@
                     </span>
                     <p class="text-success small mt-2 mb-0 fw-semibold">Handcrafted fresh within 2-3 days.</p>
                 {% endif %}
+            </div>
+
+            <!-- Box Specifications (Weight & Quantity) -->
+            <div class="d-flex flex-wrap gap-3 my-3">
+                <div class="d-flex align-items-center p-2 px-3 rounded-4 border shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #faf5eb 100%); border-color: rgba(62, 39, 35, 0.12) !important;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 text-white" style="width: 36px; height: 36px; background-color: var(--primary-color, #3e2723); font-size: 1.1rem;">
+                        📦
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Box Weight</div>
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ product.box_weight or '250g' }}</div>
+                    </div>
+                </div>
+                <div class="d-flex align-items-center p-2 px-3 rounded-4 border shadow-sm" style="background: linear-gradient(135deg, #ffffff 0%, #faf5eb 100%); border-color: rgba(62, 39, 35, 0.12) !important;">
+                    <div class="rounded-circle d-flex align-items-center justify-content-center me-2 text-white" style="width: 36px; height: 36px; background-color: var(--secondary-color, #8d6e63); font-size: 1.1rem;">
+                        🍬
+                    </div>
+                    <div>
+                        <div class="text-muted fw-semibold text-uppercase" style="font-size: 0.65rem; letter-spacing: 0.5px;">Quantity in Box</div>
+                        <div class="fw-bold text-dark" style="font-size: 0.95rem;">{{ product.box_quantity or 12 }} items</div>
+                    </div>
+                </div>
             </div>
 
             <p>{{ product.description }}</p>
@@ -146,37 +200,40 @@
                 {% endif %}
                 #}
 
-                <div class="row g-3 align-items-center mt-3">
+            <!-- Sticky Action Bar Wrapper (Quantity & Add to Cart) -->
+            <div id="sticky-action-bar" class="sticky-action-bar-wrapper my-3 p-3 rounded-4" style="background: rgba(255, 255, 255, 0.95); border: 1px solid rgba(62, 39, 35, 0.08); transition: all 0.3s cubic-bezier(0.165, 0.84, 0.44, 1);">
+                <div class="row g-2 align-items-center justify-content-between flex-nowrap">
                     {% if product.category in ('bites', 'choco') and product.available_qty == 0 %}
                     <div class="col-auto">
-                        <label class="col-form-label fw-semibold text-muted">Quantity</label>
-                    </div>
-                    <div class="col-auto">
-                        <div class="input-group quantity-stepper shadow-sm rounded-pill overflow-hidden border" style="width: 140px; border-color: rgba(62, 39, 35, 0.1) !important; opacity: 0.6;">
-                            <button class="btn btn-link text-decoration-none px-3 py-2 border-0 bg-transparent text-muted fw-bold stepper-btn" type="button" disabled style="box-shadow: none;">−</button>
-                            <input type="number" class="form-control text-center bg-transparent border-0 fw-semibold text-muted" value="0" disabled style="box-shadow: none; font-size: 1.1rem; width: 45px; pointer-events: none;">
-                            <button class="btn btn-link text-decoration-none px-3 py-2 border-0 bg-transparent text-muted fw-bold stepper-btn" type="button" disabled style="box-shadow: none;">+</button>
-                        </div>
-                    </div>
-                    <div class="col-auto">
-                        <button type="button" class="btn btn-secondary px-5 py-2 rounded-pill" disabled style="opacity: 0.6; cursor: not-allowed;">Out of Stock</button>
+                        <span class="badge bg-danger-subtle text-danger px-3 py-2 rounded-pill border border-danger">Out of Stock</span>
                     </div>
                     {% else %}
-                    <div class="col-auto">
-                        <label class="col-form-label fw-semibold">Quantity</label>
-                    </div>
-                    <div class="col-auto">
-                        <div class="input-group quantity-stepper shadow-sm rounded-pill overflow-hidden border" style="width: 140px; border-color: rgba(62, 39, 35, 0.15) !important;">
-                            <button class="btn btn-link text-decoration-none px-3 py-2 border-0 bg-transparent text-dark fw-bold stepper-btn" type="button" onclick="changeQty(-1)" style="box-shadow: none; font-size: 1.25rem;">−</button>
-                            <input type="number" id="product-quantity" name="quantity" class="form-control text-center bg-transparent border-0 fw-semibold" value="1" min="1" {% if product.category in ('bites', 'choco') %}max="{{ product.available_qty }}"{% endif %} readonly style="box-shadow: none; font-size: 1.1rem; width: 45px; pointer-events: none;">
-                            <button class="btn btn-link text-decoration-none px-3 py-2 border-0 bg-transparent text-dark fw-bold stepper-btn" type="button" onclick="changeQty(1)" style="box-shadow: none; font-size: 1.25rem;">+</button>
+                    <div class="col-auto d-flex align-items-center gap-2">
+                        <label class="col-form-label fw-bold text-dark d-none d-sm-inline small mb-0">Quantity:</label>
+                        <div class="d-flex flex-nowrap align-items-center rounded-pill border bg-white shadow-sm overflow-hidden px-1" 
+                             style="width: 110px; height: 38px; border-color: rgba(62, 39, 35, 0.2) !important; flex-shrink: 0;">
+                            <button class="btn btn-link text-decoration-none p-0 text-dark fw-bold border-0 d-flex align-items-center justify-content-center" 
+                                    type="button" onclick="changeQty(-1)" 
+                                    style="width: 26px; height: 26px; font-size: 1rem; border-radius: 50%; background: rgba(62, 39, 35, 0.06); line-height: 1; user-select: none;">
+                                −
+                            </button>
+                            <input type="number" id="product-quantity" name="quantity" 
+                                   class="form-control text-center bg-transparent border-0 fw-bold px-0 text-dark" 
+                                   value="1" min="1" {% if product.category in ('bites', 'choco') %}max="{{ product.available_qty }}"{% endif %} 
+                                   readonly style="font-size: 0.95rem; width: 46px; box-shadow: none; pointer-events: none; height: 36px;">
+                            <button class="btn btn-link text-decoration-none p-0 text-dark fw-bold border-0 d-flex align-items-center justify-content-center" 
+                                    type="button" onclick="changeQty(1)" 
+                                    style="width: 26px; height: 26px; font-size: 1rem; border-radius: 50%; background: rgba(62, 39, 35, 0.06); line-height: 1; user-select: none;">
+                                +
+                            </button>
                         </div>
                     </div>
-                    <div class="col-auto">
-                        <button type="submit" class="btn btn-premium px-5 py-2">Add to Cart</button>
+                    <div class="col flex-grow-1 flex-sm-grow-0" style="min-width: 140px;">
+                        <button type="submit" class="btn btn-premium w-100 px-sm-4 py-2 shadow-sm fw-bold" style="font-size: 0.95rem;">Add to Cart</button>
                     </div>
                     {% endif %}
                 </div>
+            </div>
             </form>
         </div>
     </div>
@@ -232,9 +289,80 @@ function changeQty(amount) {
     
     qtyInput.value = newVal;
 }
+
+// Smart Sticky Action Bar with Footer Detection
+document.addEventListener('DOMContentLoaded', function() {
+    const stickyBar = document.getElementById('sticky-action-bar');
+    const footer = document.getElementById('site-footer') || document.querySelector('footer');
+    
+    if (!stickyBar) return;
+    
+    let isFooterIntersecting = false;
+
+    function updateStickyState() {
+        const scrollY = window.scrollY || window.pageYOffset;
+        if (!isFooterIntersecting && scrollY > 220) {
+            stickyBar.classList.add('is-sticky-bar');
+        } else {
+            stickyBar.classList.remove('is-sticky-bar');
+        }
+    }
+
+    if (footer) {
+        const observer = new IntersectionObserver(function(entries) {
+            entries.forEach(function(entry) {
+                isFooterIntersecting = entry.isIntersecting;
+                updateStickyState();
+            });
+        }, {
+            root: null,
+            threshold: 0.01 // Trigger as soon as 1% of footer enters
+        });
+        
+        observer.observe(footer);
+    }
+    
+    window.addEventListener('scroll', updateStickyState, { passive: true });
+    updateStickyState();
+});
 </script>
 
 <style>
+/* Sticky Action Bar Styling */
+.sticky-action-bar-wrapper.is-sticky-bar {
+    position: fixed !important;
+    bottom: 0 !important;
+    left: 0 !important;
+    right: 0 !important;
+    width: 100% !important;
+    z-index: 1040 !important;
+    margin: 0 !important;
+    border-radius: 24px 24px 0 0 !important;
+    background: rgba(255, 255, 255, 0.96) !important;
+    backdrop-filter: blur(16px) !important;
+    -webkit-backdrop-filter: blur(16px) !important;
+    box-shadow: 0 -8px 30px rgba(0, 0, 0, 0.15) !important;
+    border-top: 1px solid rgba(62, 39, 35, 0.15) !important;
+    padding: 12px 24px !important;
+    animation: slideUpSticky 0.25s cubic-bezier(0.165, 0.84, 0.44, 1);
+}
+
+@keyframes slideUpSticky {
+    from {
+        transform: translateY(100%);
+        opacity: 0;
+    }
+    to {
+        transform: translateY(0);
+        opacity: 1;
+    }
+}
+
+.sticky-action-bar-wrapper.is-sticky-bar .row {
+    max-width: 1140px;
+    margin: 0 auto;
+}
+
 .thumbnail-wrapper:hover {
     opacity: 0.95 !important;
     transform: scale(1.05);

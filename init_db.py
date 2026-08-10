@@ -40,6 +40,8 @@ with app.app_context():
         fat=12.0,
         carbs=58.0,
         fiber=7.5,
+        box_weight="250g",
+        box_quantity=12,
         image_url="" # Placeholder icon as in screenshot
     )
     

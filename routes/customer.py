@@ -125,19 +125,42 @@ def apply_coupon():
     action = request.form.get('action')
     if action == 'remove':
         session.pop('coupon_code', None)
-        flash('Coupon code removed.', 'info')
+        session.modified = True
+        flash('Coupon code removed successfully.', 'info')
+        return redirect(url_for('customer.cart'))
     else:
         code = request.form.get('coupon_code', '').strip().upper()
         if not code:
             flash('Please enter a coupon code.', 'warning')
             return redirect(url_for('customer.cart'))
             
-        coupon = Coupon.query.filter_by(code=code, is_active=True).first()
-        if coupon and (not coupon.expiry_date or coupon.expiry_date > datetime.utcnow()):
-            session['coupon_code'] = coupon.code
-            flash(f'Coupon "{coupon.code}" applied successfully!', 'success')
-        else:
-            flash('Invalid or expired coupon code.', 'danger')
+        coupon = Coupon.query.filter_by(code=code).first()
+        if not coupon:
+            flash('Invalid coupon code.', 'danger')
+            return redirect(url_for('customer.cart'))
+            
+        if not coupon.is_active:
+            flash('This coupon is currently inactive.', 'danger')
+            return redirect(url_for('customer.cart'))
+            
+        if coupon.expiry_date and coupon.expiry_date < datetime.utcnow():
+            flash('This coupon code has expired.', 'danger')
+            return redirect(url_for('customer.cart'))
+            
+        # Calculate current cart subtotal
+        cart_items = session.get('cart', [])
+        cart_total = 0.0
+        for item in cart_items:
+            prod = Product.query.get(item['product_id'])
+            if prod:
+                cart_total += prod.sale_price * item['quantity']
+                
+        if coupon.min_order_amount and cart_total < coupon.min_order_amount:
+            flash(f'Minimum order amount of ₹{coupon.min_order_amount:.2f} is required to use coupon "{coupon.code}".', 'warning')
+            return redirect(url_for('customer.cart'))
+            
+        session['coupon_code'] = coupon.code
+        flash(f'Coupon "{coupon.code}" applied successfully!', 'success')
             
     return redirect(url_for('customer.cart'))
 
@@ -207,6 +230,8 @@ def checkout():
             coupon = Coupon.query.filter_by(code=coupon_code, is_active=True).first()
             if coupon and (not coupon.expiry_date or coupon.expiry_date > datetime.utcnow()):
                 discount = coupon.calculate_discount(total_amount)
+                order.coupon_code = coupon.code
+                order.discount_amount = discount
                 session.pop('coupon_code', None) # Clear coupon after use
                 
         order.total_amount = max(0.0, total_amount - discount)

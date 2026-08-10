@@ -15,6 +15,8 @@ class Order(db.Model):
     
     status = db.Column(db.String(50), default='Pending') # Pending, Packing, Dispatched, Delivered
     total_amount = db.Column(db.Float, nullable=False)
+    coupon_code = db.Column(db.String(50), nullable=True)
+    discount_amount = db.Column(db.Float, default=0.0)
     
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     

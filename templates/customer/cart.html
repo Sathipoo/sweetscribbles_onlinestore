@@ -95,17 +95,19 @@
                 <div class="p-2 border border-success-subtle bg-light rounded-3 d-flex justify-content-between align-items-center">
                     <div>
                         <span class="small fw-semibold text-success d-block">Coupon Active:</span>
-                        <code class="fs-6">{{ coupon_code }}</code>
+                        <code class="fs-6 fw-bold text-primary">{{ coupon_code }}</code>
                     </div>
-                    <form action="{{ url_for('customer.apply_coupon') }}" method="POST" class="m-0">
-                        <button type="submit" name="action" value="remove" class="btn btn-xs btn-outline-danger py-0.5 px-2" style="font-size: 0.75rem;">Remove</button>
+                    <form action="{{ url_for('customer.apply_coupon') }}" method="POST" class="m-0" onsubmit="handleCouponSubmit(this, event)">
+                        <input type="hidden" name="action" value="remove">
+                        <button type="submit" class="btn btn-xs btn-outline-danger py-0.5 px-2" style="font-size: 0.75rem;">Remove</button>
                     </form>
                 </div>
                 {% else %}
-                <form action="{{ url_for('customer.apply_coupon') }}" method="POST" class="m-0">
+                <form action="{{ url_for('customer.apply_coupon') }}" method="POST" class="m-0" onsubmit="handleCouponSubmit(this, event)">
+                    <input type="hidden" name="action" value="apply">
                     <div class="input-group input-group-sm mb-2">
-                        <input type="text" name="coupon_code" class="form-control" placeholder="e.g. SWEET10" style="text-transform: uppercase;">
-                        <button type="submit" class="btn btn-dark">Apply</button>
+                        <input type="text" name="coupon_code" class="form-control font-monospace" placeholder="e.g. SWEET10" style="text-transform: uppercase;">
+                        <button type="submit" class="btn btn-dark fw-bold px-3">Apply</button>
                     </div>
                     <small class="text-muted" style="font-size: 0.75rem;">Try using coupon <strong>SWEET10</strong> for 10% off!</small>
                 </form>
@@ -115,4 +117,41 @@
     </div>
     {% endif %}
 </div>
+
+<!-- Non-interactive Full Page Loading Overlay -->
+<div id="couponLoadingOverlay" class="position-fixed top-0 start-0 w-100 h-100 d-none align-items-center justify-content-center" style="background: rgba(0,0,0,0.45); backdrop-filter: blur(5px); -webkit-backdrop-filter: blur(5px); z-index: 99999; pointer-events: all;">
+    <div class="bg-white p-4 rounded-4 shadow-lg text-center" style="max-width: 320px; border: 1px solid rgba(0,0,0,0.1);">
+        <div class="spinner-border text-primary mb-3" style="width: 2.8rem; height: 2.8rem; color: var(--primary-color, #3e2723) !important;" role="status"></div>
+        <h6 id="overlayTitle" class="fw-bold mb-1" style="color: var(--primary-color, #3e2723);">Calculating Discounts</h6>
+        <p id="overlaySubtext" class="text-muted small mb-0">Processing promo code & updating bill...</p>
+    </div>
+</div>
+
+<script>
+function handleCouponSubmit(form, event) {
+    const actionInput = form.querySelector('input[name="action"]');
+    const isRemove = actionInput && actionInput.value === 'remove';
+    
+    const btn = form.querySelector('button[type="submit"]');
+    if (btn) {
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1" role="status"></span> ${isRemove ? 'Removing...' : 'Applying...'}`;
+        setTimeout(() => { btn.disabled = true; }, 10);
+    }
+    
+    const overlay = document.getElementById('couponLoadingOverlay');
+    const overlayTitle = document.getElementById('overlayTitle');
+    const overlaySubtext = document.getElementById('overlaySubtext');
+    
+    if (overlayTitle) {
+        overlayTitle.textContent = isRemove ? 'Removing Coupon' : 'Calculating Discounts';
+    }
+    if (overlaySubtext) {
+        overlaySubtext.textContent = isRemove ? 'Removing promo code & updating bill...' : 'Applying your promo code & updating bill...';
+    }
+    if (overlay) {
+        overlay.classList.remove('d-none');
+        overlay.classList.add('d-flex');
+    }
+}
+</script>
 {% endblock %}

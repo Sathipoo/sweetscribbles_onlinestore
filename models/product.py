@@ -30,6 +30,8 @@ class Product(db.Model):
     
     image_url = db.Column(db.String(255))
     promo_badge = db.Column(db.String(50), nullable=True) # e.g. 'Fast Seller', 'New Arrival', etc.
+    box_weight = db.Column(db.String(50), default='250g') # e.g. '250g'
+    box_quantity = db.Column(db.Integer, default=12) # e.g. 12 pieces/items per box
 
 class ProductMedia(db.Model):
     __tablename__ = 'product_media'

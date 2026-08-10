@@ -58,6 +58,33 @@ with app.app_context():
     except Exception as e:
         print(f"Error creating/seeding collections: {e}")
         
+    try:
+        # Check and add box_weight and box_quantity to products
+        db.session.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS box_weight VARCHAR(50) DEFAULT '250g';"))
+        db.session.execute(text("ALTER TABLE products ADD COLUMN IF NOT EXISTS box_quantity INTEGER DEFAULT 12;"))
+        db.session.execute(text("UPDATE products SET box_weight = '250g' WHERE box_weight IS NULL;"))
+        db.session.execute(text("UPDATE products SET box_quantity = 12 WHERE box_quantity IS NULL;"))
+        print("Columns 'box_weight' and 'box_quantity' checked/added to 'products' table.")
+    except Exception as e:
+        print(f"Error adding box_weight/box_quantity: {e}")
+
+    try:
+        # Check and add max_discount, min_order_amount, created_at to coupons
+        db.session.execute(text("ALTER TABLE coupons ADD COLUMN IF NOT EXISTS max_discount FLOAT;"))
+        db.session.execute(text("ALTER TABLE coupons ADD COLUMN IF NOT EXISTS min_order_amount FLOAT DEFAULT 0.0;"))
+        db.session.execute(text("ALTER TABLE coupons ADD COLUMN IF NOT EXISTS created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP;"))
+        print("Columns 'max_discount', 'min_order_amount', 'created_at' checked/added to 'coupons' table.")
+    except Exception as e:
+        print(f"Error updating coupons table: {e}")
+
+    try:
+        # Check and add coupon_code, discount_amount to orders
+        db.session.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(50);"))
+        db.session.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount FLOAT DEFAULT 0.0;"))
+        print("Columns 'coupon_code' and 'discount_amount' checked/added to 'orders' table.")
+    except Exception as e:
+        print(f"Error updating orders table: {e}")
+
     db.session.commit()
     print("Migration completed successfully.")
 

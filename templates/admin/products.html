@@ -16,6 +16,7 @@
                         <th>Name</th>
                         <th>SKU</th>
                         <th>Category</th>
+                        <th>Box Specs</th>
                         <th>Stock Level</th>
                         <th>Promo Badge</th>
                         <th>Price</th>
@@ -36,6 +37,10 @@
                         <td class="fw-bold">{{ product.name }}</td>
                         <td><code>{{ product.sku }}</code></td>
                         <td><span class="badge bg-secondary">{{ product.category }}</span></td>
+                        <td>
+                            <span class="badge bg-light text-dark border">{{ product.box_weight or '250g' }}</span>
+                            <small class="text-muted d-block mt-1">{{ product.box_quantity or 12 }} pcs/box</small>
+                        </td>
                         <td>
                             {% if product.available_qty == 0 %}
                             <span class="badge bg-danger-subtle text-danger border border-danger px-2 py-1">Out of Stock</span>
@@ -156,6 +161,16 @@
                   <div class="col-md-6 mb-3">
                       <label class="form-label">Low Stock Threshold</label>
                       <input type="number" name="low_stock_threshold" class="form-control" value="{{ product.low_stock_threshold }}" required>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label fw-semibold">Weight of the Box</label>
+                      <input type="text" name="box_weight" class="form-control" value="{{ product.box_weight or '250g' }}" placeholder="e.g. 250g" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label fw-semibold">Quantity in Box (Pieces/Items)</label>
+                      <input type="number" name="box_quantity" class="form-control" value="{{ product.box_quantity or 12 }}" placeholder="e.g. 12" required>
                   </div>
               </div>
 
@@ -331,6 +346,16 @@
                   <div class="col-md-6 mb-3">
                       <label class="form-label">Low Stock Threshold</label>
                       <input type="number" name="low_stock_threshold" class="form-control" value="10" required>
+                  </div>
+              </div>
+              <div class="row">
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label fw-semibold">Weight of the Box</label>
+                      <input type="text" name="box_weight" class="form-control" value="250g" placeholder="e.g. 250g" required>
+                  </div>
+                  <div class="col-md-6 mb-3">
+                      <label class="form-label fw-semibold">Quantity in Box (Pieces/Items)</label>
+                      <input type="number" name="box_quantity" class="form-control" value="12" placeholder="e.g. 12" required>
                   </div>
               </div>
 
