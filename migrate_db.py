@@ -78,13 +78,40 @@ with app.app_context():
         print(f"Error updating coupons table: {e}")
 
     try:
-        # Check and add coupon_code, discount_amount to orders
+        # Check and add coupon_code, discount_amount, shipping_fee to orders
         db.session.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS coupon_code VARCHAR(50);"))
         db.session.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS discount_amount FLOAT DEFAULT 0.0;"))
-        print("Columns 'coupon_code' and 'discount_amount' checked/added to 'orders' table.")
+        db.session.execute(text("ALTER TABLE orders ADD COLUMN IF NOT EXISTS shipping_fee FLOAT DEFAULT 0.0;"))
+        print("Columns 'coupon_code', 'discount_amount', 'shipping_fee' checked/added to 'orders' table.")
     except Exception as e:
         print(f"Error updating orders table: {e}")
 
+    try:
+        # Check and create site_settings table
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS site_settings (
+                id SERIAL PRIMARY KEY,
+                key VARCHAR(50) UNIQUE NOT NULL,
+                value VARCHAR(255) NOT NULL,
+                description VARCHAR(255)
+            );
+        """))
+        print("Table 'site_settings' checked/created.")
+        
+        # Seed default shipping settings
+        db.session.execute(text("""
+            INSERT INTO site_settings (key, value, description)
+            VALUES 
+                ('free_shipping_threshold', '999.0', 'Minimum order net total (₹) for FREE shipping'),
+                ('flat_shipping_fee', '50.0', 'Standard flat shipping fee (₹) for orders below threshold'),
+                ('shipping_enabled', 'true', 'Master switch to enable/disable shipping charges')
+            ON CONFLICT (key) DO NOTHING;
+        """))
+        print("Default shipping settings seeded.")
+    except Exception as e:
+        print(f"Error creating/seeding site_settings: {e}")
+
     db.session.commit()
     print("Migration completed successfully.")
+
 

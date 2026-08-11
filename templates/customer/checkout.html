@@ -4,11 +4,11 @@
 
 {% block content %}
 <div class="container py-5">
-    <div class="row justify-content-center">
-        <div class="col-lg-6">
-            <div class="glass-panel p-5">
-                <h3 class="fw-bold mb-4 text-center" style="color: var(--primary-color);">Secure Checkout</h3>
-                <p class="text-center text-muted mb-4">You will be redirected to Zoho Payments to complete your purchase securely.</p>
+    <div class="row justify-content-center g-4">
+        <div class="col-lg-7">
+            <div class="glass-panel p-4 p-md-5">
+                <h3 class="fw-bold mb-3" style="color: var(--primary-color);">Delivery & Billing Address</h3>
+                <p class="text-muted mb-4">Please verify your shipping details before proceeding to secure payment.</p>
                 
                 <form action="{{ url_for('customer.checkout') }}" method="POST">
                     <div class="mb-3">
@@ -28,13 +28,46 @@
                         <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter full delivery address (Street, Apartment, Landmark, City, Pincode)">{% if current_user.is_authenticated %}{{ current_user.address or '' }}{% endif %}</textarea>
                     </div>
                     
-                    <button type="submit" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center">
-                        <span class="me-2">Proceed to Payment</span>
+                    <button type="submit" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center shadow-sm fs-6">
+                        <span class="me-2 fw-bold">Pay {% if grand_total is defined %}₹{{ "%.2f"|format(grand_total) }}{% endif %} & Place Order</span>
                         <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
                           <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
                         </svg>
                     </button>
                 </form>
+            </div>
+        </div>
+        
+        <div class="col-lg-5">
+            <div class="glass-panel p-4">
+                <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark">Order Summary</h5>
+                {% if subtotal is defined %}
+                <div class="d-flex justify-content-between mb-2 text-dark">
+                    <span>Items Subtotal</span>
+                    <span class="fw-semibold">₹{{ "%.2f"|format(subtotal) }}</span>
+                </div>
+                {% if discount > 0 %}
+                <div class="d-flex justify-content-between mb-2 text-success">
+                    <span>Discount ({{ coupon_code }})</span>
+                    <span class="fw-semibold">-₹{{ "%.2f"|format(discount) }}</span>
+                </div>
+                {% endif %}
+                <div class="d-flex justify-content-between mb-3 text-dark">
+                    <span>Shipping Fee</span>
+                    {% if shipping_fee == 0 %}
+                        <span class="badge bg-success-subtle text-success fw-bold border border-success px-2 py-1">FREE</span>
+                    {% else %}
+                        <span class="fw-semibold">₹{{ "%.2f"|format(shipping_fee) }}</span>
+                    {% endif %}
+                </div>
+                <div class="d-flex justify-content-between mb-3 pt-2 border-top text-dark">
+                    <span class="fw-bold fs-5">Total Payable</span>
+                    <span class="fw-bold fs-5 text-primary">₹{{ "%.2f"|format(grand_total) }}</span>
+                </div>
+                {% endif %}
+                <div class="p-3 bg-light rounded-3 text-muted small mt-3">
+                    🔒 Payments are secured by SSL encryption via <strong>Zoho Payments</strong>.
+                </div>
             </div>
         </div>
     </div>

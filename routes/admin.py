@@ -1,9 +1,10 @@
-from flask import Blueprint, render_template, request, redirect, url_for
+from flask import Blueprint, render_template, request, redirect, url_for, flash
 from flask_login import login_required, current_user
 from functools import wraps
 from models.product import Product, ProductMedia, Collection
 from models.order import Order
 from models.coupon import Coupon
+from models.setting import SiteSetting
 from datetime import datetime
 from extensions import db
 
@@ -430,5 +431,31 @@ def delete_coupon(coupon_id):
     db.session.delete(coupon)
     db.session.commit()
     return redirect(url_for('admin.coupons'))
+
+
+@admin_bp.route('/shipping', methods=['GET', 'POST'])
+@admin_required
+def shipping_settings():
+    if request.method == 'POST':
+        free_thresh = request.form.get('free_shipping_threshold', '999.0').strip()
+        flat_fee = request.form.get('flat_shipping_fee', '50.0').strip()
+        enabled = 'true' if request.form.get('shipping_enabled') in ('on', 'true', '1') else 'false'
+        
+        SiteSetting.set_val('free_shipping_threshold', free_thresh, 'Minimum order net total (₹) for FREE shipping')
+        SiteSetting.set_val('flat_shipping_fee', flat_fee, 'Standard flat shipping fee (₹) for orders below threshold')
+        SiteSetting.set_val('shipping_enabled', enabled, 'Master switch to enable/disable shipping charges')
+        
+        flash('Shipping & Delivery settings updated successfully!', 'success')
+        return redirect(url_for('admin.shipping_settings'))
+
+    free_threshold = float(SiteSetting.get_val('free_shipping_threshold', '999.0'))
+    flat_fee = float(SiteSetting.get_val('flat_shipping_fee', '50.0'))
+    shipping_enabled = SiteSetting.get_val('shipping_enabled', 'true') == 'true'
+
+    return render_template('admin/shipping.html',
+                           free_threshold=free_threshold,
+                           flat_fee=flat_fee,
+                           shipping_enabled=shipping_enabled)
+
 
 

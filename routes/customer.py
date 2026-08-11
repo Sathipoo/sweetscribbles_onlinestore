@@ -117,8 +117,49 @@ def cart():
             session.pop('coupon_code', None) # Clean stale coupon
             coupon_code = None
             
-    grand_total = max(0.0, total - discount)
-    return render_template('customer/cart.html', items=items_data, total=total, discount=discount, coupon_code=coupon_code, grand_total=grand_total)
+    net_subtotal = max(0.0, total - discount)
+    
+    # Dynamic Shipping Calculation
+    from models.setting import SiteSetting
+    shipping_enabled = SiteSetting.get_val('shipping_enabled', 'true') == 'true'
+    free_shipping_threshold = float(SiteSetting.get_val('free_shipping_threshold', '999.0'))
+    flat_shipping_fee = float(SiteSetting.get_val('flat_shipping_fee', '50.0'))
+    
+    if not shipping_enabled or net_subtotal >= free_shipping_threshold:
+        shipping_fee = 0.0
+        amount_needed_for_free = 0.0
+        is_free_shipping = True
+    else:
+        shipping_fee = flat_shipping_fee
+        amount_needed_for_free = free_shipping_threshold - net_subtotal
+        is_free_shipping = False
+        
+    grand_total = net_subtotal + shipping_fee
+    
+    return render_template(
+        'customer/cart.html',
+        items=items_data,
+        total=total,
+        discount=discount,
+        coupon_code=coupon_code,
+        grand_total=grand_total,
+        shipping_fee=shipping_fee,
+        free_shipping_threshold=free_shipping_threshold,
+        amount_needed_for_free=amount_needed_for_free,
+        is_free_shipping=is_free_shipping,
+        flat_shipping_fee=flat_shipping_fee,
+        shipping_enabled=shipping_enabled
+    )
+
+@customer_bp.route('/cart/remove/<int:item_index>', methods=['POST'])
+def remove_from_cart(item_index):
+    cart = session.get('cart', [])
+    if 0 <= item_index < len(cart):
+        cart.pop(item_index)
+        session['cart'] = cart
+        session.modified = True
+        flash('Item removed from cart.', 'info')
+    return redirect(url_for('customer.cart'))
 
 @customer_bp.route('/cart/coupon', methods=['POST'])
 def apply_coupon():
@@ -234,7 +275,21 @@ def checkout():
                 order.discount_amount = discount
                 session.pop('coupon_code', None) # Clear coupon after use
                 
-        order.total_amount = max(0.0, total_amount - discount)
+        net_subtotal = max(0.0, total_amount - discount)
+        
+        # Calculate shipping fee for order
+        from models.setting import SiteSetting
+        shipping_enabled = SiteSetting.get_val('shipping_enabled', 'true') == 'true'
+        free_shipping_threshold = float(SiteSetting.get_val('free_shipping_threshold', '999.0'))
+        flat_shipping_fee = float(SiteSetting.get_val('flat_shipping_fee', '50.0'))
+        
+        if not shipping_enabled or net_subtotal >= free_shipping_threshold:
+            shipping_fee = 0.0
+        else:
+            shipping_fee = flat_shipping_fee
+            
+        order.shipping_fee = shipping_fee
+        order.total_amount = net_subtotal + shipping_fee
         
         # Save details back to user profile if authenticated
         if current_user.is_authenticated:
@@ -250,7 +305,7 @@ def checkout():
         try:
             payment_link, zoho_payment_link_id = zoho.create_payment_link({
                 'order_id': order.order_number,
-                'amount': order.total_amount,  # Fix: Use discounted total amount
+                'amount': order.total_amount,  # Fix: Use final total amount including shipping
                 'customer_email': customer_email,
                 'customer_phone': customer_phone,
                 'customer_name': customer_name,
@@ -287,7 +342,41 @@ def checkout():
             session.pop('cart', None)
             return redirect(simulated_url)
             
-    return render_template('customer/checkout.html')
+    # GET method summary calculation for checkout page
+    subtotal = 0.0
+    for item in cart_items:
+        prod = Product.query.get(item['product_id'])
+        if prod:
+            subtotal += prod.sale_price * item['quantity']
+            
+    discount = 0.0
+    coupon_code = session.get('coupon_code')
+    if coupon_code:
+        coupon = Coupon.query.filter_by(code=coupon_code, is_active=True).first()
+        if coupon and (not coupon.expiry_date or coupon.expiry_date > datetime.utcnow()):
+            discount = coupon.calculate_discount(subtotal)
+            
+    net_subtotal = max(0.0, subtotal - discount)
+    from models.setting import SiteSetting
+    shipping_enabled = SiteSetting.get_val('shipping_enabled', 'true') == 'true'
+    free_shipping_threshold = float(SiteSetting.get_val('free_shipping_threshold', '999.0'))
+    flat_shipping_fee = float(SiteSetting.get_val('flat_shipping_fee', '50.0'))
+    
+    if not shipping_enabled or net_subtotal >= free_shipping_threshold:
+        shipping_fee = 0.0
+    else:
+        shipping_fee = flat_shipping_fee
+        
+    grand_total = net_subtotal + shipping_fee
+            
+    return render_template(
+        'customer/checkout.html',
+        subtotal=subtotal,
+        discount=discount,
+        coupon_code=coupon_code,
+        shipping_fee=shipping_fee,
+        grand_total=grand_total
+    )
 
 @customer_bp.route('/pay/simulate/<order_number>', methods=['GET', 'POST'])
 def simulate_payment(order_number):
