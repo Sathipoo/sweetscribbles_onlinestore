@@ -3,57 +3,99 @@
 {% block title %}Home{% endblock %}
 
 {% block content %}
-<!-- Section 1: Hero Slider & Promotion Section -->
+<!-- Custom Styles to Ensure Carousel Arrows and Buttons Are Clickable -->
+<style>
+    #heroPromotionCarousel .carousel-control-prev,
+    #heroPromotionCarousel .carousel-control-next {
+        z-index: 35 !important;
+        width: 70px !important;
+        opacity: 0.85;
+        transition: all 0.2s ease;
+    }
+    #heroPromotionCarousel .carousel-control-prev:hover,
+    #heroPromotionCarousel .carousel-control-next:hover {
+        opacity: 1 !important;
+        transform: scale(1.1);
+    }
+    #heroPromotionCarousel .carousel-indicators {
+        z-index: 35 !important;
+    }
+    .carousel-caption-container {
+        pointer-events: none; /* Allows clicks to pass through empty text overlay space */
+    }
+    .carousel-caption-container a,
+    .carousel-caption-container button,
+    .carousel-caption-container .btn,
+    .carousel-caption-container .badge {
+        pointer-events: auto; /* Re-enables clicks for CTA buttons and badges */
+    }
+</style>
+
+<!-- Section 1: Dynamic Hero Slider & Promotion Section -->
 <section class="py-4">
     <div class="container">
-        <div id="heroPromotionCarousel" class="carousel slide rounded-5 overflow-hidden shadow" data-bs-ride="carousel" style="border: 1px solid #ddd;">
+        {% if banners %}
+        <div id="heroPromotionCarousel" class="carousel slide rounded-5 overflow-hidden shadow border" data-bs-ride="carousel" data-bs-interval="5000">
+            {% if banners|length > 1 %}
             <div class="carousel-indicators">
-                <button type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide-to="0" class="active" aria-current="true" aria-label="Slide 1"></button>
-                <button type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide-to="1" aria-label="Slide 2"></button>
+                {% for b in banners %}
+                <button type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}" aria-current="{% if loop.first %}true{% else %}false{% endif %}" aria-label="Slide {{ loop.index }}"></button>
+                {% endfor %}
             </div>
+            {% endif %}
+
             <div class="carousel-inner">
-                <!-- Slide 1: All-Products Poster -->
-                <div class="carousel-item active" style="height: 460px; background: url('https://storage.googleapis.com/pika-sweetscribbles/banners/hero_slide_1.png') no-repeat center center; background-size: cover;">
-                    <div class="position-absolute w-100 h-100" style="background: rgba(0, 0, 0, 0.4); top: 0; left: 0;"></div>
-                    <div class="carousel-caption d-flex flex-column justify-content-center h-100 text-start px-md-5" style="bottom: 0; left: 5%; right: 5%; z-index: 10;">
-                        <h1 class="display-4 fw-extrabold text-white mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
-                            Celebrate Better.<br>Gift Healthier.
-                        </h1>
-                        <p class="lead text-light mb-4" style="max-width: 600px; font-size: 1.2rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                            Handcrafted dry-fruit delights made with dates, nuts, and premium ingredients — thoughtfully personalized for every celebration.
-                        </p>
-                        <div>
-                            <a href="{{ url_for('customer.collections') }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark shadow">Explore Collections</a>
+                {% for b in banners %}
+                <div class="carousel-item {% if loop.first %}active{% endif %}" style="min-height: 320px; max-height: 480px; background: #1a0e0c;">
+                    <img src="{{ b.image_url }}" alt="{{ b.title or 'Hero Banner' }}" class="w-100" style="object-fit: cover; max-height: 480px; min-height: 320px;">
+                    
+                    {% if b.title or b.subtitle or b.promo_code %}
+                    <div class="carousel-caption carousel-caption-container d-flex flex-column justify-content-center h-100 text-start px-md-5" style="top: 0; bottom: 0; left: 0; right: 0; background: linear-gradient(90deg, rgba(0,0,0,0.65) 0%, rgba(0,0,0,0.25) 60%, rgba(0,0,0,0) 100%); padding-left: 8% !important; z-index: 15;">
+                        {% if b.promo_code %}
+                        <div class="mb-2">
+                            <span class="badge bg-warning text-dark fw-bold px-3 py-2 fs-6 shadow-sm rounded-pill">
+                                🎁 USE CODE: {{ b.promo_code }}
+                            </span>
                         </div>
-                    </div>
-                </div>
-                <!-- Slide 2: Festive Promotion -->
-                <div class="carousel-item" style="height: 460px; background: url('https://storage.googleapis.com/pika-sweetscribbles/banners/hero_slide_2.png') no-repeat center center; background-size: cover;">
-                    <div class="position-absolute w-100 h-100" style="background: rgba(0, 0, 0, 0.45); top: 0; left: 0;"></div>
-                    <div class="carousel-caption d-flex flex-column justify-content-center h-100 text-start px-md-5" style="bottom: 0; left: 5%; right: 5%; z-index: 10;">
-                        <h1 class="display-4 fw-extrabold text-white mb-3" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; text-shadow: 0 2px 4px rgba(0,0,0,0.5);">
-                            Festive Season Offers
+                        {% endif %}
+                        
+                        {% if b.title %}
+                        <h1 class="display-5 fw-extrabold text-white mb-2" style="font-family: 'Playfair Display', Georgia, serif; font-weight: 800; text-shadow: 0 2px 8px rgba(0,0,0,0.7);">
+                            {{ b.title }}
                         </h1>
-                        <p class="lead text-light mb-4" style="max-width: 600px; font-size: 1.2rem; text-shadow: 0 1px 3px rgba(0,0,0,0.5);">
-                            Bring wholesome joy to every occasion! Custom company branding, sleeve designs, and bulk gifting rates are open.
+                        {% endif %}
+
+                        {% if b.subtitle %}
+                        <p class="lead text-light mb-3" style="max-width: 580px; font-size: 1.15rem; text-shadow: 0 1px 4px rgba(0,0,0,0.7);">
+                            {{ b.subtitle }}
                         </p>
+                        {% endif %}
+
                         <div>
-                            <a href="https://wa.me/918904660651" target="_blank" class="btn btn-success rounded-pill px-4 py-2 fw-bold shadow">
-                                💬 Inquire on WhatsApp
+                            <a href="{{ b.link_url or url_for('customer.collections') }}" class="btn btn-warning rounded-pill px-4 py-2 fw-bold text-dark shadow me-2">
+                                {{ b.button_text or 'Shop Now' }} &rarr;
                             </a>
                         </div>
                     </div>
+                    {% else %}
+                    <a href="{{ b.link_url or url_for('customer.collections') }}" class="position-absolute top-0 start-0 w-100 h-100" style="z-index: 5;"></a>
+                    {% endif %}
                 </div>
+                {% endfor %}
             </div>
+
+            {% if banners|length > 1 %}
             <button class="carousel-control-prev" type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide="prev">
-                <span class="carousel-control-prev-icon" aria-hidden="true"></span>
+                <span class="carousel-control-prev-icon p-3 bg-dark rounded-circle bg-opacity-60 shadow" aria-hidden="true"></span>
                 <span class="visually-hidden">Previous</span>
             </button>
             <button class="carousel-control-next" type="button" data-bs-target="#heroPromotionCarousel" data-bs-slide="next">
-                <span class="carousel-control-next-icon" aria-hidden="true"></span>
+                <span class="carousel-control-next-icon p-3 bg-dark rounded-circle bg-opacity-60 shadow" aria-hidden="true"></span>
                 <span class="visually-hidden">Next</span>
             </button>
+            {% endif %}
         </div>
+        {% endif %}
     </div>
 </section>
 

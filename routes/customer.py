@@ -3,6 +3,8 @@ from flask_login import login_required, current_user
 from models.product import Product, Collection
 from models.order import Order, OrderItem
 from models.coupon import Coupon
+from models.banner import Banner
+from models.setting import SiteSetting
 from extensions import db
 from utils.gcp_storage import upload_file
 from utils.zoho_utils import ZohoClient
@@ -32,10 +34,12 @@ def deduct_order_stock(order):
 
 @customer_bp.route('/')
 def home():
+    active_banners = Banner.query.filter_by(is_active=True).order_by(Banner.display_order.asc(), Banner.id.asc()).all()
     featured_products = Product.query.filter_by(category='bites', is_active=True).limit(4).all()
     bites_products = Product.query.filter_by(category='bites', is_active=True).all()
     choco_products = Product.query.filter_by(category='choco', is_active=True).all()
     return render_template('customer/home.html', 
+                           banners=active_banners,
                            featured=featured_products, 
                            bites=bites_products, 
                            choco=choco_products)

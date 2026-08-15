@@ -5,6 +5,7 @@ from models.product import Product, ProductMedia, Collection
 from models.order import Order
 from models.coupon import Coupon
 from models.setting import SiteSetting
+from models.banner import Banner
 from datetime import datetime
 from extensions import db
 
@@ -456,6 +457,112 @@ def shipping_settings():
                            free_threshold=free_threshold,
                            flat_fee=flat_fee,
                            shipping_enabled=shipping_enabled)
+
+
+# --- BANNER MANAGEMENT ---
+
+@admin_bp.route('/banners')
+@admin_required
+def banners():
+    all_banners = Banner.query.order_by(Banner.display_order.asc(), Banner.id.asc()).all()
+    return render_template('admin/banners.html', banners=all_banners)
+
+@admin_bp.route('/banners/add', methods=['POST'])
+@admin_required
+def add_banner():
+    title = request.form.get('title', '').strip()
+    subtitle = request.form.get('subtitle', '').strip()
+    link_url = request.form.get('link_url', '/collections').strip()
+    button_text = request.form.get('button_text', 'Shop Now').strip()
+    promo_code = request.form.get('promo_code', '').strip().upper()
+    display_order = request.form.get('display_order', 0, type=int)
+    is_active = True if request.form.get('is_active') in ('on', 'true', '1') else False
+    
+    image_url = None
+    file = request.files.get('banner_file')
+    if file and file.filename != '':
+        import os
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(file.filename)
+        timestamp = int(datetime.utcnow().timestamp())
+        filename = f"banner_{timestamp}_{filename}"
+        upload_folder = os.path.join('static', 'images', 'banners')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+        image_url = f"/static/images/banners/{filename}"
+    else:
+        image_url = request.form.get('image_url', '').strip()
+
+    if not image_url:
+        flash('Please provide an image file or image URL for the banner.', 'danger')
+        return redirect(url_for('admin.banners'))
+        
+    banner = Banner(
+        title=title if title else None,
+        subtitle=subtitle if subtitle else None,
+        image_url=image_url,
+        link_url=link_url if link_url else '/collections',
+        button_text=button_text if button_text else 'Shop Now',
+        promo_code=promo_code if promo_code else None,
+        display_order=display_order,
+        is_active=is_active
+    )
+    db.session.add(banner)
+    db.session.commit()
+    flash('New hero banner created successfully!', 'success')
+    return redirect(url_for('admin.banners'))
+
+@admin_bp.route('/banners/<int:banner_id>/toggle', methods=['POST'])
+@admin_required
+def toggle_banner(banner_id):
+    banner = Banner.query.get_or_404(banner_id)
+    banner.is_active = not banner.is_active
+    db.session.commit()
+    status_str = "activated" if banner.is_active else "deactivated"
+    flash(f'Banner #{banner.id} has been {status_str}.', 'info')
+    return redirect(url_for('admin.banners'))
+
+@admin_bp.route('/banners/<int:banner_id>/edit', methods=['POST'])
+@admin_required
+def edit_banner(banner_id):
+    banner = Banner.query.get_or_404(banner_id)
+    banner.title = request.form.get('title', '').strip() or None
+    banner.subtitle = request.form.get('subtitle', '').strip() or None
+    banner.link_url = request.form.get('link_url', '/collections').strip() or '/collections'
+    banner.button_text = request.form.get('button_text', 'Shop Now').strip() or 'Shop Now'
+    banner.promo_code = request.form.get('promo_code', '').strip().upper() or None
+    banner.display_order = request.form.get('display_order', 0, type=int)
+    banner.is_active = True if request.form.get('is_active') in ('on', 'true', '1') else False
+    
+    file = request.files.get('banner_file')
+    if file and file.filename != '':
+        import os
+        from werkzeug.utils import secure_filename
+        filename = secure_filename(file.filename)
+        timestamp = int(datetime.utcnow().timestamp())
+        filename = f"banner_{timestamp}_{filename}"
+        upload_folder = os.path.join('static', 'images', 'banners')
+        os.makedirs(upload_folder, exist_ok=True)
+        file_path = os.path.join(upload_folder, filename)
+        file.save(file_path)
+        banner.image_url = f"/static/images/banners/{filename}"
+    elif request.form.get('image_url', '').strip():
+        banner.image_url = request.form.get('image_url', '').strip()
+        
+    db.session.commit()
+    flash(f'Banner #{banner.id} updated successfully!', 'success')
+    return redirect(url_for('admin.banners'))
+
+@admin_bp.route('/banners/<int:banner_id>/delete', methods=['POST'])
+@admin_required
+def delete_banner(banner_id):
+    banner = Banner.query.get_or_404(banner_id)
+    db.session.delete(banner)
+    db.session.commit()
+    flash(f'Banner #{banner_id} deleted successfully.', 'success')
+    return redirect(url_for('admin.banners'))
+
 
 
 

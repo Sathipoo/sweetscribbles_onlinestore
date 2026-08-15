@@ -111,6 +111,37 @@ with app.app_context():
     except Exception as e:
         print(f"Error creating/seeding site_settings: {e}")
 
+    try:
+        # Check and create banners table
+        db.session.execute(text("""
+            CREATE TABLE IF NOT EXISTS banners (
+                id SERIAL PRIMARY KEY,
+                title VARCHAR(150),
+                subtitle VARCHAR(255),
+                image_url VARCHAR(255) NOT NULL,
+                mobile_image_url VARCHAR(255),
+                link_url VARCHAR(255) DEFAULT '/collections',
+                button_text VARCHAR(100) DEFAULT 'Shop Now',
+                promo_code VARCHAR(50),
+                display_order INTEGER DEFAULT 0,
+                is_active BOOLEAN DEFAULT TRUE,
+                created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+            );
+        """))
+        print("Table 'banners' checked/created.")
+        
+        # Seed default banners
+        db.session.execute(text("""
+            INSERT INTO banners (title, subtitle, image_url, link_url, button_text, promo_code, display_order, is_active)
+            VALUES 
+                ('Wishing You a Happy Independence Day', 'Use code FREEDOM15 to get a flat 15% off', '/static/images/banners/banner_independence_day.jpg', '/collections', 'Claim 15% OFF', 'FREEDOM15', 1, TRUE),
+                ('Sweet Scribbles Confectionery', 'Naturally Sweet. Thoughtfully Crafted. 100% Natural Ingredients.', '/static/images/banners/banner_hero_products.png', '/collections', 'Explore Range', NULL, 2, TRUE)
+            ON CONFLICT DO NOTHING;
+        """))
+        print("Default banners seeded.")
+    except Exception as e:
+        print(f"Error creating/seeding banners: {e}")
+
     db.session.commit()
     print("Migration completed successfully.")
 
