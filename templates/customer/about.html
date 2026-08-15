@@ -1,0 +1,443 @@
+{% extends 'customer/base.html' %}
+
+{% block content %}
+<style>
+    /* Custom Styling for About Us Page */
+    .about-hero {
+        position: relative;
+        background: linear-gradient(135deg, rgba(27, 14, 12, 0.92) 0%, rgba(62, 39, 35, 0.88) 50%, rgba(44, 22, 17, 0.94) 100%), 
+                    url("{{ url_for('static', filename='images/about_hero_banner.png') }}") center/cover no-repeat;
+        color: #ffffff;
+        padding: 90px 0 80px 0;
+        border-bottom: 4px solid #ffb300;
+        overflow: hidden;
+    }
+    
+    .about-hero-badge {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        background: rgba(255, 179, 0, 0.15);
+        border: 1px solid rgba(255, 179, 0, 0.4);
+        color: #ffca28;
+        padding: 6px 18px;
+        border-radius: 30px;
+        font-size: 0.88rem;
+        font-weight: 600;
+        letter-spacing: 1px;
+        text-transform: uppercase;
+        margin-bottom: 20px;
+        backdrop-filter: blur(5px);
+    }
+    
+    .about-hero-title {
+        font-size: 3.2rem;
+        font-weight: 800;
+        font-family: 'Playfair Display', Georgia, serif;
+        background: linear-gradient(45deg, #ffffff 30%, #ffe082 100%);
+        -webkit-background-clip: text;
+        -webkit-text-fill-color: transparent;
+        line-height: 1.2;
+    }
+    
+    .about-hero-subtitle {
+        font-size: 1.35rem;
+        color: #ffecb3;
+        font-weight: 400;
+        max-width: 680px;
+        margin: 0 auto;
+    }
+    
+    .pillar-card {
+        background: #ffffff;
+        border-radius: 20px;
+        padding: 32px 24px;
+        border: 1px solid rgba(0,0,0,0.06);
+        box-shadow: 0 10px 30px rgba(62, 39, 35, 0.05);
+        transition: all 0.35s ease;
+        height: 100%;
+        position: relative;
+    }
+    
+    .pillar-card:hover {
+        transform: translateY(-8px);
+        box-shadow: 0 20px 40px rgba(62, 39, 35, 0.12);
+        border-color: rgba(255, 179, 0, 0.4);
+    }
+    
+    .pillar-icon {
+        width: 64px;
+        height: 64px;
+        border-radius: 16px;
+        background: linear-gradient(135deg, #fff8e1 0%, #ffecb3 100%);
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 2rem;
+        margin-bottom: 20px;
+        border: 1px solid rgba(255, 179, 0, 0.3);
+    }
+    
+    .moment-card {
+        background: #faf6f0;
+        border-radius: 16px;
+        padding: 24px;
+        border-left: 4px solid #ffb300;
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .moment-card:hover {
+        background: #ffffff;
+        box-shadow: 0 10px 25px rgba(0,0,0,0.08);
+        transform: translateX(5px);
+    }
+    
+    .diff-badge-card {
+        background: #ffffff;
+        border-radius: 16px;
+        padding: 24px;
+        border: 1px solid rgba(0,0,0,0.08);
+        transition: all 0.3s ease;
+        height: 100%;
+    }
+    
+    .diff-badge-card:hover {
+        background: linear-gradient(135deg, #3e2723 0%, #2c1611 100%);
+        color: #ffffff !important;
+        transform: translateY(-5px);
+        box-shadow: 0 15px 35px rgba(62, 39, 35, 0.2);
+    }
+    
+    .diff-badge-card:hover h5 {
+        color: #ffca28 !important;
+    }
+    
+    .diff-badge-card:hover p {
+        color: #e0e0e0 !important;
+    }
+    
+    .diff-icon-circle {
+        width: 48px;
+        height: 48px;
+        border-radius: 50%;
+        background: rgba(255, 179, 0, 0.15);
+        color: #3e2723;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 1.4rem;
+        margin-bottom: 16px;
+        transition: all 0.3s ease;
+    }
+    
+    .diff-badge-card:hover .diff-icon-circle {
+        background: #ffb300;
+        color: #2c1611;
+    }
+    
+    .promise-card {
+        background: linear-gradient(135deg, #2c1611 0%, #4a2c20 50%, #2c1611 100%);
+        border-radius: 24px;
+        color: #ffffff;
+        padding: 48px 36px;
+        position: relative;
+        border: 2px solid rgba(255, 179, 0, 0.4);
+        box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+    }
+</style>
+
+<!-- Hero Banner -->
+<section class="about-hero text-center">
+    <div class="container">
+        <div class="about-hero-badge">
+            <span>🌿</span> 100% Natural • Zero Added Refined Sugar
+        </div>
+        <h1 class="about-hero-title mb-3">About Sweet Scribbles</h1>
+        <p class="about-hero-subtitle mb-4">
+            Where Goodness Meets Indulgence — Thoughtfully crafted confectionery made to make every moment sweeter.
+        </p>
+        <div class="d-flex justify-content-center flex-wrap gap-2 mt-3">
+            <span class="badge rounded-pill bg-light text-dark px-3 py-2 border"><i class="text-warning">✓</i> No Preservatives</span>
+            <span class="badge rounded-pill bg-light text-dark px-3 py-2 border"><i class="text-warning">✓</i> No Palm Oil</span>
+            <span class="badge rounded-pill bg-light text-dark px-3 py-2 border"><i class="text-warning">✓</i> Handcrafted Batches</span>
+            <span class="badge rounded-pill bg-light text-dark px-3 py-2 border"><i class="text-warning">✓</i> Couverture Chocolate</span>
+        </div>
+    </div>
+</section>
+
+<!-- Brand Philosophy Section -->
+<section class="py-5 bg-white">
+    <div class="container py-4">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-6">
+                <div class="pe-lg-3">
+                    <span class="text-warning fw-bold text-uppercase tracking-wider small d-block mb-2">Our Philosophy</span>
+                    <h2 class="display-6 fw-bold mb-4" style="color: #3e2723; font-family: 'Playfair Display', Georgia, serif;">
+                        Where Goodness Meets Indulgence
+                    </h2>
+                    <p class="lead text-dark fw-normal mb-4" style="font-size: 1.15rem; line-height: 1.8;">
+                        At <strong>Sweet Scribbles</strong>, we believe that healthy and delicious should never have to be two different choices.
+                    </p>
+                    <p class="text-muted mb-4" style="font-size: 1.05rem; line-height: 1.8;">
+                        We create thoughtfully crafted treats that bring together the natural goodness of dates, premium dry fruits, nuts, seeds and figs with the indulgence of rich couverture chocolate. The result? Delicious bites that satisfy your sweet cravings while keeping the ingredients simple and wholesome.
+                    </p>
+                    <div class="p-3 border-start border-4 border-warning bg-light rounded-end mb-4">
+                        <p class="fst-italic text-dark mb-0 fw-medium">
+                            "Sweet by Nature. Crafted with Purpose. Our philosophy is simple — let the ingredients do the talking."
+                        </p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-lg-6">
+                <div class="position-relative">
+                    <img src="{{ url_for('static', filename='images/about_hero_banner.png') }}" alt="Natural Ingredients" class="img-fluid rounded-4 shadow-lg w-100" style="object-fit: cover; max-height: 480px;">
+                    <div class="position-absolute bottom-0 start-0 m-4 p-3 bg-white bg-opacity-95 rounded-3 shadow border border-warning" style="max-width: 280px; backdrop-filter: blur(10px);">
+                        <div class="d-flex align-items-center gap-3">
+                            <span class="fs-1">🌴</span>
+                            <div>
+                                <h6 class="fw-bold mb-0 text-dark">Naturally Sweetened</h6>
+                                <small class="text-muted">Dates, Figs & Wild Honey</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Core Pillars -->
+<section class="py-5" style="background-color: #faf6f0;">
+    <div class="container py-4">
+        <div class="text-center max-w-700 mx-auto mb-5">
+            <span class="text-warning fw-bold text-uppercase tracking-wider small d-block mb-2">How We Make It</span>
+            <h2 class="fw-bold text-dark display-6 mb-3" style="font-family: 'Playfair Display', Georgia, serif;">Crafted with Purpose</h2>
+            <p class="text-muted lead">We focus on what goes into our products just as much as how they taste.</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-md-4">
+                <div class="pillar-card text-start">
+                    <div class="pillar-icon">🌱</div>
+                    <h4 class="fw-bold text-dark mb-3">Clean Ingredients</h4>
+                    <p class="text-muted mb-0" style="line-height: 1.7;">
+                        Our creations are naturally sweetened and made with <strong>no added sugar, no preservatives, and no palm oil</strong>. Enjoying a treat shouldn't come with a long list of things you need to avoid.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="pillar-card text-start">
+                    <div class="pillar-icon">🤲</div>
+                    <h4 class="fw-bold text-dark mb-3">Handcrafted Batches</h4>
+                    <p class="text-muted mb-0" style="line-height: 1.7;">
+                        Every Sweet Scribble is made with care in <strong>small batches</strong>, giving us the opportunity to pay attention to details that matter — freshness, texture, flavour, and presentation.
+                    </p>
+                </div>
+            </div>
+            
+            <div class="col-md-4">
+                <div class="pillar-card text-start">
+                    <div class="pillar-icon">🍫</div>
+                    <h4 class="fw-bold text-dark mb-3">Healthy Meets Indulgent</h4>
+                    <p class="text-muted mb-0" style="line-height: 1.7;">
+                        Every ingredient is carefully chosen to deliver the right balance of nutrition and luxury. Wholesome enough for everyday snacking, indulgent enough to feel like a treat.
+                    </p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Fit for All Life's Moments -->
+<section class="py-5 bg-white">
+    <div class="container py-4">
+        <div class="row align-items-center g-5">
+            <div class="col-lg-5">
+                <span class="text-warning fw-bold text-uppercase tracking-wider small d-block mb-2">Everyday Moments</span>
+                <h2 class="display-6 fw-bold mb-4" style="color: #3e2723; font-family: 'Playfair Display', Georgia, serif;">
+                    More Than a Snack
+                </h2>
+                <p class="text-muted mb-4" style="font-size: 1.05rem; line-height: 1.8;">
+                    Sweet Scribbles was created to fit into all the little moments that make life special. Whatever the occasion, we want our products to make the moment a little sweeter.
+                </p>
+                <a href="{{ url_for('customer.collections') }}" class="btn btn-dark btn-lg rounded-pill px-4 py-2 shadow-sm">
+                    Explore Collections &rarr;
+                </a>
+            </div>
+            
+            <div class="col-lg-7">
+                <div class="row g-3">
+                    <div class="col-sm-6">
+                        <div class="moment-card">
+                            <div class="fs-3 mb-2">⚡</div>
+                            <h6 class="fw-bold text-dark mb-2">Between Busy Days</h6>
+                            <p class="small text-muted mb-0">A wholesome, nutrient-dense bite to keep your energy up throughout the work day.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="moment-card">
+                            <div class="fs-3 mb-2">👨‍👩‍👧‍👦</div>
+                            <h6 class="fw-bold text-dark mb-2">Shared with Family</h6>
+                            <p class="small text-muted mb-0">A guilt-free treat everyone at home can enjoy together without worry.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="moment-card">
+                            <div class="fs-3 mb-2">💝</div>
+                            <h6 class="fw-bold text-dark mb-2">A Thoughtful Gesture</h6>
+                            <p class="small text-muted mb-0">A sweet, health-conscious gesture for someone you genuinely care about.</p>
+                        </div>
+                    </div>
+                    <div class="col-sm-6">
+                        <div class="moment-card">
+                            <div class="fs-3 mb-2">🎉</div>
+                            <h6 class="fw-bold text-dark mb-2">Festive Celebrations</h6>
+                            <p class="small text-muted mb-0">A beautifully curated gift box designed for weddings, festivals, and milestones.</p>
+                        </div>
+                    </div>
+                    <div class="col-12">
+                        <div class="moment-card bg-warning bg-opacity-10 border-warning">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="fs-2">💼</div>
+                                <div>
+                                    <h6 class="fw-bold text-dark mb-1">Client & Corporate Gifting</h6>
+                                    <p class="small text-muted mb-0">A memorable, premium box for your clients, team members, or business partners.</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Gifting Made Personal -->
+<section class="py-5 text-white" style="background: linear-gradient(135deg, #1b0e0c 0%, #3e2723 100%);">
+    <div class="container py-4 text-center">
+        <div class="max-w-800 mx-auto">
+            <span class="badge rounded-pill bg-warning text-dark px-3 py-2 mb-3 fw-bold">BESPOKE GIFTING</span>
+            <h2 class="display-6 fw-bold mb-4" style="font-family: 'Playfair Display', Georgia, serif; color: #ffecb3;">
+                Gifting, Made Personal
+            </h2>
+            <p class="lead text-light opacity-90 mb-4" style="line-height: 1.8; max-width: 750px; margin: 0 auto;">
+                We believe great gifting is personal. That's why Sweet Scribbles goes beyond ready-to-gift treats. Our gifting experiences can be curated and customized for festivals, celebrations, weddings, corporate occasions, client gifting and special milestones.
+            </p>
+            <p class="text-warning fw-semibold mb-4" style="font-size: 1.1rem;">
+                From the flavours inside to the way the box is presented, we help you create a gift that feels genuinely yours.
+            </p>
+            <a href="https://wa.me/918904660651?text=Hi%20Sweet%20Scribbles!%20I%20am%20interested%20in%20custom%20gifting." target="_blank" class="btn btn-warning btn-lg rounded-pill px-5 py-3 fw-bold text-dark shadow">
+                💬 Customize Your Gifting Experience
+            </a>
+        </div>
+    </div>
+</section>
+
+<!-- What Makes Us Different? (7 Key Differentiators Grid) -->
+<section class="py-5" style="background-color: #faf6f0;">
+    <div class="container py-4">
+        <div class="text-center max-w-700 mx-auto mb-5">
+            <span class="text-warning fw-bold text-uppercase tracking-wider small d-block mb-2">Why Choose Us</span>
+            <h2 class="fw-bold text-dark display-6 mb-3" style="font-family: 'Playfair Display', Georgia, serif;">What Makes Us Different?</h2>
+            <p class="text-muted lead">The core values that set Sweet Scribbles apart in every bite.</p>
+        </div>
+        
+        <div class="row g-4">
+            <div class="col-lg-3 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">🌴</div>
+                    <h5 class="fw-bold text-dark mb-2">Naturally Sweet</h5>
+                    <p class="small text-muted mb-0">Letting the natural sweetness of dates and dried fruits shine without artificial boosters.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">🚫</div>
+                    <h5 class="fw-bold text-dark mb-2">No Added Sugar</h5>
+                    <p class="small text-muted mb-0">Thoughtfully crafted without adding unnecessary refined sugars or syrups.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">✨</div>
+                    <h5 class="fw-bold text-dark mb-2">Clean Ingredients</h5>
+                    <p class="small text-muted mb-0">No preservatives. No palm oil. No unnecessary shortcuts ever.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-3 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">🥜</div>
+                    <h5 class="fw-bold text-dark mb-2">Premium Quality</h5>
+                    <p class="small text-muted mb-0">Quality dry fruits, nuts, seeds, figs and rich couverture chocolate in every creation.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">✋</div>
+                    <h5 class="fw-bold text-dark mb-2">Handcrafted Batches</h5>
+                    <p class="small text-muted mb-0">Made in small batches with strict attention to freshness, texture, flavour and consistency.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">⚖️</div>
+                    <h5 class="fw-bold text-dark mb-2">Healthy Meets Indulgent</h5>
+                    <p class="small text-muted mb-0">Wholesome enough for everyday snacking, indulgent enough to feel like a special treat.</p>
+                </div>
+            </div>
+            
+            <div class="col-lg-4 col-md-6">
+                <div class="diff-badge-card">
+                    <div class="diff-icon-circle">🎁</div>
+                    <h5 class="fw-bold text-dark mb-2">Personalized Gifting</h5>
+                    <p class="small text-muted mb-0">Beautifully curated and fully customizable hampers for every celebration and milestone.</p>
+                </div>
+            </div>
+        </div>
+    </div>
+</section>
+
+<!-- Our Promise Callout Card -->
+<section class="py-5 bg-white">
+    <div class="container py-4">
+        <div class="promise-card text-center mx-auto max-w-900">
+            <div class="mb-3">
+                <span class="fs-1">📜</span>
+            </div>
+            <h2 class="display-6 fw-bold mb-4" style="font-family: 'Playfair Display', Georgia, serif; color: #ffb300;">
+                Our Promise
+            </h2>
+            <p class="lead text-light mb-4" style="line-height: 1.9; font-size: 1.25rem;">
+                At Sweet Scribbles, we don't want you to choose between feeling good and tasting good.
+            </p>
+            <p class="text-light opacity-90 mb-4" style="font-size: 1.1rem; line-height: 1.8;">
+                We want every bite to be a little reminder that wholesome can be indulgent, gifting can be meaningful, and simple ingredients can create something truly special.
+            </p>
+            
+            <div class="py-3 px-4 bg-black bg-opacity-40 rounded-pill d-inline-block border border-warning border-opacity-50 mb-4">
+                <span class="fw-bold text-warning" style="font-size: 1.15rem; letter-spacing: 0.5px;">
+                    Sweet Scribbles — Naturally Sweet. Thoughtfully Crafted. Made to Make Moments Sweeter.
+                </span>
+            </div>
+            
+            <div class="d-flex justify-content-center gap-3 flex-wrap mt-2">
+                <a href="{{ url_for('customer.collections') }}" class="btn btn-warning btn-lg rounded-pill px-4 py-2 fw-bold text-dark shadow">
+                    🛍️ Shop Our Collections
+                </a>
+                <a href="https://wa.me/918904660651" target="_blank" class="btn btn-outline-light btn-lg rounded-pill px-4 py-2 fw-semibold">
+                    💬 Connect with Us
+                </a>
+            </div>
+        </div>
+    </div>
+</section>
+
+{% endblock %}

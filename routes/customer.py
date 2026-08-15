@@ -525,6 +525,10 @@ def restore_cart(order_number):
     flash("Your shopping cart has been restored from the pending order.", "success")
     return redirect(url_for('customer.cart'))
 
+@customer_bp.route('/about')
+def about():
+    return render_template('customer/about.html')
+
 @customer_bp.route('/terms')
 def terms():
     return render_template('customer/terms.html')
