@@ -541,6 +541,10 @@ def terms():
 def refunds():
     return render_template('customer/refunds.html')
 
+@customer_bp.route('/shipping')
+def shipping():
+    return render_template('customer/shipping.html')
+
 @customer_bp.route('/privacy')
 def privacy():
     return render_template('customer/privacy.html')

@@ -206,7 +206,7 @@
                         <li class="mb-2"><a href="{{ url_for('customer.about') }}" class="text-light opacity-75 text-decoration-none hover-gold">About Us</a></li>
                         <li class="mb-2"><a href="{{ url_for('customer.privacy') }}" class="text-light opacity-75 text-decoration-none hover-gold">Privacy Policy</a></li>
                         <li class="mb-2"><a href="{{ url_for('customer.refunds') }}" class="text-light opacity-75 text-decoration-none hover-gold">Return Policy</a></li>
-                        <li class="mb-2"><a href="{{ url_for('customer.refunds') }}" class="text-light opacity-75 text-decoration-none hover-gold">Shipping Policy</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.shipping') }}" class="text-light opacity-75 text-decoration-none hover-gold">Shipping Policy</a></li>
                         <li class="mb-2"><a href="{{ url_for('customer.terms') }}" class="text-light opacity-75 text-decoration-none hover-gold">Terms & Conditions</a></li>
                     </ul>
                 </div>
@@ -215,7 +215,7 @@
                 <div class="col-md-2 col-sm-6">
                     <h5 class="fw-bold mb-3 border-bottom pb-2" style="border-color: rgba(255,179,0,0.3) !important;">Services</h5>
                     <ul class="list-unstyled footer-links">
-                        <li class="mb-2"><a href="#" class="text-light opacity-75 text-decoration-none hover-gold">Delivery Info</a></li>
+                        <li class="mb-2"><a href="{{ url_for('customer.shipping') }}" class="text-light opacity-75 text-decoration-none hover-gold">Delivery Info</a></li>
                         <li class="mb-2"><a href="{{ url_for('customer.profile') }}" class="text-light opacity-75 text-decoration-none hover-gold">My Account</a></li>
                     </ul>
                 </div>
