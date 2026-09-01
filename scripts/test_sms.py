@@ -74,6 +74,15 @@ TEMPLATES = {
             'order_url': 'https://sweetscribbles.com/b2b/portal'
         }
     },
+    'order_received': {
+        'name': 'Retail Order Received & Confirmed',
+        'template_id': os.environ.get('MSG91_FLOW_ORDER_RECEIVED', '6a96fb22885c2799d8068ad2'),
+        'dlt_id': '1777178827434243630',
+        'variables': {
+            'order_id': 'SS-8419',
+            'total_amount': '599'
+        }
+    },
     'order_dispatched': {
         'name': 'Retail Order Dispatched',
         'template_id': os.environ.get('MSG91_FLOW_ORDER_DISPATCHED', '6a968958b79b19fb7e05dc52'),

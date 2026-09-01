@@ -463,6 +463,7 @@ def pay_return():
     if order_number:
         order = Order.query.filter_by(order_number=order_number).first()
         if order and order.status == 'Pending':
+            from utils.otp_utils import send_order_received_sms
             if order.zoho_payment_link_id:
                 zoho = ZohoClient()
                 zoho_status = zoho.check_payment_link_status(order.zoho_payment_link_id)
@@ -475,6 +476,8 @@ def pay_return():
                     order.payment_status = 'Paid'
                     deduct_order_stock(order)
                     db.session.commit()
+                    if order.customer_phone:
+                        send_order_received_sms(order.customer_phone, order.order_number, order.total_amount)
                     print(f"SUCCESS: Order {order.order_number} verified and marked as Paid.")
                 else:
                     print(f"INFO: Return URL hit, but payment status from Zoho is '{zoho_status}' for order {order.order_number}.")
@@ -484,6 +487,8 @@ def pay_return():
                 order.payment_status = 'Paid'
                 deduct_order_stock(order)
                 db.session.commit()
+                if order.customer_phone:
+                    send_order_received_sms(order.customer_phone, order.order_number, order.total_amount)
                 print(f"SUCCESS: Simulated payment marked as Paid for order {order.order_number}.")
                 
     return render_template('customer/order_success.html', order=order)
@@ -503,6 +508,9 @@ def order_status_api(order_number):
                 order.payment_status = 'Paid'
                 deduct_order_stock(order)
                 db.session.commit()
+                if order.customer_phone:
+                    from utils.otp_utils import send_order_received_sms
+                    send_order_received_sms(order.customer_phone, order.order_number, order.total_amount)
                 print(f"SUCCESS: API verified and marked order {order.order_number} as Paid.")
                 
     return {
@@ -552,6 +560,9 @@ def pay_webhook():
                     order.payment_status = 'Paid'
                     deduct_order_stock(order)
                     db.session.commit()
+                    if order.customer_phone:
+                        from utils.otp_utils import send_order_received_sms
+                        send_order_received_sms(order.customer_phone, order.order_number, order.total_amount)
                     print(f"SUCCESS: Webhook confirmed payment for order {order_number}.")
                     return "Success", 200
                 else:

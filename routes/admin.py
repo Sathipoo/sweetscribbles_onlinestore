@@ -263,14 +263,22 @@ def update_order_status(order_id):
         db.session.commit()
         
         # Trigger DLT SMS if status changed
-        from utils.otp_utils import send_order_dispatched_sms, send_order_delivered_sms, send_order_cancelled_sms
+        from utils.otp_utils import (
+            send_order_received_sms,
+            send_order_dispatched_sms,
+            send_order_delivered_sms,
+            send_order_cancelled_sms
+        )
         if order.customer_phone:
-            if new_status == 'Dispatched' and old_status != 'Dispatched':
+            if new_status == 'Paid' and old_status != 'Paid':
+                send_order_received_sms(order.customer_phone, order.order_number, order.total_amount)
+            elif new_status == 'Dispatched' and old_status != 'Dispatched':
                 send_order_dispatched_sms(order.customer_phone, order.order_number, order.courier_name or 'Express Courier', order.tracking_number or 'Tracking Active')
             elif new_status == 'Delivered' and old_status != 'Delivered':
                 send_order_delivered_sms(order.customer_phone, order.order_number)
             elif new_status == 'Cancelled' and old_status != 'Cancelled':
                 send_order_cancelled_sms(order.customer_phone, order.order_number)
+
                 
     # Check where we came from, to redirect back appropriately
     referrer = request.referrer

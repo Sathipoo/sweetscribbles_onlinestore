@@ -120,9 +120,25 @@
         "routes/customer.py",
         "templates/customer/checkout.html"
       ]
+    },
+    {
+      "id": "BEH-008",
+      "timestamp": "2026-09-01T21:54:00+05:30",
+      "category": "Customer Notifications & Retail Lifecycle",
+      "title": "Automated Retail Order Received & Confirmation SMS Integration",
+      "problem_addressed": "Retail customers placing an order did not receive an immediate confirmation SMS upon payment success because the DLT template for 'Order_received' was newly registered and not yet integrated into the payment success lifecycle.",
+      "solution_implemented": "1. DLT Template & Flow Configuration: Configured MSG91_FLOW_ORDER_RECEIVED (Template ID 6a96fb22885c2799d8068ad2, DLT 1777178827434243630) with dynamic variables ##order_id## and ##total_amount##.\n2. Helper Dispatcher: Added send_order_received_sms(phone, order_id, total_amount) in utils/otp_utils.py.\n3. Multi-Channel Confirmation Triggers: Integrated automatic SMS firing in customer payment return (pay_return), polling status endpoint (order_status_api), Zoho webhook (pay_webhook), and admin manual order status update (admin.orders).\n4. Testing Suite: Added order_received option to scripts/test_sms.py and validated live delivery to handsets with HTTP 200.",
+      "files_affected": [
+        ".env",
+        "utils/otp_utils.py",
+        "routes/customer.py",
+        "routes/admin.py",
+        "scripts/test_sms.py"
+      ]
     }
   ]
 }
+
 
 
 

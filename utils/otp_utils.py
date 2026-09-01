@@ -219,6 +219,19 @@ def send_retail_sms(phone, flow_key, variables_dict):
     """
     return send_b2b_sms(phone, flow_key, variables_dict)
 
+def send_order_received_sms(phone, order_id, total_amount):
+    """Sends retail order confirmed/received SMS (DLT Template ID 1777178827434243630)."""
+    try:
+        amt_val = float(total_amount)
+        amt_str = str(int(amt_val)) if amt_val.is_integer() else f"{amt_val:.2f}"
+    except (ValueError, TypeError):
+        amt_str = str(total_amount)
+        
+    return send_retail_sms(phone, 'MSG91_FLOW_ORDER_RECEIVED', {
+        'order_id': str(order_id),
+        'total_amount': amt_str
+    })
+
 def send_order_dispatched_sms(phone, order_id, courier_name, tracking_number):
     """Sends retail order dispatched SMS (DLT Template ID 1777178764868868260)."""
     return send_retail_sms(phone, 'MSG91_FLOW_ORDER_DISPATCHED', {
@@ -226,6 +239,7 @@ def send_order_dispatched_sms(phone, order_id, courier_name, tracking_number):
         'courier_name': str(courier_name),
         'tracking_number': str(tracking_number)
     })
+
 
 def send_order_delivered_sms(phone, order_id):
     """Sends retail order delivered SMS (DLT Template ID 1777178764879957542)."""
