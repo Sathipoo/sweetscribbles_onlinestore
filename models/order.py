@@ -11,7 +11,14 @@ class Order(db.Model):
     customer_name = db.Column(db.String(100))
     customer_email = db.Column(db.String(120))
     customer_phone = db.Column(db.String(20))
-    shipping_address = db.Column(db.Text)
+    
+    # Structured Delivery Address
+    shipping_street = db.Column(db.Text)
+    shipping_city = db.Column(db.String(100))
+    shipping_state = db.Column(db.String(100))
+    shipping_pincode = db.Column(db.String(20))
+    shipping_address = db.Column(db.Text) # Combined address for courier / labels
+
     
     status = db.Column(db.String(50), default='Pending') # Pending, Packing, Dispatched, Delivered
     total_amount = db.Column(db.Float, nullable=False)

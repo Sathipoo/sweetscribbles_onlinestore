@@ -232,10 +232,28 @@ def checkout():
                     flash(f'Sorry, only {prod.available_qty} units of "{prod.name}" are in stock, but your cart has {total_qty}.', 'warning')
                     return redirect(url_for('customer.cart'))
                     
-        customer_name = request.form.get('name')
-        customer_email = request.form.get('email')
-        customer_phone = request.form.get('phone')
-        shipping_address = request.form.get('shipping_address')
+        customer_name = (request.form.get('name') or '').strip()
+        customer_email = (request.form.get('email') or '').strip()
+        customer_phone = (request.form.get('phone') or '').strip()
+        street_address = (request.form.get('street_address') or request.form.get('shipping_address') or '').strip()
+        city = (request.form.get('city') or '').strip()
+        state = (request.form.get('state') or '').strip()
+        pincode = (request.form.get('pincode') or '').strip()
+        
+        # Build composite formatted address for courier / labels
+        addr_parts = []
+        if street_address:
+            addr_parts.append(street_address)
+        if city:
+            addr_parts.append(city)
+        if state and pincode:
+            addr_parts.append(f"{state} - {pincode}")
+        elif state:
+            addr_parts.append(state)
+        elif pincode:
+            addr_parts.append(pincode)
+            
+        shipping_address = ", ".join(addr_parts) if addr_parts else street_address
         
         # Check if we can reuse an existing Pending order for this session to prevent duplicates
         order = None
@@ -247,6 +265,10 @@ def checkout():
                 order.customer_name = customer_name
                 order.customer_email = customer_email
                 order.customer_phone = customer_phone
+                order.shipping_street = street_address
+                order.shipping_city = city
+                order.shipping_state = state
+                order.shipping_pincode = pincode
                 order.shipping_address = shipping_address
                 order.customer_id = current_user.id if current_user.is_authenticated else None
                 # Clear old items to repopulate cleanly
@@ -259,6 +281,10 @@ def checkout():
                 customer_name=customer_name,
                 customer_email=customer_email,
                 customer_phone=customer_phone,
+                shipping_street=street_address,
+                shipping_city=city,
+                shipping_state=state,
+                shipping_pincode=pincode,
                 shipping_address=shipping_address,
                 customer_id=current_user.id if current_user.is_authenticated else None,
                 status='Pending',
@@ -312,15 +338,27 @@ def checkout():
         order.shipping_fee = shipping_fee
         order.total_amount = net_subtotal + shipping_fee
         
-        # Save details back to user profile if authenticated
+        # Save details back to user profile if authenticated for 1-click future checkouts
         if current_user.is_authenticated:
-            current_user.name = customer_name
+            if customer_name:
+                current_user.name = customer_name
+            if customer_email and not customer_email.endswith('@sweetscribbles.com'):
+                current_user.email = customer_email
             if customer_phone:
                 current_user.phone = customer_phone
+            if street_address:
+                current_user.street_address = street_address
+            if city:
+                current_user.city = city
+            if state:
+                current_user.state = state
+            if pincode:
+                current_user.pincode = pincode
             if shipping_address:
                 current_user.address = shipping_address
                 
         db.session.commit()
+
         
         zoho = ZohoClient()
         try:

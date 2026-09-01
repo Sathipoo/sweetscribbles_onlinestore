@@ -257,8 +257,21 @@ def update_order_status(order_id):
         if new_status in ('Paid', 'Packing', 'Dispatched', 'Delivered') and not order.is_stock_deducted:
             from routes.customer import deduct_order_stock
             deduct_order_stock(order)
+            
+        old_status = order.status
         order.status = new_status
         db.session.commit()
+        
+        # Trigger DLT SMS if status changed
+        from utils.otp_utils import send_order_dispatched_sms, send_order_delivered_sms, send_order_cancelled_sms
+        if order.customer_phone:
+            if new_status == 'Dispatched' and old_status != 'Dispatched':
+                send_order_dispatched_sms(order.customer_phone, order.order_number, order.courier_name or 'Express Courier', order.tracking_number or 'Tracking Active')
+            elif new_status == 'Delivered' and old_status != 'Delivered':
+                send_order_delivered_sms(order.customer_phone, order.order_number)
+            elif new_status == 'Cancelled' and old_status != 'Cancelled':
+                send_order_cancelled_sms(order.customer_phone, order.order_number)
+                
     # Check where we came from, to redirect back appropriately
     referrer = request.referrer
     if referrer and 'customers' in referrer:
@@ -301,6 +314,7 @@ def update_order_tracking(order_id):
     order = Order.query.get_or_404(order_id)
     order.tracking_number = request.form.get('tracking_number')
     order.courier_name = request.form.get('courier_name')
+    old_shipping = order.shipping_status
     order.shipping_status = request.form.get('shipping_status')
     
     # Auto-align main order status with shipping steps
@@ -317,10 +331,19 @@ def update_order_tracking(order_id):
         
     db.session.commit()
     
+    # Trigger DLT SMS on shipping updates
+    from utils.otp_utils import send_order_dispatched_sms, send_order_delivered_sms
+    if order.customer_phone:
+        if order.shipping_status == 'In Transit' and old_shipping != 'In Transit':
+            send_order_dispatched_sms(order.customer_phone, order.order_number, order.courier_name or 'Express Courier', order.tracking_number or 'Tracking Active')
+        elif order.shipping_status == 'Delivered' and old_shipping != 'Delivered':
+            send_order_delivered_sms(order.customer_phone, order.order_number)
+    
     referrer = request.referrer
     if referrer and 'customers' in referrer:
         return redirect(url_for('admin.customers'))
     return redirect(url_for('admin.orders'))
+
 
 @admin_bp.route('/product/<int:product_id>/toggle_status', methods=['POST'])
 @admin_required

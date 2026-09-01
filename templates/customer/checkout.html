@@ -1,35 +1,252 @@
 {% extends 'customer/base.html' %}
 
-{% block title %}Checkout{% endblock %}
+{% block title %}Secure Checkout | Sweet Scribbles{% endblock %}
 
 {% block content %}
-<div class="container py-5">
+<div class="container py-4 py-md-5">
+    <!-- Stepper Breadcrumb Header -->
+    <div class="row justify-content-center mb-4">
+        <div class="col-lg-11">
+            <div class="d-flex align-items-center justify-content-between p-3 rounded-4 bg-white shadow-sm border">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge {% if current_user.is_authenticated %}bg-success text-white{% else %}bg-primary text-white{% endif %} rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                        {% if current_user.is_authenticated %}✓{% else %}1{% endif %}
+                    </span>
+                    <span class="fw-bold small {% if current_user.is_authenticated %}text-success{% else %}text-dark{% endif %}">
+                        {% if current_user.is_authenticated %}Account Verified{% else %}Mobile Verification{% endif %}
+                    </span>
+                </div>
+                <div class="flex-grow-1 mx-3 border-top border-2 {% if current_user.is_authenticated %}border-success{% else %}border-secondary-subtle{% endif %}"></div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge {% if current_user.is_authenticated %}bg-primary text-white{% else %}bg-light text-muted border{% endif %} rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                        2
+                    </span>
+                    <span class="fw-bold small {% if current_user.is_authenticated %}text-dark{% else %}text-muted{% endif %}">
+                        Delivery Address
+                    </span>
+                </div>
+                <div class="flex-grow-1 mx-3 border-top border-2 border-secondary-subtle"></div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light text-muted border rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 28px; height: 28px;">
+                        3
+                    </span>
+                    <span class="fw-bold small text-muted">
+                        Secure Payment
+                    </span>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row justify-content-center g-4">
+        <!-- Left Column: Step 1 (OTP) & Step 2 (Address Form) -->
         <div class="col-lg-7">
-            <div class="glass-panel p-4 p-md-5">
-                <h3 class="fw-bold mb-3" style="color: var(--primary-color);">Delivery & Billing Address</h3>
-                <p class="text-muted mb-4">Please verify your shipping details before proceeding to secure payment.</p>
+            
+            <!-- ============================================== -->
+            <!-- STEP 1: MOBILE OTP VERIFICATION GATE -->
+            <!-- ============================================== -->
+            <div class="glass-panel p-4 p-md-5 mb-4 position-relative" id="step1Container">
                 
+                {% if current_user.is_authenticated %}
+                <!-- Case A: Already Logged In -->
+                <div class="d-flex align-items-center justify-content-between flex-wrap gap-3" id="step1VerifiedView">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                            ✓
+                        </div>
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <h6 class="fw-bold mb-0 text-dark">Mobile Verified</h6>
+                                <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill small">Logged In</span>
+                            </div>
+                            <p class="text-muted small mb-0 mt-0.5">
+                                {{ current_user.phone or current_user.email }}
+                                {% if current_user.name %} • <strong class="text-dark">{{ current_user.name }}</strong>{% endif %}
+                            </p>
+                        </div>
+                    </div>
+                    <a href="{{ url_for('auth.logout') }}?next={{ url_for('customer.checkout') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                        Change / Logout
+                    </a>
+                </div>
+
+                {% else %}
+                <!-- Case B: Guest / Not Logged In Yet -->
+                <div id="step1GuestView">
+                    <div class="d-flex align-items-center gap-2 mb-2">
+                        <span class="badge bg-primary text-white rounded-pill px-2.5 py-1 small">Step 1</span>
+                        <h4 class="fw-bold mb-0" style="color: var(--primary-color);">Enter Mobile Number to Continue</h4>
+                    </div>
+                    <p class="text-muted small mb-4">
+                        We will send a quick 4-digit OTP to verify your account and retrieve your saved shipping details.
+                    </p>
+
+                    <!-- Alert message container -->
+                    <div id="otpAlertBox" class="alert d-none py-2 px-3 small rounded-3 mb-3"></div>
+
+                    <!-- Phone Input Block -->
+                    <div class="row g-2 align-items-center mb-3" id="phoneInputRow">
+                        <div class="col-sm-8">
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-muted fw-semibold border-end-0">+91</span>
+                                <input type="tel" id="checkoutPhone" class="form-control form-control-lg border-start-0 ps-1" placeholder="10-digit mobile number" maxlength="10" inputmode="numeric">
+                            </div>
+                        </div>
+                        <div class="col-sm-4">
+                            <button type="button" id="btnSendOtp" class="btn btn-premium w-100 py-2.5 rounded-3 fw-bold">
+                                <span id="btnSendOtpText">Get OTP &rarr;</span>
+                                <span id="btnSendOtpSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <!-- OTP Input Block (Initially Hidden) -->
+                    <div id="otpInputBlock" class="d-none mt-3 p-3 rounded-3 bg-light border">
+                        <div class="d-flex align-items-center justify-content-between mb-2">
+                            <label class="form-label small fw-bold text-dark mb-0">Enter 4-Digit Verification Code</label>
+                            <button type="button" id="btnChangePhone" class="btn btn-link btn-sm text-decoration-none p-0 text-muted small">Change Mobile</button>
+                        </div>
+                        <div class="row g-2 align-items-center">
+                            <div class="col-sm-7">
+                                <input type="text" id="checkoutOtp" class="form-control form-control-lg text-center fw-bold fs-4" placeholder="• • • •" maxlength="4" inputmode="numeric" style="letter-spacing: 0.3em;">
+                            </div>
+                            <div class="col-sm-5">
+                                <button type="button" id="btnVerifyOtp" class="btn btn-success w-100 py-2.5 rounded-3 fw-bold shadow-sm">
+                                    <span id="btnVerifyOtpText">Verify &amp; Proceed</span>
+                                    <span id="btnVerifyOtpSpinner" class="spinner-border spinner-border-sm d-none"></span>
+                                </button>
+                            </div>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mt-2">
+                            <span id="otpTimerText" class="text-muted small">Resend OTP in <strong id="otpCountdown">30</strong>s</span>
+                            <button type="button" id="btnResendOtp" class="btn btn-link btn-sm text-decoration-none p-0 fw-semibold text-primary d-none">Resend OTP</button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 1 Collapsed State after successful AJAX verification -->
+                <div id="step1SuccessView" class="d-none">
+                    <div class="d-flex align-items-center justify-content-between flex-wrap gap-3">
+                        <div class="d-flex align-items-center gap-3">
+                            <div class="rounded-circle bg-success-subtle text-success p-3 d-flex align-items-center justify-content-center" style="width: 48px; height: 48px; font-size: 1.25rem;">
+                                ✓
+                            </div>
+                            <div>
+                                <div class="d-flex align-items-center gap-2">
+                                    <h6 class="fw-bold mb-0 text-dark">Mobile Verified</h6>
+                                    <span class="badge bg-success-subtle text-success border border-success-subtle px-2 py-0.5 rounded-pill small">Logged In</span>
+                                </div>
+                                <p class="text-muted small mb-0 mt-0.5" id="verifiedPhoneDisplay">+91 </p>
+                            </div>
+                        </div>
+                        <button type="button" onclick="location.reload();" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            Change
+                        </button>
+                    </div>
+                </div>
+                {% endif %}
+            </div>
+
+
+            <!-- ============================================== -->
+            <!-- STEP 2: DELIVERY & SHIPPING ADDRESS INTAKE -->
+            <!-- ============================================== -->
+            <div class="glass-panel p-4 p-md-5 {% if not current_user.is_authenticated %}opacity-50{% endif %}" id="step2Container" style="transition: opacity 0.3s ease;">
+                <div class="d-flex align-items-center justify-content-between mb-3">
+                    <div class="d-flex align-items-center gap-2">
+                        <span class="badge {% if current_user.is_authenticated %}bg-primary text-white{% else %}bg-secondary text-white{% endif %} rounded-pill px-2.5 py-1 small" id="step2Badge">Step 2</span>
+                        <h3 class="fw-bold mb-0" style="color: var(--primary-color);">Shipping &amp; Delivery Details</h3>
+                    </div>
+                    <span id="savedProfileBadge" class="badge bg-info-subtle text-info border border-info-subtle rounded-pill px-3 py-1.5 small {% if not current_user.is_authenticated or not current_user.name %}d-none{% endif %}">
+                        ✨ Saved Address Pre-filled
+                    </span>
+                </div>
+                
+                <p class="text-muted small mb-4">
+                    Please provide your delivery address for fast, secure doorstep dispatch.
+                </p>
+
+                <!-- Toast Banner for returning customer auto-population -->
+                <div id="welcomeBanner" class="alert alert-success d-none py-2 px-3 small rounded-3 mb-4 d-flex align-items-center gap-2">
+                    <span class="fs-5">👋</span>
+                    <span id="welcomeBannerText">Welcome back! We've pre-filled your saved contact and shipping address.</span>
+                </div>
+
                 <form action="{{ url_for('customer.checkout') }}" method="POST" id="checkoutForm">
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Full Name</label>
-                        <input type="text" name="name" class="form-control" required placeholder="John Doe" value="{% if current_user.is_authenticated %}{{ current_user.name or '' }}{% endif %}">
+                    <!-- Hidden Phone input synced with verified mobile -->
+                    <input type="hidden" name="phone" id="hiddenFormPhone" value="{% if current_user.is_authenticated %}{{ current_user.phone or '' }}{% endif %}">
+
+                    <!-- Full Name & Email -->
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Full Name <span class="text-danger">*</span></label>
+                            <input type="text" name="name" id="inputName" class="form-control" required placeholder="e.g. Rahul Sharma" value="{% if current_user.is_authenticated %}{{ current_user.name or '' }}{% endif %}" {% if not current_user.is_authenticated %}disabled{% endif %}>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label fw-semibold text-dark small">Email Address <span class="text-danger">*</span></label>
+                            <input type="email" name="email" id="inputEmail" class="form-control" required placeholder="name@example.com" value="{% if current_user.is_authenticated and current_user.email and not current_user.email.endswith('@sweetscribbles.com') %}{{ current_user.email }}{% endif %}" {% if not current_user.is_authenticated %}disabled{% endif %}>
+                            <div class="form-text text-muted" style="font-size: 0.75rem;">Order tracking &amp; tax invoice will be sent here.</div>
+                        </div>
                     </div>
+
+                    <!-- Street Address / Flat / Building -->
                     <div class="mb-3">
-                        <label class="form-label fw-semibold">Email Address</label>
-                        <input type="email" name="email" class="form-control" required placeholder="john@example.com" value="{% if current_user.is_authenticated %}{{ current_user.email or '' }}{% endif %}">
+                        <label class="form-label fw-semibold text-dark small">Street Address / House / Flat No. &amp; Landmark <span class="text-danger">*</span></label>
+                        <textarea name="street_address" id="inputStreetAddress" class="form-control" rows="2" required placeholder="Flat / House No., Building Name, Street, Landmark" {% if not current_user.is_authenticated %}disabled{% endif %}>{% if current_user.is_authenticated %}{{ current_user.street_address or current_user.address or '' }}{% endif %}</textarea>
                     </div>
-                    <div class="mb-3">
-                        <label class="form-label fw-semibold">Phone Number (Optional)</label>
-                        <input type="text" name="phone" class="form-control" placeholder="+91 9876543210" value="{% if current_user.is_authenticated %}{{ current_user.phone or '' }}{% endif %}">
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label fw-semibold">Delivery Address</label>
-                        <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter full delivery address (Street, Apartment, Landmark, City, Pincode)">{% if current_user.is_authenticated %}{{ current_user.address or '' }}{% endif %}</textarea>
+
+                    <!-- Pincode, City, State in structured 3-column row -->
+                    <div class="row g-3 mb-4">
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-dark small">Pincode <span class="text-danger">*</span></label>
+                            <input type="text" name="pincode" id="inputPincode" class="form-control" required placeholder="6-digit PIN" maxlength="6" inputmode="numeric" value="{% if current_user.is_authenticated %}{{ current_user.pincode or '' }}{% endif %}" {% if not current_user.is_authenticated %}disabled{% endif %}>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-dark small">City / Town <span class="text-danger">*</span></label>
+                            <input type="text" name="city" id="inputCity" class="form-control" required placeholder="e.g. Bengaluru" value="{% if current_user.is_authenticated %}{{ current_user.city or '' }}{% endif %}" {% if not current_user.is_authenticated %}disabled{% endif %}>
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label fw-semibold text-dark small">State <span class="text-danger">*</span></label>
+                            <input type="text" name="state" id="inputState" class="form-control" required placeholder="e.g. Karnataka" list="statesList" value="{% if current_user.is_authenticated %}{{ current_user.state or '' }}{% endif %}" {% if not current_user.is_authenticated %}disabled{% endif %}>
+                            <datalist id="statesList">
+                                <option value="Andhra Pradesh">
+                                <option value="Arunachal Pradesh">
+                                <option value="Assam">
+                                <option value="Bihar">
+                                <option value="Chhattisgarh">
+                                <option value="Goa">
+                                <option value="Gujarat">
+                                <option value="Haryana">
+                                <option value="Himachal Pradesh">
+                                <option value="Jharkhand">
+                                <option value="Karnataka">
+                                <option value="Kerala">
+                                <option value="Madhya Pradesh">
+                                <option value="Maharashtra">
+                                <option value="Manipur">
+                                <option value="Meghalaya">
+                                <option value="Mizoram">
+                                <option value="Nagaland">
+                                <option value="Odisha">
+                                <option value="Punjab">
+                                <option value="Rajasthan">
+                                <option value="Sikkim">
+                                <option value="Tamil Nadu">
+                                <option value="Telangana">
+                                <option value="Tripura">
+                                <option value="Uttar Pradesh">
+                                <option value="Uttarakhand">
+                                <option value="West Bengal">
+                                <option value="Delhi">
+                                <option value="Chandigarh">
+                                <option value="Puducherry">
+                            </datalist>
+                        </div>
                     </div>
                     
-                    <button type="submit" id="btnSubmitCheckout" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center shadow-sm fs-6">
-                        <span id="btnCheckoutText" class="me-2 fw-bold">Pay {% if grand_total is defined %}₹{{ "%.2f"|format(grand_total) }}{% endif %} & Place Order</span>
+                    <!-- Submit / Payment Button -->
+                    <button type="submit" id="btnSubmitCheckout" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center shadow-sm fs-6" {% if not current_user.is_authenticated %}disabled{% endif %}>
+                        <span id="btnCheckoutText" class="me-2 fw-bold">Pay {% if grand_total is defined %}₹{{ "%.2f"|format(grand_total) }}{% endif %} &amp; Place Order</span>
                         <svg id="btnCheckoutIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
                           <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
                         </svg>
@@ -39,59 +256,324 @@
             </div>
         </div>
         
+        <!-- Right Column: Order Summary -->
         <div class="col-lg-5">
-            <div class="glass-panel p-4">
-                <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark">Order Summary</h5>
+            <div class="glass-panel p-4 position-sticky" style="top: 95px;">
+                <h5 class="fw-bold mb-3 border-bottom pb-2 text-dark d-flex align-items-center justify-content-between">
+                    <span>Order Summary</span>
+                    <span class="badge bg-light text-muted border small">{{ cart_items|length if cart_items is defined else 0 }} items</span>
+                </h5>
+
                 {% if subtotal is defined %}
-                <div class="d-flex justify-content-between mb-2 text-dark">
-                    <span>Items Subtotal</span>
+                <div class="d-flex justify-content-between mb-2 text-dark small">
+                    <span class="text-muted">Items Subtotal</span>
                     <span class="fw-semibold">₹{{ "%.2f"|format(subtotal) }}</span>
                 </div>
+                
                 {% if discount > 0 %}
-                <div class="d-flex justify-content-between mb-2 text-success">
-                    <span>Discount ({{ coupon_code }})</span>
+                <div class="d-flex justify-content-between mb-2 text-success small">
+                    <span>Coupon Discount ({{ coupon_code }})</span>
                     <span class="fw-semibold">-₹{{ "%.2f"|format(discount) }}</span>
                 </div>
                 {% endif %}
-                <div class="d-flex justify-content-between mb-3 text-dark">
-                    <span>Shipping Fee</span>
+
+                <div class="d-flex justify-content-between mb-3 text-dark small">
+                    <span class="text-muted">Shipping &amp; Delivery</span>
                     {% if shipping_fee == 0 %}
-                        <span class="badge bg-success-subtle text-success fw-bold border border-success px-2 py-1">FREE</span>
+                        <span class="badge bg-success-subtle text-success fw-bold border border-success px-2 py-0.5">FREE</span>
                     {% else %}
                         <span class="fw-semibold">₹{{ "%.2f"|format(shipping_fee) }}</span>
                     {% endif %}
                 </div>
-                <div class="d-flex justify-content-between mb-3 pt-2 border-top text-dark">
+
+                <div class="d-flex justify-content-between mb-3 pt-3 border-top text-dark">
                     <span class="fw-bold fs-5">Total Payable</span>
-                    <span class="fw-bold fs-5 text-primary">₹{{ "%.2f"|format(grand_total) }}</span>
+                    <span class="fw-bold fs-4" style="color: var(--primary-color);">₹{{ "%.2f"|format(grand_total) }}</span>
                 </div>
                 {% endif %}
-                <div class="p-3 bg-light rounded-3 text-muted small mt-3">
-                    🔒 Payments are secured by SSL encryption via <strong>Zoho Payments</strong>.
+
+                <!-- Trust Badges -->
+                <div class="p-3 bg-light rounded-3 mt-3 border">
+                    <div class="d-flex align-items-center gap-2 mb-2 text-dark fw-semibold small">
+                        <span>🔒</span>
+                        <span>Secure Zoho Payment Gateway</span>
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 text-muted" style="font-size: 0.75rem;">
+                        <span>✓ UPI / Google Pay / PhonePe</span>
+                        <span>✓ Credit &amp; Debit Cards</span>
+                        <span>✓ Net Banking</span>
+                    </div>
+                </div>
+
+                <div class="text-center mt-3">
+                    <a href="{{ url_for('customer.cart') }}" class="text-decoration-none text-muted small hover-primary">
+                        &larr; Return to Cart
+                    </a>
                 </div>
             </div>
         </div>
     </div>
 </div>
+{% endblock %}
 
+{% block extra_js %}
 <script>
 document.addEventListener('DOMContentLoaded', function() {
-    const form = document.getElementById('checkoutForm');
-    const btn = document.getElementById('btnSubmitCheckout');
-    const btnText = document.getElementById('btnCheckoutText');
-    const btnIcon = document.getElementById('btnCheckoutIcon');
-    const btnSpinner = document.getElementById('btnCheckoutSpinner');
-    let isSubmitting = false;
+    const isAuth = {{ 'true' if current_user.is_authenticated else 'false' }};
+    
+    const checkoutPhone = document.getElementById('checkoutPhone');
+    const btnSendOtp = document.getElementById('btnSendOtp');
+    const btnSendOtpText = document.getElementById('btnSendOtpText');
+    const btnSendOtpSpinner = document.getElementById('btnSendOtpSpinner');
+    
+    const otpInputBlock = document.getElementById('otpInputBlock');
+    const checkoutOtp = document.getElementById('checkoutOtp');
+    const btnVerifyOtp = document.getElementById('btnVerifyOtp');
+    const btnVerifyOtpText = document.getElementById('btnVerifyOtpText');
+    const btnVerifyOtpSpinner = document.getElementById('btnVerifyOtpSpinner');
+    
+    const btnChangePhone = document.getElementById('btnChangePhone');
+    const btnResendOtp = document.getElementById('btnResendOtp');
+    const otpTimerText = document.getElementById('otpTimerText');
+    const otpCountdown = document.getElementById('otpCountdown');
+    const otpAlertBox = document.getElementById('otpAlertBox');
+    
+    const step1GuestView = document.getElementById('step1GuestView');
+    const step1SuccessView = document.getElementById('step1SuccessView');
+    const verifiedPhoneDisplay = document.getElementById('verifiedPhoneDisplay');
+    
+    const step2Container = document.getElementById('step2Container');
+    const step2Badge = document.getElementById('step2Badge');
+    const checkoutForm = document.getElementById('checkoutForm');
+    const btnSubmitCheckout = document.getElementById('btnSubmitCheckout');
+    const hiddenFormPhone = document.getElementById('hiddenFormPhone');
+    
+    const inputName = document.getElementById('inputName');
+    const inputEmail = document.getElementById('inputEmail');
+    const inputStreetAddress = document.getElementById('inputStreetAddress');
+    const inputPincode = document.getElementById('inputPincode');
+    const inputCity = document.getElementById('inputCity');
+    const inputState = document.getElementById('inputState');
+    
+    const welcomeBanner = document.getElementById('welcomeBanner');
+    const welcomeBannerText = document.getElementById('welcomeBannerText');
+    const savedProfileBadge = document.getElementById('savedProfileBadge');
 
-    if (form && btn) {
-        form.addEventListener('submit', function(e) {
+    let countdownTimer = null;
+    let targetPhone = "";
+
+    function showAlert(msg, type = 'danger') {
+        if (!otpAlertBox) return;
+        otpAlertBox.className = `alert alert-${type} py-2 px-3 small rounded-3 mb-3`;
+        otpAlertBox.textContent = msg;
+        otpAlertBox.classList.remove('d-none');
+    }
+
+    function hideAlert() {
+        if (otpAlertBox) otpAlertBox.classList.add('d-none');
+    }
+
+    function startOtpTimer(seconds = 30) {
+        clearInterval(countdownTimer);
+        let rem = seconds;
+        if (otpTimerText) otpTimerText.classList.remove('d-none');
+        if (btnResendOtp) btnResendOtp.classList.add('d-none');
+        if (otpCountdown) otpCountdown.textContent = rem;
+
+        countdownTimer = setInterval(function() {
+            rem--;
+            if (otpCountdown) otpCountdown.textContent = rem;
+            if (rem <= 0) {
+                clearInterval(countdownTimer);
+                if (otpTimerText) otpTimerText.classList.add('d-none');
+                if (btnResendOtp) btnResendOtp.classList.remove('d-none');
+            }
+        }, 1000);
+    }
+
+    // 1. Send OTP Click
+    if (btnSendOtp) {
+        btnSendOtp.addEventListener('click', function() {
+            hideAlert();
+            const phoneVal = (checkoutPhone.value || '').trim();
+            const digits = phoneVal.replace(/\D/g, '');
+            if (digits.length < 10) {
+                showAlert('Please enter a valid 10-digit mobile number.');
+                checkoutPhone.focus();
+                return;
+            }
+
+            targetPhone = digits;
+            btnSendOtp.disabled = true;
+            btnSendOtpText.classList.add('d-none');
+            btnSendOtpSpinner.classList.remove('d-none');
+
+            fetch('/auth/send-mobile-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: targetPhone })
+            })
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(resObj => {
+                btnSendOtp.disabled = false;
+                btnSendOtpText.classList.remove('d-none');
+                btnSendOtpSpinner.classList.add('d-none');
+
+                if (resObj.status === 200 && resObj.body.success) {
+                    showAlert('OTP sent successfully to +91 ' + targetPhone, 'success');
+                    checkoutPhone.disabled = true;
+                    btnSendOtp.classList.add('d-none');
+                    otpInputBlock.classList.remove('d-none');
+                    checkoutOtp.value = '';
+                    checkoutOtp.focus();
+                    startOtpTimer(30);
+                } else {
+                    showAlert(resObj.body.message || 'Failed to send OTP. Please try again.');
+                }
+            })
+            .catch(err => {
+                btnSendOtp.disabled = false;
+                btnSendOtpText.classList.remove('d-none');
+                btnSendOtpSpinner.classList.add('d-none');
+                showAlert('Network error while sending OTP. Please try again.');
+            });
+        });
+    }
+
+    // 2. Change Phone Click
+    if (btnChangePhone) {
+        btnChangePhone.addEventListener('click', function() {
+            clearInterval(countdownTimer);
+            hideAlert();
+            checkoutPhone.disabled = false;
+            btnSendOtp.classList.remove('d-none');
+            otpInputBlock.classList.add('d-none');
+            checkoutPhone.focus();
+        });
+    }
+
+    // 3. Resend OTP Click
+    if (btnResendOtp) {
+        btnResendOtp.addEventListener('click', function() {
+            if (btnSendOtp) btnSendOtp.click();
+        });
+    }
+
+    // 4. Verify OTP Click
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', function() {
+            hideAlert();
+            const otpVal = (checkoutOtp.value || '').trim();
+            if (otpVal.length !== 4) {
+                showAlert('Please enter the 4-digit code sent to your mobile.');
+                checkoutOtp.focus();
+                return;
+            }
+
+            btnVerifyOtp.disabled = true;
+            btnVerifyOtpText.classList.add('d-none');
+            btnVerifyOtpSpinner.classList.remove('d-none');
+
+            fetch('/auth/verify-mobile-otp', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: targetPhone, otp: otpVal })
+            })
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(resObj => {
+                btnVerifyOtp.disabled = false;
+                btnVerifyOtpText.classList.remove('d-none');
+                btnVerifyOtpSpinner.classList.add('d-none');
+
+                if (resObj.status === 200 && resObj.body.success) {
+                    // Mobile verified! Transition to Step 2
+                    unlockStep2(resObj.body);
+                } else {
+                    showAlert(resObj.body.message || 'Invalid OTP. Please check and try again.');
+                }
+            })
+            .catch(err => {
+                btnVerifyOtp.disabled = false;
+                btnVerifyOtpText.classList.remove('d-none');
+                btnVerifyOtpSpinner.classList.add('d-none');
+                showAlert('Network error during verification. Please try again.');
+            });
+        });
+
+        // Allow pressing Enter key in OTP input
+        checkoutOtp.addEventListener('keyup', function(e) {
+            if (e.key === 'Enter') {
+                btnVerifyOtp.click();
+            }
+        });
+    }
+
+    function unlockStep2(verifyData) {
+        clearInterval(countdownTimer);
+        
+        // Collapse Step 1 into verified state
+        if (step1GuestView) step1GuestView.classList.add('d-none');
+        if (step1SuccessView) step1SuccessView.classList.remove('d-none');
+        if (verifiedPhoneDisplay) verifiedPhoneDisplay.textContent = `+91 ${targetPhone}`;
+
+        // Unlock Step 2 container
+        if (step2Container) step2Container.classList.remove('opacity-50');
+        if (step2Badge) {
+            step2Badge.classList.remove('bg-secondary');
+            step2Badge.classList.add('bg-primary');
+        }
+
+        // Enable all Step 2 input fields
+        [inputName, inputEmail, inputStreetAddress, inputPincode, inputCity, inputState].forEach(el => {
+            if (el) el.disabled = false;
+        });
+        if (btnSubmitCheckout) btnSubmitCheckout.disabled = false;
+
+        // Set hidden phone value for order
+        if (hiddenFormPhone) hiddenFormPhone.value = `+91${targetPhone}`;
+
+        const user = verifyData.user || {};
+        const isNew = verifyData.is_new_user;
+
+        if (!isNew && (user.name || user.street_address || user.address)) {
+            // Auto-populate returning user profile
+            if (inputName && user.name) inputName.value = user.name;
+            if (inputEmail && user.email && !user.email.endsWith('@sweetscribbles.com')) inputEmail.value = user.email;
+            if (inputStreetAddress && (user.street_address || user.address)) inputStreetAddress.value = user.street_address || user.address;
+            if (inputPincode && user.pincode) inputPincode.value = user.pincode;
+            if (inputCity && user.city) inputCity.value = user.city;
+            if (inputState && user.state) inputState.value = user.state;
+
+            if (savedProfileBadge) savedProfileBadge.classList.remove('d-none');
+            if (welcomeBanner) {
+                welcomeBannerText.textContent = `Welcome back${user.name ? ', ' + user.name : ''}! We've pre-filled your saved delivery details.`;
+                welcomeBanner.classList.remove('d-none');
+            }
+        } else {
+            // New user intake focus
+            if (welcomeBanner) {
+                welcomeBanner.className = 'alert alert-info py-2 px-3 small rounded-3 mb-4 d-flex align-items-center gap-2';
+                welcomeBannerText.textContent = "Welcome to Sweet Scribbles! Please enter your delivery address below to complete your order.";
+                welcomeBanner.classList.remove('d-none');
+            }
+            if (inputName) inputName.focus();
+        }
+    }
+
+    // 5. Form submission double-click prevention
+    if (checkoutForm && btnSubmitCheckout) {
+        let isSubmitting = false;
+        checkoutForm.addEventListener('submit', function(e) {
             if (isSubmitting) {
                 e.preventDefault();
                 return false;
             }
             isSubmitting = true;
-            btn.disabled = true;
-            btnText.textContent = "Connecting to Secure Payment...";
+            btnSubmitCheckout.disabled = true;
+            const btnText = document.getElementById('btnCheckoutText');
+            const btnIcon = document.getElementById('btnCheckoutIcon');
+            const btnSpinner = document.getElementById('btnCheckoutSpinner');
+            if (btnText) btnText.textContent = "Connecting to Secure Payment...";
             if (btnIcon) btnIcon.classList.add('d-none');
             if (btnSpinner) btnSpinner.classList.remove('d-none');
         });

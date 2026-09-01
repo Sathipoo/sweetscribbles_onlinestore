@@ -183,29 +183,44 @@ def verify_mobile_otp():
     if datetime.utcnow().timestamp() > otp_data.get('expires', 0):
         return {'success': False, 'message': 'OTP has expired. Please request a new one.'}, 400
         
-    # User Lookup or Auto-registration
-    user = User.query.filter_by(phone=phone).first()
+    # User Lookup or Auto-registration by phone (matching both +91 and 10-digit formats)
+    digits = "".join(c for c in phone if c.isdigit())[-10:]
+    normalized_phone = f"+91{digits}" if len(digits) == 10 else phone
+    
+    user = User.query.filter(
+        (User.phone == normalized_phone) | (User.phone == digits)
+    ).first()
+    
+    is_new_user = False
+
     if not user:
-        # Create user
-        import uuid
-        digits = "".join(c for c in phone if c.isdigit())[-10:]
-        placeholder_email = f"user_{digits}@sweetscribbles.com"
-        
-        # Check if email is already taken (edge case fallback)
-        existing = User.query.filter_by(email=placeholder_email).first()
-        if existing:
-            placeholder_email = f"user_{digits}_{uuid.uuid4().hex[:4]}@sweetscribbles.com"
-            
+        is_new_user = True
         user = User(
-            email=placeholder_email,
-            name=f"Customer {digits[-4:]}" if len(digits) >= 4 else "Sweet Scribbles Customer",
-            phone=phone
+            phone=normalized_phone,
+            name="",
+            email=""
         )
         db.session.add(user)
         db.session.commit()
+    else:
+        # Standardize phone on user record if it was stored without prefix
+        if user.phone != normalized_phone:
+            user.phone = normalized_phone
+            db.session.commit()
+            
+        # If user has no name or address, treat as needing intake
+        if not user.name or not (user.street_address or user.address):
+            is_new_user = True
         
     login_user(user)
     session.pop('mobile_otp', None)
+
     
-    return {'success': True, 'message': 'Login successful! Redirecting...'}
+    return {
+        'success': True,
+        'message': 'Mobile verification successful!',
+        'is_new_user': is_new_user,
+        'user': user.to_dict()
+    }
+
 

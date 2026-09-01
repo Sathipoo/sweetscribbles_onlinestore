@@ -105,9 +105,25 @@
         "templates/customer/home.html",
         "templates/customer/base.html"
       ]
+    },
+    {
+      "id": "BEH-007",
+      "timestamp": "2026-09-01T19:54:00+05:30",
+      "category": "Checkout Optimization & Customer Intake",
+      "title": "Smart OTP-Verified Checkout with Instant Profile Auto-Population & Structured Address Intake",
+      "problem_addressed": "Retail checkout previously required manual reentry of shipping information without an inline mobile verification gate. Returning customers had to re-type address fields, and address inputs were unstructured (a single raw textarea), leading to postal delivery errors and missing city/state/pincode fields for courier label generation.",
+      "solution_implemented": "1. 2-Step Checkout Stepper: Structured checkout into Step 1 (Mobile OTP Verification) and Step 2 (Structured Delivery Address Intake & Order Review).\n2. Inline Mobile Verification Gate: Integrated live MSG91 4-digit OTP directly into checkout for guests. Already authenticated users bypass Step 1 with a verified badge.\n3. Automatic Profile Auto-Population: Verifying a returning customer's mobile number instantly logs them in and auto-populates their saved Name, Email, Street Address, City, State, and Pincode.\n4. Structured Address Fields: Replaced unstructured address with separate Street Address, City, State, and 6-digit Pincode fields on User and Order database models.\n5. Profile Synchronization: Submitting checkout automatically updates the customer's User profile for 1-click future checkouts.",
+      "files_affected": [
+        "models/user.py",
+        "models/order.py",
+        "routes/auth.py",
+        "routes/customer.py",
+        "templates/customer/checkout.html"
+      ]
     }
   ]
 }
+
 
 
 
