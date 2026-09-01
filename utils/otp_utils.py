@@ -213,3 +213,37 @@ def send_b2b_enquiry_otp(phone, otp):
     flow_id = os.environ.get('MSG91_FLOW_ID_B2B_ENQUIRY_OTP', '6a968a0b9573e5b9ed0a3322')
     return send_msg91_otp(phone, otp, flow_id=flow_id)
 
+def send_retail_sms(phone, flow_key, variables_dict):
+    """
+    Generic dispatcher for Retail DLT SMS notifications via MSG91.
+    """
+    return send_b2b_sms(phone, flow_key, variables_dict)
+
+def send_order_dispatched_sms(phone, order_id, courier_name, tracking_number):
+    """Sends retail order dispatched SMS (DLT Template ID 1777178764868868260)."""
+    return send_retail_sms(phone, 'MSG91_FLOW_ORDER_DISPATCHED', {
+        'order_id': str(order_id),
+        'courier_name': str(courier_name),
+        'tracking_number': str(tracking_number)
+    })
+
+def send_order_delivered_sms(phone, order_id):
+    """Sends retail order delivered SMS (DLT Template ID 1777178764879957542)."""
+    return send_retail_sms(phone, 'MSG91_FLOW_ORDER_DELIVERED', {
+        'order_id': str(order_id)
+    })
+
+def send_order_cancelled_sms(phone, order_id):
+    """Sends retail order cancellation SMS (DLT Template ID 1777178764884908554)."""
+    return send_retail_sms(phone, 'MSG91_FLOW_ORDER_CANCELLED', {
+        'order_id': str(order_id)
+    })
+
+def send_refund_processed_sms(phone, amount, order_id):
+    """Sends refund processed SMS (DLT Template ID 1777178764892921906)."""
+    return send_retail_sms(phone, 'MSG91_FLOW_REFUND_PROCESSED', {
+        'amount': str(amount),
+        'order_id': str(order_id)
+    })
+
+

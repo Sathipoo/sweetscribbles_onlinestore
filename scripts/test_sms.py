@@ -11,6 +11,10 @@ Template Types (Optional, default is login_otp):
     b2b_design_ready - B2B Design Proof Ready for Review
     b2b_production   - B2B Production Starting (Count & ETA Locked)
     b2b_delivered    - B2B Delivery Completed
+    order_dispatched - Retail Order Dispatched
+    order_delivered  - Retail Order Delivered
+    order_cancelled  - Retail Order Cancelled
+    refund_processed - Retail Refund Processed
 """
 import sys
 import os
@@ -27,7 +31,6 @@ TEMPLATES = {
         'dlt_id': '1777178764089646500',
         'variables': {'OTP': '8391'}
     },
-
     'enquiry_otp': {
         'name': 'B2B Enquiry Verification OTP',
         'template_id': os.environ.get('MSG91_FLOW_ID_B2B_ENQUIRY_OTP', '6a968a0b9573e5b9ed0a3322'),
@@ -54,7 +57,7 @@ TEMPLATES = {
     },
     'b2b_production': {
         'name': 'B2B Details Locked & Production Beginning',
-        'template_id': os.environ.get('MSG91_FLOW_B2B_PRODUCTION', '6a968a804987363ec200a4f3'),
+        'template_id': os.environ.get('MSG91_FLOW_B2B_PRODUCTION', '6a968a804987363ec200b4f3'),
         'dlt_id': '1777178815013976698',
         'variables': {
             'box_count': '150',
@@ -69,6 +72,41 @@ TEMPLATES = {
         'variables': {
             'order_id': 'SSB2B-1042',
             'order_url': 'https://sweetscribbles.com/b2b/portal'
+        }
+    },
+    'order_dispatched': {
+        'name': 'Retail Order Dispatched',
+        'template_id': os.environ.get('MSG91_FLOW_ORDER_DISPATCHED', '6a968958b79b19fb7e05dc52'),
+        'dlt_id': '1777178764868868260',
+        'variables': {
+            'order_id': 'SS-8419',
+            'courier_name': 'Bluedart Express',
+            'tracking_number': 'BLU1098234'
+        }
+    },
+    'order_delivered': {
+        'name': 'Retail Order Delivered',
+        'template_id': os.environ.get('MSG91_FLOW_ORDER_DELIVERED', '6a96899c705d42bcc806ec93'),
+        'dlt_id': '1777178764879957542',
+        'variables': {
+            'order_id': 'SS-8419'
+        }
+    },
+    'order_cancelled': {
+        'name': 'Retail Order Cancelled',
+        'template_id': os.environ.get('MSG91_FLOW_ORDER_CANCELLED', '6a9689cf1b7f8acb820a1ca2'),
+        'dlt_id': '1777178764884908554',
+        'variables': {
+            'order_id': 'SS-8419'
+        }
+    },
+    'refund_processed': {
+        'name': 'Retail Refund Processed',
+        'template_id': os.environ.get('MSG91_FLOW_REFUND_PROCESSED', '6a9689e8839a6c860c02bc63'),
+        'dlt_id': '1777178764892921906',
+        'variables': {
+            'amount': '1250',
+            'order_id': 'SS-8419'
         }
     }
 }
@@ -117,6 +155,7 @@ def send_test(target_phone, template_key='login_otp'):
         "template_id": template_id.strip(),
         "flow_id": template_id.strip(),
         "sender": sender_id.strip(),
+        "short_url": "0",
         "recipients": [recipient]
     }
 
