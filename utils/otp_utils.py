@@ -45,11 +45,11 @@ def send_msg91_otp(phone, otp, flow_id=None):
     """
     auth_key = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
     sender_id = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
-    target_flow_id = flow_id or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a9652029b7d90c0f30b5024')
+    target_template_id = flow_id or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a968b032ea5813edc096f32')
     
     formatted_phone = format_phone_for_msg91(phone)
 
-    if auth_key and target_flow_id and formatted_phone:
+    if auth_key and target_template_id and formatted_phone:
         try:
             url = "https://api.msg91.com/api/v5/flow/"
             headers = {
@@ -58,7 +58,8 @@ def send_msg91_otp(phone, otp, flow_id=None):
                 "accept": "application/json"
             }
             payload = {
-                "flow_id": target_flow_id.strip(),
+                "template_id": target_template_id.strip(),
+                "flow_id": target_template_id.strip(),
                 "sender": sender_id.strip(),
                 "recipients": [
                     {
@@ -88,7 +89,7 @@ def send_msg91_otp(phone, otp, flow_id=None):
     print("\n" + "="*50)
     print(f"[SMS OTP DEV MOCK / LOG]")
     print(f"Phone: {phone} (Formatted for MSG91: {formatted_phone})")
-    print(f"Flow ID: {target_flow_id}")
+    print(f"Template/Flow ID: {target_template_id}")
     print(f"OTP: {otp}")
     print("="*50 + "\n")
     return False
@@ -145,6 +146,7 @@ def send_email_otp(email, otp):
     print(f"OTP: {otp}")
     print("="*50 + "\n")
     return False
+
 def send_b2b_sms(phone, flow_key, variables_dict):
     """
     Generic dispatcher for B2B DLT flow messages via MSG91.
@@ -152,11 +154,11 @@ def send_b2b_sms(phone, flow_key, variables_dict):
     """
     auth_key = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
     sender_id = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
-    target_flow_id = os.environ.get(flow_key)
+    target_template_id = os.environ.get(flow_key)
     
     formatted_phone = format_phone_for_msg91(phone)
 
-    if auth_key and target_flow_id and formatted_phone:
+    if auth_key and target_template_id and formatted_phone:
         try:
             url = "https://api.msg91.com/api/v5/flow/"
             headers = {
@@ -168,7 +170,8 @@ def send_b2b_sms(phone, flow_key, variables_dict):
             recipient.update(variables_dict)
             
             payload = {
-                "flow_id": target_flow_id.strip(),
+                "template_id": target_template_id.strip(),
+                "flow_id": target_template_id.strip(),
                 "sender": sender_id.strip(),
                 "recipients": [recipient]
             }
@@ -183,6 +186,8 @@ def send_b2b_sms(phone, flow_key, variables_dict):
             print(f"[MSG91 B2B SMS] Flow: {flow_key} | Status: {response.status_code} | Payload: {payload} | Response: {res_data}")
             if response.status_code in (200, 201, 202) and res_data.get('type') != 'error':
                 return True
+            else:
+                print(f"[MSG91 B2B SMS ERROR] Failed: {res_data}")
         except Exception as e:
             print(f"[MSG91 B2B SMS EXCEPTION] Error calling MSG91 Flow API: {e}")
 
@@ -190,12 +195,13 @@ def send_b2b_sms(phone, flow_key, variables_dict):
     print("\n" + "="*50)
     print(f"[B2B SMS DEV MOCK / LOG]")
     print(f"To: {phone} (Formatted: {formatted_phone})")
-    print(f"Flow Key: {flow_key} (ID: {target_flow_id})")
+    print(f"Flow Key: {flow_key} (ID: {target_template_id})")
     print(f"Variables: {variables_dict}")
     print("="*50 + "\n")
     return False
 
 def send_b2b_enquiry_otp(phone, otp):
     """Sends B2B enquiry mobile verification OTP (DLT Template ID 1777178814958474414)."""
-    flow_id = os.environ.get('MSG91_FLOW_ID_B2B_ENQUIRY_OTP') or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a9652029b7d90c0f30b5024')
+    flow_id = os.environ.get('MSG91_FLOW_ID_B2B_ENQUIRY_OTP', '6a968a0b9573e5b9ed0a3322')
     return send_msg91_otp(phone, otp, flow_id=flow_id)
+
