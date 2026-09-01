@@ -4,6 +4,10 @@ import smtplib
 import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
+from dotenv import load_dotenv
+
+# Ensure environment variables are loaded
+load_dotenv()
 
 def normalize_phone(phone):
     """Normalize phone number to standard format with leading +91 for 10-digit Indian numbers."""
@@ -40,8 +44,8 @@ def generate_otp(length=4):
 
 def send_msg91_otp(phone, otp, flow_id=None):
     """
-    Sends an OTP via MSG91 Flow API using approved DLT template.
-    Endpoint: https://api.msg91.com/api/v5/flow/
+    Sends an OTP via MSG91 Dedicated OTP API (https://api.msg91.com/api/v5/otp)
+    using the approved DLT template and priority OTP routing, with Flow API fallback.
     """
     auth_key = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
     sender_id = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
@@ -50,6 +54,32 @@ def send_msg91_otp(phone, otp, flow_id=None):
     formatted_phone = format_phone_for_msg91(phone)
 
     if auth_key and target_template_id and formatted_phone:
+        # Method 1: MSG91 Dedicated Priority OTP API (Uses Send OTP Route: 45,247 credits)
+        try:
+            otp_url = "https://api.msg91.com/api/v5/otp"
+            params = {
+                "template_id": target_template_id.strip(),
+                "mobile": formatted_phone,
+                "authkey": auth_key.strip(),
+                "otp": str(otp)
+            }
+            response = requests.get(otp_url, params=params, timeout=10)
+            res_data = {}
+            try:
+                res_data = response.json()
+            except Exception:
+                res_data = {"text": response.text}
+                
+            print(f"[MSG91 Dedicated OTP] Status: {response.status_code} | Phone: {formatted_phone} | Template: {target_template_id} | Response: {res_data}")
+            
+            if response.status_code in (200, 201, 202) and res_data.get('type') == 'success':
+                return True
+            else:
+                print(f"[MSG91 Dedicated OTP Note] Trying Flow API fallback: {res_data}")
+        except Exception as e:
+            print(f"[MSG91 Dedicated OTP Exception] {e}")
+
+        # Method 2: MSG91 Flow API Fallback (Uses Transactional Route: 50,274 credits)
         try:
             url = "https://api.msg91.com/api/v5/flow/"
             headers = {
@@ -64,7 +94,8 @@ def send_msg91_otp(phone, otp, flow_id=None):
                 "recipients": [
                     {
                         "mobiles": formatted_phone,
-                        "OTP": str(otp)
+                        "OTP": str(otp),
+                        "otp": str(otp)
                     }
                 ]
             }
@@ -76,14 +107,14 @@ def send_msg91_otp(phone, otp, flow_id=None):
             except Exception:
                 res_data = {"text": response.text}
                 
-            print(f"[MSG91 OTP] Status: {response.status_code} | Payload: {payload} | Response: {res_data}")
+            print(f"[MSG91 Flow Fallback] Status: {response.status_code} | Payload: {payload} | Response: {res_data}")
             
             if response.status_code in (200, 201, 202) and res_data.get('type') != 'error':
                 return True
             else:
-                print(f"[MSG91 OTP ERROR] Failed response from MSG91: {res_data}")
+                print(f"[MSG91 Flow ERROR] Failed response: {res_data}")
         except Exception as e:
-            print(f"[MSG91 OTP EXCEPTION] Error calling MSG91 Flow API: {e}")
+            print(f"[MSG91 Flow EXCEPTION] {e}")
 
     # Mock / Sandbox Mode for local dev or when keys/templates are pending
     print("\n" + "="*50)
@@ -93,6 +124,7 @@ def send_msg91_otp(phone, otp, flow_id=None):
     print(f"OTP: {otp}")
     print("="*50 + "\n")
     return False
+
 
 def send_email_otp(email, otp):
     """
