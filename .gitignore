@@ -22,3 +22,8 @@ gcp_credentials.json
 # OS files
 .DS_Store
 Thumbs.db
+
+# Uploads
+static/uploads/*
+!static/uploads/.gitkeep
+
