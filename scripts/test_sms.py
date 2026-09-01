@@ -23,10 +23,11 @@ load_dotenv()
 TEMPLATES = {
     'login_otp': {
         'name': 'Sweet Scribbles Login OTP',
-        'template_id': os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a968b032ea5813edc096f32'),
+        'template_id': os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a968b032ea5913edc096f32'),
         'dlt_id': '1777178764089646500',
         'variables': {'OTP': '8391'}
     },
+
     'enquiry_otp': {
         'name': 'B2B Enquiry Verification OTP',
         'template_id': os.environ.get('MSG91_FLOW_ID_B2B_ENQUIRY_OTP', '6a968a0b9573e5b9ed0a3322'),

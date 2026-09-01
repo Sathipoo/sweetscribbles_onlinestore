@@ -44,42 +44,17 @@ def generate_otp(length=4):
 
 def send_msg91_otp(phone, otp, flow_id=None):
     """
-    Sends an OTP via MSG91 Dedicated OTP API (https://api.msg91.com/api/v5/otp)
-    using the approved DLT template and priority OTP routing, with Flow API fallback.
+    Sends an OTP via MSG91 Flow API (https://api.msg91.com/api/v5/flow/)
+    using the approved DLT template.
     """
     auth_key = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
     sender_id = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
-    target_template_id = flow_id or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a968b032ea5813edc096f32')
+    target_template_id = flow_id or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a968b032ea5913edc096f32')
     
     formatted_phone = format_phone_for_msg91(phone)
 
-    if auth_key and target_template_id and formatted_phone:
-        # Method 1: MSG91 Dedicated Priority OTP API (Uses Send OTP Route: 45,247 credits)
-        try:
-            otp_url = "https://api.msg91.com/api/v5/otp"
-            params = {
-                "template_id": target_template_id.strip(),
-                "mobile": formatted_phone,
-                "authkey": auth_key.strip(),
-                "otp": str(otp)
-            }
-            response = requests.get(otp_url, params=params, timeout=10)
-            res_data = {}
-            try:
-                res_data = response.json()
-            except Exception:
-                res_data = {"text": response.text}
-                
-            print(f"[MSG91 Dedicated OTP] Status: {response.status_code} | Phone: {formatted_phone} | Template: {target_template_id} | Response: {res_data}")
-            
-            if response.status_code in (200, 201, 202) and res_data.get('type') == 'success':
-                return True
-            else:
-                print(f"[MSG91 Dedicated OTP Note] Trying Flow API fallback: {res_data}")
-        except Exception as e:
-            print(f"[MSG91 Dedicated OTP Exception] {e}")
 
-        # Method 2: MSG91 Flow API Fallback (Uses Transactional Route: 50,274 credits)
+    if auth_key and target_template_id and formatted_phone:
         try:
             url = "https://api.msg91.com/api/v5/flow/"
             headers = {
@@ -107,14 +82,14 @@ def send_msg91_otp(phone, otp, flow_id=None):
             except Exception:
                 res_data = {"text": response.text}
                 
-            print(f"[MSG91 Flow Fallback] Status: {response.status_code} | Payload: {payload} | Response: {res_data}")
+            print(f"[MSG91 OTP Flow] Status: {response.status_code} | Phone: {formatted_phone} | Template: {target_template_id} | Response: {res_data}")
             
             if response.status_code in (200, 201, 202) and res_data.get('type') != 'error':
                 return True
             else:
-                print(f"[MSG91 Flow ERROR] Failed response: {res_data}")
+                print(f"[MSG91 OTP Flow ERROR] Failed response: {res_data}")
         except Exception as e:
-            print(f"[MSG91 Flow EXCEPTION] {e}")
+            print(f"[MSG91 OTP Flow EXCEPTION] {e}")
 
     # Mock / Sandbox Mode for local dev or when keys/templates are pending
     print("\n" + "="*50)
@@ -124,6 +99,7 @@ def send_msg91_otp(phone, otp, flow_id=None):
     print(f"OTP: {otp}")
     print("="*50 + "\n")
     return False
+
 
 
 def send_email_otp(email, otp):
