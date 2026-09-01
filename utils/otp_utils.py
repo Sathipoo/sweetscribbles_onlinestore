@@ -1,24 +1,97 @@
 import os
 import random
 import smtplib
+import requests
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
 def normalize_phone(phone):
-    """Normalize phone number to digits and leading +."""
+    """Normalize phone number to standard format with leading +91 for 10-digit Indian numbers."""
     if not phone:
         return ""
-    cleaned = "".join(c for c in phone if c.isdigit() or c == '+')
-    # Default to +91 prefix if it's a 10 digit number
-    if len(cleaned) == 10 and not cleaned.startswith('+'):
-        cleaned = f"+91{cleaned}"
-    elif len(cleaned) == 12 and cleaned.startswith('91') and not cleaned.startswith('+'):
-        cleaned = f"+{cleaned}"
-    return cleaned
+    digits = "".join(c for c in phone if c.isdigit())
+    # 10-digit Indian number
+    if len(digits) == 10:
+        return f"+91{digits}"
+    # 12-digit Indian number starting with 91
+    elif len(digits) == 12 and digits.startswith('91'):
+        return f"+{digits}"
+    # 11-digit number starting with 0
+    elif len(digits) == 11 and digits.startswith('0'):
+        return f"+91{digits[1:]}"
+    elif digits:
+        return f"+{digits}"
+    return ""
 
-def generate_otp():
-    """Generate a 6-digit numeric OTP."""
-    return "".join(random.choices("0123456789", k=6))
+def format_phone_for_msg91(phone):
+    """Format phone number for MSG91 API without leading + (e.g. 91XXXXXXXXXX)."""
+    if not phone:
+        return ""
+    digits = "".join(c for c in phone if c.isdigit())
+    if len(digits) == 10:
+        return f"91{digits}"
+    elif len(digits) == 11 and digits.startswith('0'):
+        return f"91{digits[1:]}"
+    return digits
+
+def generate_otp(length=4):
+    """Generate a numeric OTP (default 4-digit)."""
+    return "".join(random.choices("0123456789", k=length))
+
+def send_msg91_otp(phone, otp, flow_id=None):
+    """
+    Sends an OTP via MSG91 Flow API using approved DLT template.
+    Endpoint: https://api.msg91.com/api/v5/flow/
+    """
+    auth_key = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
+    sender_id = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
+    target_flow_id = flow_id or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a9652029b7d90c0f30b5024')
+    
+    formatted_phone = format_phone_for_msg91(phone)
+
+    if auth_key and target_flow_id and formatted_phone:
+        try:
+            url = "https://api.msg91.com/api/v5/flow/"
+            headers = {
+                "authkey": auth_key.strip(),
+                "content-type": "application/json",
+                "accept": "application/json"
+            }
+            payload = {
+                "flow_id": target_flow_id.strip(),
+                "sender": sender_id.strip(),
+                "recipients": [
+                    {
+                        "mobiles": formatted_phone,
+                        "OTP": str(otp)
+                    }
+                ]
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            res_data = {}
+            try:
+                res_data = response.json()
+            except Exception:
+                res_data = {"text": response.text}
+                
+            print(f"[MSG91 OTP] Status: {response.status_code} | Payload: {payload} | Response: {res_data}")
+            
+            if response.status_code in (200, 201, 202) and res_data.get('type') != 'error':
+                return True
+            else:
+                print(f"[MSG91 OTP ERROR] Failed response from MSG91: {res_data}")
+        except Exception as e:
+            print(f"[MSG91 OTP EXCEPTION] Error calling MSG91 Flow API: {e}")
+
+    # Mock / Sandbox Mode for local dev or when keys/templates are pending
+    print("\n" + "="*50)
+    print(f"[SMS OTP DEV MOCK / LOG]")
+    print(f"Phone: {phone} (Formatted for MSG91: {formatted_phone})")
+    print(f"Flow ID: {target_flow_id}")
+    print(f"OTP: {otp}")
+    print("="*50 + "\n")
+    return False
 
 def send_email_otp(email, otp):
     """
@@ -34,7 +107,6 @@ def send_email_otp(email, otp):
 
     if mail_server and mail_username and mail_password:
         try:
-            # Parse port
             try:
                 port = int(mail_port)
             except ValueError:
@@ -50,13 +122,12 @@ def send_email_otp(email, otp):
 
             Your verification OTP is: {otp}
 
-            This code is valid for 5 minutes. If you did not request this code, please ignore this email.
+            This code is valid for 10 minutes. If you did not request this code, please ignore this email.
 
-            Sweet Scribbles Team
+            Sweet Scribbles Team - A Pikachooz Product
             """
             msg.attach(MIMEText(body, 'plain'))
 
-            # Standard SMTP send with STARTTLS
             server = smtplib.SMTP(mail_server, port, timeout=10)
             server.starttls()
             server.login(mail_username, mail_password)
@@ -66,7 +137,6 @@ def send_email_otp(email, otp):
             return True
         except Exception as e:
             print(f"[OTP ERROR] Failed to send SMTP email to {email}: {e}")
-            # Fall back to logging in console
             
     # Mock / Sandbox Mode
     print("\n" + "="*50)
@@ -75,43 +145,57 @@ def send_email_otp(email, otp):
     print(f"OTP: {otp}")
     print("="*50 + "\n")
     return False
-
-def send_sms_otp(phone, otp):
+def send_b2b_sms(phone, flow_key, variables_dict):
     """
-    Sends an OTP to the user's phone via Twilio (if credentials exist),
-    otherwise falls back to logging the OTP to the console.
+    Generic dispatcher for B2B DLT flow messages via MSG91.
+    flow_key corresponds to env var or fallback flow_id.
     """
-    twilio_sid = os.environ.get('TWILIO_ACCOUNT_SID')
-    twilio_token = os.environ.get('TWILIO_AUTH_TOKEN')
-    twilio_number = os.environ.get('TWILIO_PHONE_NUMBER')
+    auth_key = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
+    sender_id = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
+    target_flow_id = os.environ.get(flow_key)
+    
+    formatted_phone = format_phone_for_msg91(phone)
 
-    if twilio_sid and twilio_token and twilio_number:
+    if auth_key and target_flow_id and formatted_phone:
         try:
-            import requests
-            # Clean/format phone number
-            clean_phone = phone.strip()
-            if not clean_phone.startswith('+') and len(clean_phone) == 10:
-                clean_phone = f"+91{clean_phone}" # Default to Indian country code if 10 digits
-                
-            url = f"https://api.twilio.com/2010-04-01/Accounts/{twilio_sid}/Messages.json"
-            data = {
-                "To": clean_phone,
-                "From": twilio_number,
-                "Body": f"Your Sweet Scribbles verification OTP is {otp}. Valid for 5 minutes."
+            url = "https://api.msg91.com/api/v5/flow/"
+            headers = {
+                "authkey": auth_key.strip(),
+                "content-type": "application/json",
+                "accept": "application/json"
             }
-            response = requests.post(url, data=data, auth=(twilio_sid, twilio_token), timeout=10)
-            if response.status_code in (200, 201):
-                print(f"[OTP] Successfully sent Twilio SMS to {clean_phone}")
+            recipient = {"mobiles": formatted_phone}
+            recipient.update(variables_dict)
+            
+            payload = {
+                "flow_id": target_flow_id.strip(),
+                "sender": sender_id.strip(),
+                "recipients": [recipient]
+            }
+            
+            response = requests.post(url, json=payload, headers=headers, timeout=10)
+            res_data = {}
+            try:
+                res_data = response.json()
+            except Exception:
+                res_data = {"text": response.text}
+                
+            print(f"[MSG91 B2B SMS] Flow: {flow_key} | Status: {response.status_code} | Payload: {payload} | Response: {res_data}")
+            if response.status_code in (200, 201, 202) and res_data.get('type') != 'error':
                 return True
-            else:
-                print(f"[OTP ERROR] Twilio SMS API responded with status {response.status_code}: {response.text}")
         except Exception as e:
-            print(f"[OTP ERROR] Twilio SMS client exception: {e}")
+            print(f"[MSG91 B2B SMS EXCEPTION] Error calling MSG91 Flow API: {e}")
 
-    # Mock / Sandbox Mode
+    # Dev/Mock fallback
     print("\n" + "="*50)
-    print(f"[SMS OTP DEV MOCK]")
-    print(f"Phone: {phone}")
-    print(f"OTP: {otp}")
+    print(f"[B2B SMS DEV MOCK / LOG]")
+    print(f"To: {phone} (Formatted: {formatted_phone})")
+    print(f"Flow Key: {flow_key} (ID: {target_flow_id})")
+    print(f"Variables: {variables_dict}")
     print("="*50 + "\n")
     return False
+
+def send_b2b_enquiry_otp(phone, otp):
+    """Sends B2B enquiry mobile verification OTP (DLT Template ID 1777178814958474414)."""
+    flow_id = os.environ.get('MSG91_FLOW_ID_B2B_ENQUIRY_OTP') or os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a9652029b7d90c0f30b5024')
+    return send_msg91_otp(phone, otp, flow_id=flow_id)

@@ -108,7 +108,8 @@ def google_login():
 
 @auth_bp.route('/send-mobile-otp', methods=['POST'])
 def send_mobile_otp():
-    from utils.otp_utils import generate_otp, send_sms_otp, normalize_phone
+    import time
+    from utils.otp_utils import generate_otp, send_msg91_otp, normalize_phone
     from datetime import datetime, timedelta
     from flask import current_app, session
     
@@ -116,25 +117,42 @@ def send_mobile_otp():
     raw_phone = (data.get('phone') or request.form.get('phone', '')).strip()
     phone = normalize_phone(raw_phone)
     
-    if not phone:
-        return {'success': False, 'message': 'Valid phone number is required.'}, 400
+    # Require at least a valid phone number format with 10 digits
+    digits_only = "".join(c for c in phone if c.isdigit())
+    if not phone or len(digits_only) < 10:
+        return {'success': False, 'message': 'Please enter a valid 10-digit mobile number.'}, 400
         
-    otp = generate_otp()
-    expiry = (datetime.utcnow() + timedelta(minutes=5)).timestamp()
+    current_ts = time.time()
+    existing_otp_data = session.get('mobile_otp')
+    
+    # 30-second rate-limit cooldown
+    if existing_otp_data and existing_otp_data.get('phone') == phone:
+        last_sent = existing_otp_data.get('last_sent', 0)
+        if current_ts - last_sent < 30:
+            remaining = int(30 - (current_ts - last_sent))
+            return {
+                'success': False,
+                'message': f'Please wait {remaining} seconds before requesting a new OTP.'
+            }, 429
+            
+    otp = generate_otp(length=4)
+    # DLT approved template is valid for 10 minutes
+    expiry = (datetime.utcnow() + timedelta(minutes=10)).timestamp()
     
     session['mobile_otp'] = {
         'phone': phone,
         'otp': otp,
-        'expires': expiry
+        'expires': expiry,
+        'last_sent': current_ts
     }
     
-    sent_real = send_sms_otp(phone, otp)
+    sent_real = send_msg91_otp(phone, otp)
     
     return {
         'success': True,
-        'message': 'OTP sent successfully.',
+        'message': 'OTP sent successfully to your mobile number.',
         'phone': phone,
-        'dev_otp': otp if current_app.debug else None,
+        'dev_otp': otp if (current_app.debug or not sent_real) else None,
         'sent_real': sent_real
     }
 
@@ -146,7 +164,7 @@ def verify_mobile_otp():
     
     otp_data = session.get('mobile_otp')
     if not otp_data:
-        return {'success': False, 'message': 'No OTP has been requested yet. Please request an OTP.'}, 400
+        return {'success': False, 'message': 'No OTP requested or session expired. Please request an OTP.'}, 400
         
     data = request.get_json(silent=True) or {}
     entered_otp = (data.get('otp') or request.form.get('otp', '')).strip()
@@ -154,15 +172,15 @@ def verify_mobile_otp():
     phone = normalize_phone(raw_phone)
     
     if not entered_otp or not phone:
-        return {'success': False, 'message': 'OTP and phone number are required.'}, 400
+        return {'success': False, 'message': '4-digit OTP and phone number are required.'}, 400
         
-    if otp_data['phone'] != phone:
-        return {'success': False, 'message': 'Phone number mismatch error. Please request OTP again.'}, 400
+    if otp_data.get('phone') != phone:
+        return {'success': False, 'message': 'Phone number mismatch. Please request OTP again.'}, 400
         
-    if otp_data['otp'] != entered_otp:
-        return {'success': False, 'message': 'Incorrect OTP. Please check the code and try again.'}, 400
+    if otp_data.get('otp') != entered_otp:
+        return {'success': False, 'message': 'Invalid OTP. Please check the 4-digit code and try again.'}, 400
         
-    if datetime.utcnow().timestamp() > otp_data['expires']:
+    if datetime.utcnow().timestamp() > otp_data.get('expires', 0):
         return {'success': False, 'message': 'OTP has expired. Please request a new one.'}, 400
         
     # User Lookup or Auto-registration
@@ -170,16 +188,17 @@ def verify_mobile_otp():
     if not user:
         # Create user
         import uuid
-        placeholder_email = f"user_{phone.replace('+', '')}@sweetscribbles.com"
+        digits = "".join(c for c in phone if c.isdigit())[-10:]
+        placeholder_email = f"user_{digits}@sweetscribbles.com"
         
         # Check if email is already taken (edge case fallback)
         existing = User.query.filter_by(email=placeholder_email).first()
         if existing:
-            placeholder_email = f"user_{phone.replace('+', '')}_{uuid.uuid4().hex[:4]}@sweetscribbles.com"
+            placeholder_email = f"user_{digits}_{uuid.uuid4().hex[:4]}@sweetscribbles.com"
             
         user = User(
             email=placeholder_email,
-            name=f"User {phone[-4:]}" if len(phone) >= 4 else "Guest User",
+            name=f"Customer {digits[-4:]}" if len(digits) >= 4 else "Sweet Scribbles Customer",
             phone=phone
         )
         db.session.add(user)
@@ -188,4 +207,5 @@ def verify_mobile_otp():
     login_user(user)
     session.pop('mobile_otp', None)
     
-    return {'success': True, 'message': 'Login successful!'}
+    return {'success': True, 'message': 'Login successful! Redirecting...'}
+

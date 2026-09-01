@@ -16,6 +16,8 @@ def create_app(config_class=Config):
     from routes.customer import customer_bp
     from routes.admin import admin_bp
     from routes.auth import auth_bp
+    from routes.b2b import b2b_bp
+    from routes.b2b_admin import b2b_admin_bp
     from models.user import User
 
     @login_manager.user_loader
@@ -25,6 +27,8 @@ def create_app(config_class=Config):
     app.register_blueprint(customer_bp)
     app.register_blueprint(admin_bp, url_prefix='/admin')
     app.register_blueprint(auth_bp, url_prefix='/auth')
+    app.register_blueprint(b2b_bp, url_prefix='/b2b')
+    app.register_blueprint(b2b_admin_bp, url_prefix='/admin/b2b')
 
     # Register Global Error Handlers for SEO/Indexation and user experience
     from flask import render_template, send_from_directory

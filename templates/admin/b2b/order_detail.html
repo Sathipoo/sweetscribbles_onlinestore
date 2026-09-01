@@ -1,0 +1,374 @@
+{% extends 'admin/b2b/b2b_base.html' %}
+
+{% block title %}Order #{{ order.order_number }} - B2B Operations{% endblock %}
+
+{% block content %}
+<!-- Top Navigation & Actions -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('b2b_admin.orders') }}" class="text-decoration-none text-muted small">
+            &larr; Back to B2B Orders
+        </a>
+        <h2 class="fw-bold mb-0 mt-1" style="font-family: 'Playfair Display', serif;">
+            Order #{{ order.order_number }}
+            <span class="badge {{ order.get_stage_badge_class() }} fs-6 ms-2">
+                {{ order.get_stage_display() }}
+            </span>
+        </h2>
+        <span class="text-muted small">
+            Client: <strong><a href="{{ url_for('b2b_admin.client_detail', client_id=order.client.id) }}" class="text-dark">{{ order.client.company_name }}</a></strong> 
+            ({{ order.client.contact_name }} · {{ order.client.phone }})
+        </span>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <form action="{{ url_for('b2b_admin.delete_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this order?');">
+            <button type="submit" class="btn btn-outline-danger btn-sm">Delete Order</button>
+        </form>
+    </div>
+</div>
+
+<!-- Flashes -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show py-2.5 rounded-3 mb-4 shadow-sm" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- Top Action Banner (Milestone Triggers) -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 text-white p-4" style="background: #1e130f; border-left: 5px solid #c79442;">
+    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+        <h5 class="fw-bold mb-0 text-warning">
+            <i class="bi bi-broadcast me-2"></i>Workflow Stage & DLT SMS Automations
+        </h5>
+        <span class="badge bg-dark border border-secondary text-light">DLT PE: PIKACHOOZ</span>
+    </div>
+    
+    <div class="d-flex flex-wrap gap-3 align-items-center">
+        <!-- 1. Mark Advance Paid -->
+        {% if not order.advance_paid %}
+        <form action="{{ url_for('b2b_admin.mark_advance_paid', order_id=order.id) }}" method="POST" onsubmit="return confirm('Confirm receipt of 50% advance payment? This will dispatch the DLT Order Confirmation SMS to the client.');">
+            <button type="submit" class="btn btn-primary fw-bold shadow-sm">
+                <i class="bi bi-cash-stack me-1"></i>Confirm 50% Advance (SMS Trigger)
+            </button>
+        </form>
+        {% else %}
+        <span class="badge bg-success p-2 px-3 fs-6">
+            ✓ 50% Advance Received (₹{{ "{:,.2f}".format(order.advance_amount_required) }})
+        </span>
+        {% endif %}
+
+        <!-- 2. Trigger Design Proof Upload Modal -->
+        <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#uploadProofModal">
+            <i class="bi bi-image me-1"></i>Upload / Replace Design Proof (SMS Trigger)
+        </button>
+
+        <!-- 3. Trigger Lock Details Modal -->
+        {% if order.stage != 'delivered' %}
+        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#lockDetailsModal">
+            <i class="bi bi-lock me-1"></i>Lock Count & Set ETA (SMS Trigger)
+        </button>
+        {% endif %}
+
+        <!-- 4. Mark Delivered -->
+        {% if order.stage != 'delivered' %}
+        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#markDeliveredModal">
+            <i class="bi bi-truck me-1"></i>Mark Delivered (SMS Trigger)
+        </button>
+        {% else %}
+        <span class="badge bg-success p-2 px-3 fs-6">
+            ✓ Delivered on {{ order.delivered_at.strftime('%d %b %Y') if order.delivered_at else '' }}
+        </span>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Quote & Pricing Details -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Quotation & Specification Editor</h5>
+            
+            <form action="{{ url_for('b2b_admin.update_quote', order_id=order.id) }}" method="POST">
+                <div class="row g-3 mb-3">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">Box Style</label>
+                        <select name="box_type" class="form-select">
+                            {% for b in available_boxes %}
+                            <option value="{{ b.name }}" {% if order.box_type == b.name %}selected{% endif %}>{{ b.name }} ({{ b.bites_count }})</option>
+                            {% else %}
+                            <option value="{{ order.box_type }}" selected>{{ order.box_type }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">Occasion / Gifting Purpose</label>
+                        <input type="text" name="custom_occasion" class="form-control" value="{{ order.custom_occasion or '' }}">
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-secondary">Box Quantity</label>
+                        <input type="number" name="box_count" class="form-control" value="{{ order.box_count }}" min="10" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-secondary">Quoted Rate / Box (₹)</label>
+                        <input type="number" name="quoted_price_per_box" class="form-control" value="{{ order.quoted_price_per_box }}" step="0.5" required>
+                    </div>
+
+                    <div class="col-md-4">
+                        <label class="form-label small fw-semibold text-secondary">Advance Required (%)</label>
+                        <input type="number" name="advance_percent" class="form-control" value="50" min="10" max="100">
+                    </div>
+                </div>
+
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex justify-content-between mb-1">
+                        <span class="small text-muted">Total Batch Price:</span>
+                        <strong class="text-dark fs-5">₹{{ "{:,.2f}".format(order.total_amount) }}</strong>
+                    </div>
+                    <div class="d-flex justify-content-between mb-0">
+                        <span class="small text-muted">50% Advance Amount:</span>
+                        <strong class="text-primary">₹{{ "{:,.2f}".format(order.advance_amount_required) }}</strong>
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Internal Operational Notes</label>
+                    <textarea name="internal_notes" class="form-control" rows="2" placeholder="Packaging preferences, courier instructions, payment terms...">{{ order.internal_notes or '' }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-dark w-100 py-2.5 fw-bold">
+                    Save Quotation Updates
+                </button>
+            </form>
+        </div>
+
+        <!-- Custom Client Message / Request -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Client Greeting & Sleeve Note</h6>
+            <div class="p-3 bg-light rounded-3 border">
+                <p class="mb-0 text-secondary" style="font-style: italic;">
+                    "{{ order.custom_message or 'No custom sleeve message specified yet.' }}"
+                </p>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Brand Logo & Design Proof Studio -->
+    <div class="col-lg-5">
+        <!-- Client Uploaded Logo -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Client Brand Logo</h6>
+            {% if order.client_logo_url %}
+            <div class="text-center p-3 bg-light rounded-3 border mb-2">
+                <img src="{{ order.client_logo_url }}" alt="Logo" class="img-fluid" style="max-height: 120px; object-fit: contain;">
+                <a href="{{ order.client_logo_url }}" target="_blank" class="btn btn-sm btn-link d-block mt-1">Open Original File</a>
+            </div>
+            {% else %}
+            <div class="text-center py-4 bg-light rounded-3 border text-muted small">
+                No logo uploaded yet by client.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Designer Proof Preview -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h6 class="fw-bold text-dark mb-0">Design Proof (Mockup)</h6>
+                <span class="badge {% if order.design_status == 'approved' %}bg-success{% elif order.design_status == 'revision_requested' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
+                    {{ order.design_status }}
+                </span>
+            </div>
+
+            {% if order.design_proof_url %}
+            <div class="text-center p-3 bg-light rounded-3 border mb-3">
+                <a href="{{ order.design_proof_url }}" target="_blank">
+                    <img src="{{ order.design_proof_url }}" alt="Proof" class="img-fluid rounded" style="max-height: 180px; object-fit: contain;">
+                </a>
+                <a href="{{ order.design_proof_url }}" target="_blank" class="btn btn-sm btn-link d-block mt-2">Open Full Resolution Proof</a>
+            </div>
+            {% if order.design_feedback %}
+            <div class="alert alert-warning p-2.5 small rounded-3 mb-0">
+                <strong>Client Feedback:</strong> {{ order.design_feedback }}
+            </div>
+            {% endif %}
+            {% else %}
+            <div class="text-center py-4 bg-light rounded-3 border text-muted small mb-3">
+                No proof uploaded yet. Click <strong>Upload Proof</strong> above to dispatch mockup to client.
+            </div>
+            {% endif %}
+        </div>
+
+        <!-- Corporate Contact Card -->
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Client Contact Info</h6>
+            <div class="small text-secondary d-flex flex-column gap-2">
+                <div><strong>Company:</strong> {{ order.client.company_name }}</div>
+                <div><strong>Contact:</strong> {{ order.client.contact_name }}</div>
+                <div><strong>Phone:</strong> {{ order.client.phone }}</div>
+                <div><strong>Email:</strong> <a href="mailto:{{ order.client.email }}">{{ order.client.email }}</a></div>
+                <div><strong>GST Number:</strong> {{ order.client.gst_number or '—' }}</div>
+                <div><strong>Shipping Address:</strong> {{ order.client.shipping_address or '—' }}</div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Stage Transition & Activity History Audit Log -->
+<div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4 mt-4">
+    <div class="d-flex justify-content-between align-items-center border-bottom pb-3 mb-3">
+        <div>
+            <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                <i class="bi bi-clock-history me-2 text-warning"></i>Stage Progression & Activity Audit Trail
+            </h5>
+            <small class="text-muted">Chronological log of stage transitions, design reviews, payments, and client interactions.</small>
+        </div>
+        <span class="badge bg-dark">{{ order.logs|length }} Events Logged</span>
+    </div>
+
+    {% if order.logs %}
+    <div class="timeline position-relative ps-3">
+        {% for log in order.logs %}
+        <div class="d-flex gap-3 mb-3 position-relative">
+            <div class="text-center" style="width: 32px;">
+                <div class="rounded-circle bg-dark text-white d-flex align-items-center justify-content-center shadow-sm" style="width: 28px; height: 28px; font-size: 0.75rem;">
+                    <i class="bi bi-arrow-right"></i>
+                </div>
+            </div>
+            <div class="flex-grow-1 p-3 bg-light rounded-3 border">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2 mb-1">
+                    <div>
+                        <strong class="text-dark">{{ log.action_title }}</strong>
+                        <span class="badge bg-secondary ms-2" style="font-size: 0.7rem;">{{ log.actor }}</span>
+                    </div>
+                    <span class="small text-muted font-monospace" style="font-size: 0.78rem;">
+                        <i class="bi bi-calendar3 me-1"></i>{{ log.created_at.strftime('%d %b %Y, %I:%M:%S %p') }}
+                    </span>
+                </div>
+                
+                <div class="small text-secondary mb-1">
+                    <span class="badge bg-dark text-white font-monospace" style="font-size: 0.68rem;">Stage: {{ log.to_stage }}</span>
+                    {% if log.from_stage and log.from_stage != log.to_stage %}
+                    <span class="text-muted" style="font-size: 0.75rem;">(Moved from <em>{{ log.from_stage }}</em>)</span>
+                    {% endif %}
+                </div>
+                
+                {% if log.details %}
+                <div class="p-2 bg-white rounded border small text-dark mt-2 font-monospace" style="font-size: 0.8rem;">
+                    {{ log.details }}
+                </div>
+                {% endif %}
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    {% else %}
+    <div class="text-center py-4 text-muted small bg-light rounded-3">
+        No workflow logs recorded for this order yet.
+    </div>
+    {% endif %}
+</div>
+
+
+<!-- ========================================== -->
+<!-- 1. UPLOAD PROOF MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="uploadProofModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom px-4 py-3 bg-dark text-white" style="background: #1e130f !important;">
+                <h5 class="modal-title fw-bold">Upload Custom Box Artwork Proof</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('b2b_admin.upload_proof', order_id=order.id) }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Uploading a proof sets the order to <strong>Design Review</strong> and automatically triggers the DLT SMS notification with the client portal approval link.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Select Mockup / Proof Image (PNG, JPG, PDF)</label>
+                        <input type="file" name="design_proof" class="form-control" accept="image/*,.pdf" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">Upload & Dispatch SMS Alert</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 2. LOCK DETAILS & COMMENCE PRODUCTION MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="lockDetailsModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom px-4 py-3 bg-dark text-white" style="background: #1e130f !important;">
+                <h5 class="modal-title fw-bold">Lock Details & Start Production</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('b2b_admin.lock_details', order_id=order.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Locking sets stage to <strong>In Production</strong> and triggers the DLT SMS with the locked box count and expected delivery date (ETA).
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Final Locked Box Quantity</label>
+                        <input type="number" name="box_count" class="form-control" value="{{ order.box_count }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Expected Delivery Date (ETA)</label>
+                        <input type="text" name="eta_date" class="form-control" placeholder="e.g. 20 October 2026" value="{{ order.eta_date or '' }}" required>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-gold rounded-pill px-4">Lock & Start Production</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- 3. MARK DELIVERED MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="markDeliveredModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom px-4 py-3 bg-success text-white">
+                <h5 class="modal-title fw-bold">Mark B2B Order Delivered</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('b2b_admin.mark_delivered', order_id=order.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Confirming delivery sets stage to <strong>Delivered</strong> and sends the final completion DLT SMS with the order archive link to the client.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Courier / Handover Partner</label>
+                        <input type="text" name="courier_name" class="form-control" value="Pikachooz Direct Delivery">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Tracking / Pod Reference Number (Optional)</label>
+                        <input type="text" name="tracking_number" class="form-control" placeholder="e.g. PKZ-POD-9812">
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">Confirm Delivery & Send SMS</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

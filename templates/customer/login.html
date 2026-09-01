@@ -61,56 +61,76 @@
                 {% else %}
                 <!-- Login Method Sub-Tabs -->
                 <div class="d-flex justify-content-center gap-2 mb-4 border-bottom pb-2">
-                    <button type="button" id="subtabEmail" class="btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3">Email Login</button>
-                    <button type="button" id="subtabOtp" class="btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3">Mobile OTP Login</button>
+                    <button type="button" id="subtabOtp" class="btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3">
+                        <i class="bi bi-phone me-1"></i>Mobile OTP Login
+                    </button>
+                    <button type="button" id="subtabEmail" class="btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3">
+                        <i class="bi bi-envelope me-1"></i>Email Login
+                    </button>
                 </div>
 
-                <!-- Email Login Form -->
-                <form action="{{ url_for('auth.login') }}" method="POST" id="emailLoginForm">
-                    <div class="mb-3">
-                        <label class="form-label small fw-semibold text-secondary">Email Address</label>
-                        <input type="email" name="email" class="form-control" placeholder="john@example.com" required>
-                    </div>
-                    <div class="mb-4">
-                        <label class="form-label small fw-semibold text-secondary">Password</label>
-                        <input type="password" name="password" class="form-control" placeholder="••••••••" required>
-                    </div>
-                    <button type="submit" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
-                        Login to Account
-                    </button>
-                </form>
-
-                <!-- Mobile OTP Login Form -->
-                <div id="otpLoginForm" class="d-none">
-                    <div id="loginOtpStatusAlert" class="alert d-none py-2 small mb-3"></div>
+                <!-- Mobile OTP Login Form (Default Active) -->
+                <div id="otpLoginForm">
+                    <div id="loginOtpStatusAlert" class="alert d-none py-2 small mb-3 text-center rounded-3"></div>
                     
                     <!-- Step 1: Send OTP -->
                     <div id="loginStepSendOtp">
                         <div class="mb-4">
-                            <label class="form-label small fw-semibold text-secondary">Phone Number</label>
-                            <input type="tel" id="loginPhoneInput" class="form-control" placeholder="+91 9876543210" required>
-                            <small class="text-muted">Enter phone number with country code (e.g., +91)</small>
+                            <label class="form-label small fw-semibold text-secondary">Mobile Number</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light text-dark fw-bold border-end-0 rounded-start-3 px-3">🇮🇳 +91</span>
+                                <input type="tel" id="loginPhoneInput" class="form-control rounded-end-3 py-2.5 fs-6" placeholder="98765 43210" maxlength="10" autocomplete="tel" inputmode="numeric" required>
+                            </div>
+                            <small class="text-muted d-block mt-1">We'll send a 4-digit verification code via SMS</small>
                         </div>
-                        <button type="button" id="btnLoginSendOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
-                            Send OTP Code
+                        <button type="button" id="btnLoginSendOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                            <span id="btnSendOtpText">Get 4-Digit OTP</span>
+                            <div id="btnSendOtpSpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
                         </button>
                     </div>
                     
                     <!-- Step 2: Verify OTP -->
                     <div id="loginStepVerifyOtp" class="d-none">
-                        <div id="loginDevOtpBanner" class="alert alert-warning py-2 mb-3 small d-none">
-                            <strong>[Dev Mode]</strong> Simulated OTP: <code id="loginDevOtpVal"></code>
+                        <div id="loginDevOtpBanner" class="alert alert-warning py-2 mb-3 small d-none text-center rounded-3">
+                            <strong>[Dev Mode]</strong> Simulated OTP: <code id="loginDevOtpVal" class="fs-6 fw-bold"></code>
                         </div>
+                        
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <span class="small text-muted">Sent to <strong id="displayTargetPhone" class="text-dark"></strong></span>
+                            <button type="button" id="btnChangePhone" class="btn btn-link btn-sm p-0 text-decoration-none text-primary small">Change</button>
+                        </div>
+
                         <div class="mb-4">
-                            <label class="form-label small fw-semibold text-secondary">Enter OTP</label>
-                            <input type="text" id="loginOtpInput" class="form-control text-center fs-4 fw-bold" placeholder="123456" maxlength="6" autocomplete="off" style="letter-spacing: 0.5rem;">
+                            <label class="form-label small fw-semibold text-secondary d-block text-center">Enter 4-Digit Code</label>
+                            <input type="text" id="loginOtpInput" class="form-control text-center fs-2 fw-bold py-2 rounded-3 shadow-sm" placeholder="••••" maxlength="4" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing: 0.8rem;">
                         </div>
-                        <button type="button" id="btnLoginVerifyOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
-                            Verify & Sign In
+                        <button type="button" id="btnLoginVerifyOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                            <span id="btnVerifyOtpText">Verify & Sign In</span>
+                            <div id="btnVerifyOtpSpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
                         </button>
-                        <button type="button" id="btnLoginResendOtp" class="btn btn-link w-100 text-muted small mt-2">Resend OTP</button>
+                        
+                        <div class="text-center mt-3">
+                            <button type="button" id="btnLoginResendOtp" class="btn btn-link p-0 text-muted small text-decoration-none" disabled>
+                                Resend OTP in <span id="resendCountdown">30</span>s
+                            </button>
+                        </div>
                     </div>
                 </div>
+
+                <!-- Email Login Form -->
+                <form action="{{ url_for('auth.login') }}" method="POST" id="emailLoginForm" class="d-none">
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Email Address</label>
+                        <input type="email" name="email" class="form-control py-2.5 rounded-3" placeholder="john@example.com" required>
+                    </div>
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Password</label>
+                        <input type="password" name="password" class="form-control py-2.5 rounded-3" placeholder="••••••••" required>
+                    </div>
+                    <button type="submit" class="btn btn-premium w-100 py-3 fw-bold rounded-3">
+                        Login with Email
+                    </button>
+                </form>
                 {% endif %}
 
                 <!-- Divider -->
@@ -179,14 +199,14 @@
 async function handleGoogleCredentialResponse(response) {
     console.log("Encoded JWT ID token received");
     try {
-        const res = await fetch('/google-login', {
+        const res = await fetch("{{ url_for('auth.google_login') }}", {
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ id_token: response.credential })
         });
         const result = await res.json();
         if (result.success) {
-            window.location.href = '/profile';
+            window.location.href = "{{ url_for('customer.profile') }}";
         } else {
             alert(result.message || 'Google Sign-In failed.');
         }
@@ -216,14 +236,14 @@ document.addEventListener('DOMContentLoaded', function() {
             btnSubmitSimGoogle.disabled = true;
             
             try {
-                const response = await fetch('/google-login', {
+                const response = await fetch("{{ url_for('auth.google_login') }}", {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({ simulation: true, email: email, name: name })
                 });
                 const result = await response.json();
                 if (result.success) {
-                    window.location.href = '/profile';
+                    window.location.href = "{{ url_for('customer.profile') }}";
                 } else {
                     alert(result.message);
                     btnSubmitSimGoogle.disabled = false;
@@ -235,35 +255,44 @@ document.addEventListener('DOMContentLoaded', function() {
         });
     }
 
-    // 2. Mobile OTP Toggles
-    const subtabEmail = document.getElementById('subtabEmail');
+    // 2. Sub-Tabs Toggle (Mobile OTP vs Email)
     const subtabOtp = document.getElementById('subtabOtp');
-    const emailLoginForm = document.getElementById('emailLoginForm');
+    const subtabEmail = document.getElementById('subtabEmail');
     const otpLoginForm = document.getElementById('otpLoginForm');
+    const emailLoginForm = document.getElementById('emailLoginForm');
     
     if (subtabEmail && subtabOtp && emailLoginForm && otpLoginForm) {
-        subtabEmail.addEventListener('click', function() {
-            subtabEmail.className = "btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3";
-            subtabOtp.className = "btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3";
-            emailLoginForm.classList.remove('d-none');
-            otpLoginForm.classList.add('d-none');
-        });
-        
         subtabOtp.addEventListener('click', function() {
             subtabOtp.className = "btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3";
             subtabEmail.className = "btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3";
             otpLoginForm.classList.remove('d-none');
             emailLoginForm.classList.add('d-none');
         });
+
+        subtabEmail.addEventListener('click', function() {
+            subtabEmail.className = "btn btn-link btn-sm text-decoration-none fw-bold text-dark border-bottom border-2 border-dark rounded-0 px-3";
+            subtabOtp.className = "btn btn-link btn-sm text-decoration-none text-muted rounded-0 px-3";
+            emailLoginForm.classList.remove('d-none');
+            otpLoginForm.classList.add('d-none');
+        });
     }
     
-    // 3. Send/Verify Mobile OTP
+    // 3. Send/Verify Mobile OTP State & Handlers
     const btnSendOtp = document.getElementById('btnLoginSendOtp');
-    const btnResendOtp = document.getElementById('btnLoginResendOtp');
+    const btnSendOtpText = document.getElementById('btnSendOtpText');
+    const btnSendOtpSpinner = document.getElementById('btnSendOtpSpinner');
+    
     const btnVerifyOtp = document.getElementById('btnLoginVerifyOtp');
+    const btnVerifyOtpText = document.getElementById('btnVerifyOtpText');
+    const btnVerifyOtpSpinner = document.getElementById('btnVerifyOtpSpinner');
+    
+    const btnResendOtp = document.getElementById('btnLoginResendOtp');
+    const resendCountdown = document.getElementById('resendCountdown');
+    const btnChangePhone = document.getElementById('btnChangePhone');
     
     const phoneInput = document.getElementById('loginPhoneInput');
     const otpInput = document.getElementById('loginOtpInput');
+    const displayTargetPhone = document.getElementById('displayTargetPhone');
     
     const stepSend = document.getElementById('loginStepSendOtp');
     const stepVerify = document.getElementById('loginStepVerifyOtp');
@@ -272,33 +301,98 @@ document.addEventListener('DOMContentLoaded', function() {
     const devOtpBanner = document.getElementById('loginDevOtpBanner');
     const devOtpVal = document.getElementById('loginDevOtpVal');
     
+    let countdownInterval = null;
+
     function showAlert(msg, type='danger') {
-        statusAlert.className = `alert alert-${type} py-2 small mb-3`;
+        statusAlert.className = `alert alert-${type} py-2 small mb-3 text-center rounded-3`;
         statusAlert.textContent = msg;
         statusAlert.classList.remove('d-none');
     }
+
+    function hideAlert() {
+        statusAlert.classList.add('d-none');
+    }
+
+    function startResendCountdown(seconds = 30) {
+        if (countdownInterval) clearInterval(countdownInterval);
+        btnResendOtp.disabled = true;
+        btnResendOtp.className = "btn btn-link p-0 text-muted small text-decoration-none";
+        let remaining = seconds;
+        resendCountdown.textContent = remaining;
+        btnResendOtp.innerHTML = `Resend OTP in <span id="resendCountdown">${remaining}</span>s`;
+
+        countdownInterval = setInterval(() => {
+            remaining -= 1;
+            const span = document.getElementById('resendCountdown');
+            if (span) span.textContent = remaining;
+            
+            if (remaining <= 0) {
+                clearInterval(countdownInterval);
+                btnResendOtp.disabled = false;
+                btnResendOtp.className = "btn btn-link p-0 text-primary fw-semibold small text-decoration-none";
+                btnResendOtp.innerHTML = `Resend OTP`;
+            }
+        }, 1000);
+    }
     
+    // Auto-advance / Auto-submit on 4 digits
+    if (otpInput) {
+        otpInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length === 4) {
+                // Trigger verify automatically
+                triggerVerifyOtp();
+            }
+        });
+    }
+
+    if (phoneInput) {
+        phoneInput.addEventListener('input', function(e) {
+            this.value = this.value.replace(/[^0-9]/g, '');
+        });
+        phoneInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerSendMobileOtp();
+            }
+        });
+    }
+
+    if (btnChangePhone) {
+        btnChangePhone.addEventListener('click', function() {
+            stepVerify.classList.add('d-none');
+            stepSend.classList.remove('d-none');
+            hideAlert();
+            if (phoneInput) phoneInput.focus();
+        });
+    }
+
     async function triggerSendMobileOtp() {
-        const phone = phoneInput.value.trim();
-        if (!phone) {
-            showAlert('Please enter your phone number.', 'danger');
+        const rawPhone = phoneInput.value.trim();
+        const cleanDigits = rawPhone.replace(/\D/g, '');
+        
+        if (cleanDigits.length !== 10) {
+            showAlert('Please enter a valid 10-digit mobile number.', 'danger');
+            phoneInput.focus();
             return;
         }
         
         btnSendOtp.disabled = true;
-        if (btnResendOtp) btnResendOtp.disabled = true;
-        showAlert('Requesting OTP code...', 'info');
+        btnSendOtpText.textContent = "Sending OTP...";
+        btnSendOtpSpinner.classList.remove('d-none');
+        hideAlert();
         
         try {
-            const response = await fetch('/send-mobile-otp', {
+            const response = await fetch("{{ url_for('auth.send_mobile_otp') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: phone })
+                body: JSON.stringify({ phone: cleanDigits })
             });
             const result = await response.json();
             
             if (result.success) {
-                showAlert('OTP code has been sent to your phone.', 'success');
+                showAlert('OTP code sent successfully to your phone.', 'success');
+                displayTargetPhone.textContent = `+91 ${cleanDigits.slice(0, 5)} ${cleanDigits.slice(5)}`;
                 stepSend.classList.add('d-none');
                 stepVerify.classList.remove('d-none');
                 
@@ -307,58 +401,77 @@ document.addEventListener('DOMContentLoaded', function() {
                         devOtpVal.textContent = result.dev_otp;
                         devOtpBanner.classList.remove('d-none');
                     }
+                } else if (devOtpBanner) {
+                    devOtpBanner.classList.add('d-none');
                 }
+                
+                startResendCountdown(30);
+                setTimeout(() => { if (otpInput) otpInput.focus(); }, 150);
             } else {
                 showAlert(result.message || 'Failed to send OTP.', 'danger');
-                btnSendOtp.disabled = false;
             }
         } catch (err) {
-            showAlert('Network error occurred.', 'danger');
-            btnSendOtp.disabled = false;
+            showAlert('Network error occurred. Please try again.', 'danger');
         } finally {
-            if (btnResendOtp) btnResendOtp.disabled = false;
+            btnSendOtp.disabled = false;
+            btnSendOtpText.textContent = "Get 4-Digit OTP";
+            btnSendOtpSpinner.classList.add('d-none');
         }
     }
     
-    if (btnSendOtp) btnSendOtp.addEventListener('click', triggerSendMobileOtp);
-    if (btnResendOtp) btnResendOtp.addEventListener('click', triggerSendMobileOtp);
-    
-    if (btnVerifyOtp) {
-        btnVerifyOtp.addEventListener('click', async function() {
-            const otp = otpInput.value.trim();
-            const phone = phoneInput.value.trim();
+    async function triggerVerifyOtp() {
+        const otp = otpInput.value.trim();
+        const rawPhone = phoneInput.value.trim();
+        const cleanDigits = rawPhone.replace(/\D/g, '');
+        
+        if (otp.length !== 4) {
+            showAlert('Please enter the 4-digit verification code.', 'danger');
+            otpInput.focus();
+            return;
+        }
+        
+        btnVerifyOtp.disabled = true;
+        btnVerifyOtpText.textContent = "Verifying...";
+        btnVerifyOtpSpinner.classList.remove('d-none');
+        hideAlert();
+        
+        try {
+            const response = await fetch("{{ url_for('auth.verify_mobile_otp') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: cleanDigits, otp: otp })
+            });
+            const result = await response.json();
             
-            if (otp.length !== 6) {
-                showAlert('Please enter the 6-digit verification code.', 'danger');
-                return;
-            }
-            
-            btnVerifyOtp.disabled = true;
-            showAlert('Verifying code...', 'info');
-            
-            try {
-                const response = await fetch('/verify-mobile-otp', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: phone, otp: otp })
-                });
-                const result = await response.json();
-                
-                if (result.success) {
-                    showAlert(result.message, 'success');
-                    setTimeout(() => {
-                        window.location.href = '/profile';
-                    }, 1000);
-                } else {
-                    showAlert(result.message || 'Verification failed.', 'danger');
-                    btnVerifyOtp.disabled = false;
-                }
-            } catch (err) {
-                showAlert('Network error occurred.', 'danger');
+            if (result.success) {
+                showAlert(result.message || 'Login successful!', 'success');
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('customer.profile') }}";
+                }, 700);
+            } else {
+                showAlert(result.message || 'Verification failed. Check the code and try again.', 'danger');
                 btnVerifyOtp.disabled = false;
+                btnVerifyOtpText.textContent = "Verify & Sign In";
+                btnVerifyOtpSpinner.classList.add('d-none');
+                otpInput.focus();
+            }
+        } catch (err) {
+            showAlert('Network error occurred during verification.', 'danger');
+            btnVerifyOtp.disabled = false;
+            btnVerifyOtpText.textContent = "Verify & Sign In";
+            btnVerifyOtpSpinner.classList.add('d-none');
+        }
+    }
+
+    if (btnSendOtp) btnSendOtp.addEventListener('click', triggerSendMobileOtp);
+    if (btnResendOtp) {
+        btnResendOtp.addEventListener('click', function() {
+            if (!btnResendOtp.disabled) {
+                triggerSendMobileOtp();
             }
         });
     }
+    if (btnVerifyOtp) btnVerifyOtp.addEventListener('click', triggerVerifyOtp);
 });
 </script>
 {% endblock %}

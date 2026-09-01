@@ -32,3 +32,8 @@ class Config:
 
     # Google OAuth
     GOOGLE_CLIENT_ID = os.environ.get('GOOGLE_CLIENT_ID')
+
+    # MSG91 SMS OTP
+    MSG91_AUTH_KEY = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
+    MSG91_SENDER_ID = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
+    MSG91_FLOW_ID_LOGIN_OTP = os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a9652029b7d90c0f30b5024')

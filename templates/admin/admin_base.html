@@ -28,6 +28,12 @@
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin.dashboard') }}">Dashboard</a>
                     </li>
+                    <li class="nav-item d-flex align-items-center">
+                        <a class="btn btn-sm btn-warning text-dark fw-bold d-flex align-items-center gap-1 mx-2 px-2.5 py-1" href="{{ url_for('b2b_admin.dashboard') }}" style="background: #ffc107; font-size: 0.8rem;">
+                            <i class="bi bi-briefcase-fill"></i>
+                            <span>B2B Operations Desk</span>
+                        </a>
+                    </li>
                     <li class="nav-item">
                         <a class="nav-link" href="{{ url_for('admin.orders') }}">Orders</a>
                     </li>

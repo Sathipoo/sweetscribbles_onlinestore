@@ -1,0 +1,101 @@
+{
+  "project": "Sweet Scribbles Online Store",
+  "description": "Log of behavioral fixes, UX enhancements, anti-abuse protections, and operational solutions.",
+  "version": "1.0.0",
+  "entries": [
+    {
+      "id": "BEH-001",
+      "timestamp": "2026-09-01T10:50:00+05:30",
+      "category": "Authentication & Anti-Abuse",
+      "title": "MSG91 4-Digit Mobile OTP Login & Rate-Limiting",
+      "problem_addressed": "Customers needed a frictionless phone-based login without mandatory password creation, while requiring anti-spam protection, regulatory DLT compliance, and automatic account provisioning for new mobile users.",
+      "solution_implemented": "Integrated MSG91 Flow API with DLT-approved template (PIKCHZ / 1777178764089646500) using a 4-digit OTP. Added a 30-second resend cooldown timer and 10-minute session validity. Implemented automatic user account provisioning for first-time OTP sign-ins and formatted OTP input with auto-submission on the 4th digit.",
+      "files_affected": [
+        "utils/otp_utils.py",
+        "routes/auth.py",
+        "templates/customer/login.html",
+        "config.py",
+        ".env"
+      ]
+    },
+    {
+      "id": "BEH-002",
+      "timestamp": "2026-09-01T11:13:00+05:30",
+      "category": "Checkout & Order Integrity",
+      "title": "Rapid Multi-Click Checkout Lock & Pending Order Idempotency",
+      "problem_addressed": "Impatient customers repeatedly clicked the 'Pay & Place Order' button while the payment gateway (Zoho) link was generating, creating multiple duplicate 'Pending' order records in the database with identical timestamps and amounts (e.g. 6 duplicate drafts created in the same minute).",
+      "solution_implemented": "1. Frontend Submit Lock: Disabled the checkout submit button on first click with an internal `isSubmitting` flag and switched button text to 'Connecting to Secure Payment...' with an animated spinner.\n2. Backend Order Reuse: Stored `session['pending_order_id']` and reused/updated the existing uncompleted Pending order if the user navigates back and retries checkout for the same cart, preventing duplicate database records.",
+      "files_affected": [
+        "templates/customer/checkout.html",
+        "routes/customer.py"
+      ]
+    },
+    {
+      "id": "BEH-003",
+      "timestamp": "2026-09-01T12:58:00+05:30",
+      "category": "B2B & Sales Operations",
+      "title": "B2B Corporate Gifting Ecosystem with Dual-Entry Onboarding & DLT Milestone Lifecycle",
+      "problem_addressed": "Corporate clients required a dedicated journey separate from B2C retail: verifying enquiries via SMS OTP, tracking box customization artwork/mockups, giving instant 1-click approvals, and repeating festive orders without re-entering company credentials. Simultaneously, the Sales Head (Vishnu Govind) needed to onboard high-value clients directly from sales calls without requiring client-side OTP, while synchronizing real-time DLT SMS notifications at each operational milestone.",
+      "solution_implemented": "1. Public Luxury B2B Landing & OTP Enquiry: Interactive catalog with 8 box types, live budget estimator, and 4-digit SMS OTP verification that creates B2BClient and B2BOrder and opens the Client Portal.\n2. B2B Client Self-Service Portal: 6-milestone visual pipeline stepper, logo & sleeve message studio, proof viewer with instant 'Approve for Production' and 'Request Revision' actions, plus 1-click repeat order modal.\n3. Sales Head Direct Onboarding (No OTP): Admin modal enabling manual client onboarding and immediate quote generation without OTP friction.\n4. DLT SMS Lifecycle Automation: Integrated MSG91 DLT templates for B2B Enquiry, Order Confirmation (Advance Paid), Design Ready for Review, Details Locked & Production Beginning, and Delivery Completed.",
+      "files_affected": [
+        "models/b2b.py",
+        "models/__init__.py",
+        "utils/otp_utils.py",
+        "routes/b2b.py",
+        "routes/b2b_admin.py",
+        "templates/b2b/index.html",
+        "templates/b2b/login.html",
+        "templates/b2b/portal.html",
+        "templates/admin/b2b_dashboard.html",
+        "templates/admin/b2b_order_detail.html",
+        "templates/customer/base.html",
+        "templates/admin/admin_base.html",
+        "app.py"
+      ]
+    },
+    {
+      "id": "BEH-004",
+      "timestamp": "2026-09-01T13:20:00+05:30",
+      "category": "Admin & B2B Architecture",
+      "title": "Dedicated B2B Admin Operations Suite with Isolated Navigation & B2B Products Manager",
+      "problem_addressed": "Retail e-commerce management and B2B corporate gifting had colliding operational workflows (e.g. retail products vs corporate gift boxes with premium/assorted tiers; retail individual customers vs multi-order corporate accounts with GST; retail orders vs multi-stage B2B proofing pipelines). Admins needed a clean, dedicated workspace for B2B operations without cluttering retail store management.",
+      "solution_implemented": "1. Dedicated B2B Base Layout (b2b_base.html): Standalone dark luxury operations header providing quick navigation between Pipeline Board, B2B Orders, Corporate Clients, and B2B Products, with 1-click switching back to Retail Admin.\n2. B2B Products & Boxes Manager (/admin/b2b/products): Full CRUD interface to upload box photos (GCP Storage), configure Premium vs. Assorted pricing tiers, net weights, composition breakdowns, and live catalogue visibility toggles.\n3. Dynamic Catalogue Sync: Updated public /b2b landing page to dynamically load gift boxes from the b2b_products table.\n4. Corporate Clients Directory (/admin/b2b/clients): Dedicated database of corporate accounts with GST numbers, contact info, lifetime revenue, and individual client profile view with multi-order history.\n5. Filterable B2B Orders Manager (/admin/b2b/orders): Full table view with stage filters (Enquiries, Quoted, Advance Paid, In Design, In Production, Delivered) and client search.",
+      "files_affected": [
+        "models/b2b.py",
+        "models/__init__.py",
+        "routes/b2b_admin.py",
+        "routes/b2b.py",
+        "templates/admin/b2b/b2b_base.html",
+        "templates/admin/b2b/dashboard.html",
+        "templates/admin/b2b/orders.html",
+        "templates/admin/b2b/order_detail.html",
+        "templates/admin/b2b/clients.html",
+        "templates/admin/b2b/client_detail.html",
+        "templates/admin/b2b/products.html",
+        "templates/b2b/index.html",
+        "templates/admin/admin_base.html"
+      ]
+    },
+    {
+      "id": "BEH-005",
+      "timestamp": "2026-09-01T13:45:00+05:30",
+      "category": "B2B Sales & Pipeline Workflow",
+      "title": "Frictionless Sales Direct Onboarding with Optional Box Selection & Stage Transition Audit Logging",
+      "problem_addressed": "During high-touch outbound sales consultations, corporate prospects often register before finalizing box style, SKU, or batch quantities. Enforcing mandatory box style or quantity selection during initial sales onboarding created operational friction. Additionally, operations, sales, and clients needed transparent audit tracking of when orders moved between pipeline stages (e.g. quote updates, advance payments, design proof approvals, and production commencement).",
+      "solution_implemented": "1. Optional Box & Quantity Onboarding: Updated the Direct Onboarding Modals and backend handler (routes/b2b_admin.py) to make box selection, quantity, and quoted prices optional, defaulting to 'To be decided / Consultation' in the 'enquiry' stage for open follow-ups.\n2. B2B Order Stage Transition Audit Logs (B2BOrderLog): Created a dedicated audit log model tracking order_id, from_stage, to_stage, action_title, actor, notes/details, and timestamps.\n3. Automatic Lifecycle Event Logging: Hooked audit log generation into client OTP enquiry, sales direct onboarding, quote updates, 50% advance confirmation, proof uploading, client design approval, revision requests, detail locking/production, and courier dispatch.\n4. Visual Audit Trail UI: Embedded chronological audit timelines in both Admin Order Detail (/admin/b2b/order/<id>) and Client Portal (/b2b/portal).",
+      "files_affected": [
+        "models/b2b.py",
+        "models/__init__.py",
+        "routes/b2b_admin.py",
+        "routes/b2b.py",
+        "templates/admin/b2b/dashboard.html",
+        "templates/admin/b2b/clients.html",
+        "templates/admin/b2b/order_detail.html",
+        "templates/b2b/portal.html"
+      ]
+    }
+  ]
+}
+
+
+

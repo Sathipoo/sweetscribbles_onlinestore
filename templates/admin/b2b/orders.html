@@ -1,0 +1,162 @@
+{% extends 'admin/b2b/b2b_base.html' %}
+
+{% block title %}All B2B Orders - Sweet Scribbles Operations{% endblock %}
+
+{% block content %}
+<!-- Page Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <h2 class="fw-bold mb-1" style="font-family: 'Playfair Display', serif;">Corporate Gifting Orders</h2>
+        <p class="text-muted small mb-0">Track, manage, and process all corporate orders across workflow stages.</p>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('b2b_admin.dashboard') }}" class="btn btn-outline-dark d-flex align-items-center gap-1">
+            <i class="bi bi-kanban"></i>
+            <span>Pipeline Board</span>
+        </a>
+    </div>
+</div>
+
+<!-- Flashes -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show py-2.5 rounded-3 mb-4 shadow-sm" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- Filter Tabs & Search Bar -->
+<div class="card border-0 shadow-sm rounded-4 p-3 bg-white mb-4">
+    <div class="row g-3 align-items-center">
+        <!-- Stage Tabs -->
+        <div class="col-lg-8">
+            <div class="d-flex flex-wrap gap-1">
+                <a href="{{ url_for('b2b_admin.orders') }}" class="btn btn-sm {% if not current_stage %}btn-dark{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                    All ({{ stage_counts['all'] }})
+                </a>
+                <a href="{{ url_for('b2b_admin.orders', stage='enquiry') }}" class="btn btn-sm {% if current_stage == 'enquiry' %}btn-warning text-dark{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                    Enquiries ({{ stage_counts['enquiry'] }})
+                </a>
+                <a href="{{ url_for('b2b_admin.orders', stage='quotation_sent') }}" class="btn btn-sm {% if current_stage == 'quotation_sent' %}btn-info text-dark{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                    Quoted ({{ stage_counts['quotation_sent'] }})
+                </a>
+                <a href="{{ url_for('b2b_admin.orders', stage='advance_paid') }}" class="btn btn-sm {% if current_stage == 'advance_paid' %}btn-primary{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                    Advance Paid ({{ stage_counts['advance_paid'] }})
+                </a>
+                <a href="{{ url_for('b2b_admin.orders', stage='design_review') }}" class="btn btn-sm {% if current_stage == 'design_review' %}btn-purple text-white{% else %}btn-outline-secondary{% endif %} rounded-pill px-3" {% if current_stage == 'design_review' %}style="background: #6f42c1;"{% endif %}>
+                    In Design ({{ stage_counts['design_review'] }})
+                </a>
+                <a href="{{ url_for('b2b_admin.orders', stage='production') }}" class="btn btn-sm {% if current_stage == 'production' %}btn-warning text-dark{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                    In Production ({{ stage_counts['production'] }})
+                </a>
+                <a href="{{ url_for('b2b_admin.orders', stage='delivered') }}" class="btn btn-sm {% if current_stage == 'delivered' %}btn-success{% else %}btn-outline-secondary{% endif %} rounded-pill px-3">
+                    Delivered ({{ stage_counts['delivered'] }})
+                </a>
+            </div>
+        </div>
+
+        <!-- Search Form -->
+        <div class="col-lg-4">
+            <form action="{{ url_for('b2b_admin.orders') }}" method="GET" class="d-flex gap-2">
+                {% if current_stage %}<input type="hidden" name="stage" value="{{ current_stage }}">{% endif %}
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-light"><i class="bi bi-search"></i></span>
+                    <input type="text" name="q" class="form-control" placeholder="Search by company, order#, phone..." value="{{ query_str or '' }}">
+                </div>
+                <button type="submit" class="btn btn-sm btn-dark">Search</button>
+                {% if query_str %}
+                <a href="{{ url_for('b2b_admin.orders', stage=current_stage) }}" class="btn btn-sm btn-outline-secondary">Clear</a>
+                {% endif %}
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Orders Table -->
+<div class="card border-0 shadow-sm rounded-4 overflow-hidden mb-4">
+    <div class="table-responsive">
+        <table class="table table-hover align-middle mb-0">
+            <thead class="table-light small text-uppercase" style="background: #f1f3f5;">
+                <tr>
+                    <th>Order #</th>
+                    <th>Corporate Client</th>
+                    <th>Box Style & Qty</th>
+                    <th>Occasion</th>
+                    <th>Stage</th>
+                    <th>Financials</th>
+                    <th>Timeline</th>
+                    <th class="text-end">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for ord in orders %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('b2b_admin.order_detail', order_id=ord.id) }}" class="font-monospace fw-bold text-decoration-none">
+                            #{{ ord.order_number }}
+                        </a>
+                        <small class="text-muted d-block" style="font-size: 0.72rem;">{{ ord.created_at.strftime('%d %b %Y, %I:%M %p') }}</small>
+                    </td>
+                    <td>
+                        <strong class="text-dark d-block">{{ ord.client.company_name }}</strong>
+                        <small class="text-secondary">{{ ord.client.contact_name }} ({{ ord.client.phone }})</small>
+                    </td>
+                    <td>
+                        <span class="fw-semibold text-dark">{{ ord.box_type }}</span>
+                        <span class="badge bg-dark ms-1">{{ ord.box_count }} Units</span>
+                    </td>
+                    <td class="small text-secondary">
+                        {{ ord.custom_occasion or 'Corporate Gifting' }}
+                    </td>
+                    <td>
+                        <span class="badge {{ ord.get_stage_badge_class() }} px-2.5 py-1">
+                            {{ ord.get_stage_display() }}
+                        </span>
+                        {% if ord.design_status == 'approved' %}
+                        <span class="badge bg-success-subtle text-success border border-success d-block mt-1" style="font-size: 0.68rem;">✓ Artwork Approved</span>
+                        {% elif ord.design_status == 'revision_requested' %}
+                        <span class="badge bg-warning-subtle text-warning border border-warning d-block mt-1" style="font-size: 0.68rem;">Revision Requested</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="fw-bold text-dark d-block">₹{{ "{:,.2f}".format(ord.total_amount) }}</span>
+                        {% if ord.advance_paid %}
+                        <span class="badge bg-success" style="font-size: 0.68rem;">✓ 50% Advance Paid</span>
+                        {% else %}
+                        <span class="badge bg-light text-danger border border-danger" style="font-size: 0.68rem;">Adv: ₹{{ "{:,.0f}".format(ord.advance_amount_required) }} Pending</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        {% if ord.eta_date %}
+                        <small class="text-dark fw-bold d-block"><i class="bi bi-calendar-event me-1 text-warning"></i>ETA: {{ ord.eta_date }}</small>
+                        {% else %}
+                        <small class="text-muted d-block">—</small>
+                        {% endif %}
+                        {% if ord.delivered_at %}
+                        <small class="text-success fw-semibold"><i class="bi bi-check-circle me-1"></i>Delivered {{ ord.delivered_at.strftime('%d %b') }}</small>
+                        {% endif %}
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('b2b_admin.order_detail', order_id=ord.id) }}" class="btn btn-sm btn-outline-dark fw-semibold">
+                            Manage &rarr;
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        <i class="bi bi-inbox fs-2 d-block mb-2 text-secondary"></i>
+                        No corporate orders found matching the selected criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}

@@ -1,0 +1,168 @@
+{% extends 'admin/b2b/b2b_base.html' %}
+
+{% block title %}{{ client.company_name }} - Corporate Client Profile{% endblock %}
+
+{% block content %}
+<!-- Top Header -->
+<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+    <div>
+        <a href="{{ url_for('b2b_admin.clients') }}" class="text-decoration-none text-muted small">
+            &larr; Back to Corporate Clients
+        </a>
+        <h2 class="fw-bold mb-0 mt-1" style="font-family: 'Playfair Display', serif;">{{ client.company_name }}</h2>
+        <span class="text-muted small">Registered on {{ client.created_at.strftime('%d %B %Y') }} · {{ client.orders|length }} Total Batches</span>
+    </div>
+    
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('b2b_admin.orders') }}" class="btn btn-outline-dark btn-sm">View All Orders</a>
+    </div>
+</div>
+
+<!-- Flashes -->
+{% with messages = get_flashed_messages(with_categories=true) %}
+  {% if messages %}
+    {% for category, message in messages %}
+      <div class="alert alert-{{ category }} alert-dismissible fade show py-2.5 rounded-3 mb-4 shadow-sm" role="alert">
+        {{ message }}
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    {% endfor %}
+  {% endif %}
+{% endwith %}
+
+<!-- Top Stats -->
+<div class="row g-3 mb-4">
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-semibold text-uppercase">Lifetime Revenue</span>
+            <h3 class="fw-bold text-success mt-1 mb-0">₹{{ "{:,.2f}".format(client.total_spend) }}</h3>
+            <small class="text-muted">Total value of completed & confirmed orders</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-semibold text-uppercase">Total Batches</span>
+            <h3 class="fw-bold text-dark mt-1 mb-0">{{ client.orders|length }} Batches</h3>
+            <small class="text-muted">Gifting campaigns across all seasons</small>
+        </div>
+    </div>
+    <div class="col-md-4">
+        <div class="card border-0 shadow-sm rounded-4 p-3 bg-white">
+            <span class="text-muted small fw-semibold text-uppercase">Mobile ID (OTP Login)</span>
+            <h3 class="fw-bold text-primary mt-1 mb-0 font-monospace">{{ client.phone }}</h3>
+            <small class="text-muted">Verified corporate contact</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Edit Company Profile -->
+    <div class="col-lg-5">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Corporate Profile & GST</h5>
+            
+            <form action="{{ url_for('b2b_admin.edit_client', client_id=client.id) }}" method="POST">
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Company / Organization Name *</label>
+                    <input type="text" name="company_name" class="form-control" value="{{ client.company_name }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Primary Contact Person *</label>
+                    <input type="text" name="contact_name" class="form-control" value="{{ client.contact_name }}" required>
+                </div>
+
+                <div class="row g-2 mb-3">
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold text-secondary">Mobile Number *</label>
+                        <input type="tel" name="phone" class="form-control font-monospace" value="{{ client.phone }}" required>
+                    </div>
+                    <div class="col-6">
+                        <label class="form-label small fw-semibold text-secondary">GST Number</label>
+                        <input type="text" name="gst_number" class="form-control font-monospace" value="{{ client.gst_number or '' }}">
+                    </div>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Official Email Address *</label>
+                    <input type="email" name="email" class="form-control" value="{{ client.email }}" required>
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Industry / Domain</label>
+                    <input type="text" name="industry" class="form-control" value="{{ client.industry or '' }}" placeholder="e.g. IT Services, Banking, Healthcare">
+                </div>
+
+                <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary">Headquarter / Shipping Address</label>
+                    <textarea name="shipping_address" class="form-control" rows="2">{{ client.shipping_address or '' }}</textarea>
+                </div>
+
+                <div class="mb-4">
+                    <label class="form-label small fw-semibold text-secondary">Account Manager Notes</label>
+                    <textarea name="notes" class="form-control" rows="2" placeholder="Client preferences, payment terms, key dates...">{{ client.notes or '' }}</textarea>
+                </div>
+
+                <button type="submit" class="btn btn-dark w-100 py-2.5 fw-bold">
+                    Save Profile Changes
+                </button>
+            </form>
+        </div>
+    </div>
+
+    <!-- Right Column: Order History Table -->
+    <div class="col-lg-7">
+        <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Gifting Order History</h5>
+            
+            {% if client.orders %}
+            <div class="table-responsive">
+                <table class="table align-middle table-hover mb-0">
+                    <thead class="table-light small text-uppercase">
+                        <tr>
+                            <th>Order #</th>
+                            <th>Box Type</th>
+                            <th>Qty</th>
+                            <th>Occasion</th>
+                            <th>Stage</th>
+                            <th>Total</th>
+                            <th>Action</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for ord in client.orders %}
+                        <tr>
+                            <td>
+                                <a href="{{ url_for('b2b_admin.order_detail', order_id=ord.id) }}" class="font-monospace fw-bold text-decoration-none">
+                                    #{{ ord.order_number }}
+                                </a>
+                                <small class="text-muted d-block" style="font-size: 0.7rem;">{{ ord.created_at.strftime('%d %b %Y') }}</small>
+                            </td>
+                            <td>{{ ord.box_type }}</td>
+                            <td><strong>{{ ord.box_count }}</strong></td>
+                            <td class="small text-secondary">{{ ord.custom_occasion or 'Corporate' }}</td>
+                            <td>
+                                <span class="badge {{ ord.get_stage_badge_class() }} px-2 py-1" style="font-size: 0.72rem;">
+                                    {{ ord.get_stage_display() }}
+                                </span>
+                            </td>
+                            <td class="fw-bold text-dark">₹{{ "{:,.0f}".format(ord.total_amount) }}</td>
+                            <td>
+                                <a href="{{ url_for('b2b_admin.order_detail', order_id=ord.id) }}" class="btn btn-sm btn-outline-dark py-0 px-2 font-monospace">
+                                    Manage &rarr;
+                                </a>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted small">
+                No orders on record for this company.
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

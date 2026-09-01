@@ -237,21 +237,38 @@ def checkout():
         customer_phone = request.form.get('phone')
         shipping_address = request.form.get('shipping_address')
         
-        order_number = f"SS{uuid.uuid4().hex[:6].upper()}"
+        # Check if we can reuse an existing Pending order for this session to prevent duplicates
+        order = None
+        pending_order_id = session.get('pending_order_id')
+        if pending_order_id:
+            existing_order = Order.query.get(pending_order_id)
+            if existing_order and existing_order.status == 'Pending':
+                order = existing_order
+                order.customer_name = customer_name
+                order.customer_email = customer_email
+                order.customer_phone = customer_phone
+                order.shipping_address = shipping_address
+                order.customer_id = current_user.id if current_user.is_authenticated else None
+                # Clear old items to repopulate cleanly
+                OrderItem.query.filter_by(order_id=order.id).delete()
+
+        if not order:
+            order_number = f"SS{uuid.uuid4().hex[:6].upper()}"
+            order = Order(
+                order_number=order_number,
+                customer_name=customer_name,
+                customer_email=customer_email,
+                customer_phone=customer_phone,
+                shipping_address=shipping_address,
+                customer_id=current_user.id if current_user.is_authenticated else None,
+                status='Pending',
+                total_amount=0.0
+            )
+            db.session.add(order)
+            db.session.flush() # get order id
+            session['pending_order_id'] = order.id
         
         total_amount = 0
-        order = Order(
-            order_number=order_number,
-            customer_name=customer_name,
-            customer_email=customer_email,
-            customer_phone=customer_phone,
-            shipping_address=shipping_address,
-            customer_id=current_user.id if current_user.is_authenticated else None,
-            status='Pending',
-            total_amount=0.0
-        )
-        db.session.add(order)
-        db.session.flush() # get order id
         
         for item in cart_items:
             prod = Product.query.get(item['product_id'])
@@ -324,6 +341,7 @@ def checkout():
             order.zoho_payment_link_id = zoho_payment_link_id
             db.session.commit()
             session.pop('cart', None)
+            session.pop('pending_order_id', None)
             return redirect(payment_link)
         else:
             # Check if running in production
@@ -344,6 +362,7 @@ def checkout():
             order.payment_link = simulated_url
             db.session.commit()
             session.pop('cart', None)
+            session.pop('pending_order_id', None)
             return redirect(simulated_url)
             
     # GET method summary calculation for checkout page

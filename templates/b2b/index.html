@@ -1,0 +1,660 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}B2B Corporate Gifting Catalogue - Sweet Scribbles{% endblock %}
+
+{% block content %}
+<div class="b2b-experience">
+    <!-- 1. Hero Section -->
+    <section class="hero-b2b position-relative py-5 text-white" style="background: linear-gradient(135deg, #2b1711 0%, #4b2417 60%, #6e3825 100%); border-radius: 0 0 32px 32px; overflow: hidden;">
+        <div class="position-absolute top-0 end-0 opacity-10 pe-none" style="transform: translate(20%, -20%);">
+            <svg width="600" height="600" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#c79442" d="M44.7,-76.4C58.8,-69.2,71.8,-59.1,79.6,-45.8C87.4,-32.6,90,-16.3,88.5,-0.9C87,14.6,81.4,29.1,72.9,41.4C64.4,53.7,53,63.7,40.1,70.9C27.1,78.1,13.6,82.4,-0.4,83.1C-14.3,83.8,-28.6,80.8,-41.3,73.5C-54,66.2,-65.1,54.5,-73.4,41.1C-81.7,27.7,-87.2,13.8,-86.6,0.3C-86,-13.2,-79.3,-26.4,-70.4,-37.7C-61.5,-49,-50.4,-58.4,-38,-66.4C-25.6,-74.4,-12.8,-81,1.1,-82.9C15,-84.8,30.6,-83.6,44.7,-76.4Z" transform="translate(100 100)" />
+            </svg>
+        </div>
+        
+        <div class="container py-4 position-relative z-1">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <span class="badge px-3 py-2 rounded-pill fw-bold text-uppercase mb-3" style="background: rgba(199, 148, 66, 0.25); color: #f2dfb7; border: 1px solid #c79442; letter-spacing: 1.5px; font-size: 0.8rem;">
+                        A Pikachooz Product · B2B Corporate Gifting
+                    </span>
+                    <h1 class="display-4 fw-bold mb-3" style="font-family: 'Playfair Display', serif; line-height: 1.15; color: #fffaf1;">
+                        Celebration sweets, <br><span style="color: #f0ca82; font-style: italic;">thoughtfully reimagined.</span>
+                    </h1>
+                    <p class="lead mb-4 text-light opacity-90" style="font-size: 1.15rem; max-width: 580px; line-height: 1.6;">
+                        Handcrafted artisanal bites made using roasted nuts, seeds, and dates. Perfect for client appreciation, Diwali, executive milestones, and luxury festive gifting.
+                    </p>
+                    
+                    <div class="d-flex flex-wrap gap-3 mb-4">
+                        <button type="button" class="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow-lg text-dark" style="background: #f0c978; border-color: #f0c978;" data-bs-toggle="modal" data-bs-target="#enquiryModal">
+                            <i class="bi bi-send-fill me-2"></i>Request Custom Quotation
+                        </button>
+                        <a href="#catalogue" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-pill">
+                            Explore Boxes & Pricing
+                        </a>
+                        <a href="{{ url_for('b2b.login') }}" class="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2">
+                            <span>Client Portal Login</span> <i class="bi bi-arrow-right"></i>
+                        </a>
+                    </div>
+                </div>
+                
+                <div class="col-lg-5">
+                    <div class="p-4 rounded-4 shadow-lg text-dark" style="background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); border: 1px solid rgba(199, 148, 66, 0.3);">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                            <h5 class="fw-bold mb-0 text-dark" style="font-family: 'Playfair Display', serif;">Quick Gifting Estimator</h5>
+                            <span class="badge bg-success-subtle text-success border border-success">Min 50 Boxes</span>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-muted">Select Box Style</label>
+                            <select id="estimatorBoxSelect" class="form-select form-select-sm py-2">
+                                {% for b in boxes %}
+                                <option value="{{ b.price_premium }}" data-name="{{ b.name }} (Premium)">{{ b.name }} ({{ b.bites_count }}) - ₹{{ "{:,.0f}".format(b.price_premium) }}</option>
+                                {% if b.price_assorted > 0 and b.price_assorted != b.price_premium %}
+                                <option value="{{ b.price_assorted }}" data-name="{{ b.name }} (Assorted)">{{ b.name }} (Assorted) - ₹{{ "{:,.0f}".format(b.price_assorted) }}</option>
+                                {% endif %}
+                                {% endfor %}
+                            </select>
+                        </div>
+
+                        
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-muted mb-0">Quantity Required</label>
+                                <span class="badge bg-dark fs-6" id="calcQtyDisplay">100 boxes</span>
+                            </div>
+                            <input type="range" class="form-range" id="calcQtySlider" min="50" max="2500" step="25" value="100">
+                        </div>
+                        
+                        <div class="p-3 rounded-3 bg-light border mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small text-muted">Estimated Budget:</span>
+                                <span class="fs-4 fw-bold text-dark" id="calcTotalEstimate">₹34,500</span>
+                            </div>
+                            <small class="text-success d-block"><i class="bi bi-check-circle-fill me-1"></i> Includes Custom Sleeve, Logo Branding & South India Delivery</small>
+                        </div>
+                        
+                        <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openEnquiryWithEstimate()">
+                            Lock This Estimate & Get Quote
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. The 4 Health & Quality Pillars -->
+    <section class="py-5 bg-white border-bottom">
+        <div class="container">
+            <div class="text-center mb-4">
+                <span class="text-uppercase small fw-bold tracking-wide" style="color: #c79442;">What Sets Sweet Scribbles Apart</span>
+                <h2 class="fw-bold text-dark mt-1" style="font-family: 'Playfair Display', serif;">Made with purpose. Created to be shared.</h2>
+            </div>
+            
+            <div class="row g-4 text-center">
+                <div class="col-6 col-md-3">
+                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
+                        <div class="fs-1 mb-2 text-warning">🚫</div>
+                        <h6 class="fw-bold text-dark mb-1">No Added Sugar</h6>
+                        <p class="small text-muted mb-0">Naturally sweetened with premium Arabian dates & honey.</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
+                        <div class="fs-1 mb-2 text-warning">🍯</div>
+                        <h6 class="fw-bold text-dark mb-1">No Jaggery</h6>
+                        <p class="small text-muted mb-0">Zero syrup or jaggery fillers; pure fruit and nut integrity.</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
+                        <div class="fs-1 mb-2 text-warning">🌿</div>
+                        <h6 class="fw-bold text-dark mb-1">No Preservatives</h6>
+                        <p class="small text-muted mb-0">Clean-label, zero artificial stabilizers or shelf-life chemicals.</p>
+                    </div>
+                </div>
+                <div class="col-6 col-md-3">
+                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
+                        <div class="fs-1 mb-2 text-warning">🎨</div>
+                        <h6 class="fw-bold text-dark mb-1">No Artificial Flavors</h6>
+                        <p class="small text-muted mb-0">Real pistachios, roasted almonds, cashews & organic spices.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Interactive B2B Box Catalogue -->
+    <section id="catalogue" class="py-5" style="background: #fbf5e9;">
+        <div class="container py-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-end mb-4">
+                <div>
+                    <span class="text-uppercase small fw-bold" style="color: #c79442;">Curated Collections</span>
+                    <h2 class="fw-bold text-dark mt-1" style="font-family: 'Playfair Display', serif;">Explore Corporate Gifting Boxes</h2>
+                </div>
+                <div>
+                    <button class="btn btn-premium px-4 py-2 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#enquiryModal">
+                        <i class="bi bi-file-earmark-text me-1"></i>Enquire for Custom Batch
+                    </button>
+                </div>
+            </div>
+
+            <div class="row g-4">
+                {% for box in boxes %}
+                <div class="col-lg-4 col-md-6">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden" style="background: #ffffff; border: 1px solid #eadfce;">
+                        <div class="position-relative">
+                            <img src="{{ box.image_url or url_for('static', filename='images/official_logo_gold.png') }}" class="card-img-top" alt="{{ box.name }}" style="height: 220px; object-fit: cover;">
+                            {% if box.badge %}
+                            <span class="position-absolute top-0 start-0 m-3 badge rounded-pill px-3 py-2 bg-dark text-white fw-semibold">
+                                {{ box.badge }}
+                            </span>
+                            {% endif %}
+                            <span class="position-absolute bottom-0 end-0 m-3 badge rounded-pill px-3 py-2 bg-white text-dark shadow-sm fw-bold">
+                                {{ box.net_weight }}
+                            </span>
+                        </div>
+                        
+                        <div class="card-body p-4 d-flex flex-column">
+                            <span class="text-uppercase small fw-bold text-muted">{{ box.category }}</span>
+                            <h4 class="card-title fw-bold text-dark mb-2" style="font-family: 'Playfair Display', serif;">{{ box.name }}</h4>
+                            <p class="small text-muted mb-3">{{ box.customization_info or 'Includes custom corporate sleeve branding' }}</p>
+                            
+                            <!-- Price Card Breakdown -->
+                            <div class="p-3 rounded-3 mb-3" style="background: #fffaf1; border: 1px solid #f2dfb7;">
+                                <div class="d-flex justify-content-between align-items-center mb-1">
+                                    <span class="small fw-bold text-secondary">Premium Edition:</span>
+                                    <span class="fw-bold fs-5 text-dark">₹{{ "{:,.0f}".format(box.price_premium) }}/-</span>
+                                </div>
+                                {% if box.price_assorted > 0 %}
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span class="small fw-bold text-secondary">Assorted Edition:</span>
+                                    <span class="fw-bold fs-6 text-muted">₹{{ "{:,.0f}".format(box.price_assorted) }}/-</span>
+                                </div>
+                                {% endif %}
+                            </div>
+                            
+                            <!-- Composition items -->
+                            <div class="mb-4 flex-grow-1">
+                                <span class="small fw-bold text-dark d-block mb-1">Box Composition:</span>
+                                <ul class="small text-muted ps-3 mb-0">
+                                    {% for comp in box.get_composition_premium_list() %}
+                                    <li>{{ comp }}</li>
+                                    {% else %}
+                                    <li>{{ box.bites_count }} Artisanal Nut & Date Bites</li>
+                                    {% endfor %}
+                                </ul>
+                            </div>
+                            
+                            <button type="button" class="btn btn-outline-dark w-100 py-2.5 rounded-pill fw-bold mt-auto" onclick="selectBoxForEnquiry('{{ box.name }}', {{ box.price_premium }})">
+                                Select & Enquire
+                            </button>
+                        </div>
+                    </div>
+
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. The 6-Step B2B Ordering Process -->
+    <section class="py-5 bg-white border-top border-bottom">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="text-uppercase small fw-bold" style="color: #c79442;">From Brief to Beautifully Packed</span>
+                <h2 class="fw-bold text-dark mt-1" style="font-family: 'Playfair Display', serif;">How Your Corporate Order Comes Together</h2>
+            </div>
+            
+            <div class="row g-4">
+                <div class="col-md-4 col-sm-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
+                        <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">1</span>
+                        <h5 class="fw-bold text-dark mb-2">Share Your Requirement</h5>
+                        <p class="small text-muted mb-0">Tell us your occasion, box count, preferred sweets, and delivery timeline.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
+                        <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">2</span>
+                        <h5 class="fw-bold text-dark mb-2">Curate Your Order</h5>
+                        <p class="small text-muted mb-0">We assist you in finalizing custom bite assortments, box styles, and branded sleeve artwork.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
+                        <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">3</span>
+                        <h5 class="fw-bold text-dark mb-2">Approve Quotation</h5>
+                        <p class="small text-muted mb-0">Review the official formal quotation and transparent cost breakdown in your B2B Client Portal.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
+                        <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">4</span>
+                        <h5 class="fw-bold text-dark mb-2">Confirm with 50% Advance</h5>
+                        <p class="small text-muted mb-0">Secure your festive batch slot with a 50% advance deposit via Zoho Payments or Bank NEFT.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
+                        <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">5</span>
+                        <h5 class="fw-bold text-dark mb-2">Production & Quality Check</h5>
+                        <p class="small text-muted mb-0">Handcrafted by master halwais with fresh ingredients and packaged under strict quality seals.</p>
+                    </div>
+                </div>
+                <div class="col-md-4 col-sm-6">
+                    <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
+                        <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">6</span>
+                        <h5 class="fw-bold text-dark mb-2">Dispatch & Delivery</h5>
+                        <p class="small text-muted mb-0">Delivered right to your corporate headquarters or multi-city employee addresses across South India.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Lead Times & Consultation Card -->
+    <section class="py-5" style="background: #2b1711; color: white;">
+        <div class="container py-3">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <span class="badge px-3 py-1.5 rounded-pill mb-3" style="background: rgba(199, 148, 66, 0.3); color: #f0c978;">Plan With Confidence</span>
+                    <h2 class="fw-bold mb-4" style="font-family: 'Playfair Display', serif;">Standard Production Lead Times</h2>
+                    
+                    <div class="row g-3">
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 border" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15) !important;">
+                                <h3 class="fw-bold mb-0 text-warning">5 Days</h3>
+                                <span class="small text-light">Standard B2B Orders</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 border" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15) !important;">
+                                <h3 class="fw-bold mb-0 text-warning">7 Days</h3>
+                                <span class="small text-light">Custom Branded Orders</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 border" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15) !important;">
+                                <h3 class="fw-bold mb-0 text-warning">7 Days</h3>
+                                <span class="small text-light">Large / Bulk Batches</span>
+                            </div>
+                        </div>
+                        <div class="col-6">
+                            <div class="p-3 rounded-3 border" style="background: rgba(255,255,255,0.06); border-color: rgba(255,255,255,0.15) !important;">
+                                <h3 class="fw-bold mb-0 text-warning">9 Days</h3>
+                                <span class="small text-light">Peak Festive Seasons</span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-lg-6">
+                    <div class="p-4 p-md-5 rounded-4 text-dark shadow-lg" style="background: #fffaf1; border: 2px solid #c79442;">
+                        <span class="badge bg-dark text-white mb-2">Corporate Gifting Desk</span>
+                        <h4 class="fw-bold mb-1" style="font-family: 'Playfair Display', serif;">Vishnu Govind</h4>
+                        <p class="text-muted small mb-3">Head of B2B Alliances & Client Gifting</p>
+                        
+                        <div class="d-flex flex-column gap-2 mb-4 small text-secondary">
+                            <div><i class="bi bi-telephone-fill text-primary me-2"></i><strong>Phone:</strong> 8088783044 | 9066611856</div>
+                            <div><i class="bi bi-whatsapp text-success me-2"></i><strong>WhatsApp:</strong> 9108460651</div>
+                            <div><i class="bi bi-envelope-fill text-danger me-2"></i><strong>Email:</strong> vishnu.govind@pikachooz.com</div>
+                            <div><i class="bi bi-geo-alt-fill text-dark me-2"></i><strong>Location:</strong> Bengaluru, Karnataka</div>
+                        </div>
+                        
+                        <button type="button" class="btn btn-premium w-100 py-3 fw-bold rounded-3" data-bs-toggle="modal" data-bs-target="#enquiryModal">
+                            Submit Your Gifting Requirement
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- ========================================== -->
+<!-- B2B OTP-VERIFIED ENQUIRY MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="enquiryModal" tabindex="-1" aria-labelledby="enquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: #ffffff;">
+            <div class="modal-header border-bottom px-4 py-3" style="background: #fffaf1;">
+                <div>
+                    <span class="badge bg-warning text-dark mb-1">A Pikachooz Product</span>
+                    <h5 class="modal-title fw-bold text-dark" id="enquiryModalLabel" style="font-family: 'Playfair Display', serif;">
+                        Corporate Gifting Enquiry & Quotation
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div id="enquiryAlert" class="alert d-none py-2 small mb-3 text-center rounded-3"></div>
+
+                <!-- Step 1: Enquiry Details Form -->
+                <div id="stepEnquiryForm">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Company / Organization Name *</label>
+                            <input type="text" id="eqCompany" class="form-control" placeholder="e.g. Acme Technologies Pvt Ltd" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Contact Person Name *</label>
+                            <input type="text" id="eqContact" class="form-control" placeholder="e.g. Priya Sharma" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Official Email Address *</label>
+                            <input type="email" id="eqEmail" class="form-control" placeholder="priya@acme.com" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Mobile Number (For Verification) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold border-end-0">🇮🇳 +91</span>
+                                <input type="tel" id="eqPhone" class="form-control" placeholder="98765 43210" maxlength="10" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Preferred Box Style</label>
+                            <select id="eqBoxType" class="form-select">
+                                <option value="Signature DIYA Box">Signature DIYA Box (8 Bites)</option>
+                                <option value="Small Celebration Box">Small Celebration Box (12 Bites)</option>
+                                <option value="Large Celebration Box">Large Celebration Box (24 Bites)</option>
+                                <option value="Dual Delight Box">Dual Delight Box (8 Bites + Choco Hex)</option>
+                                <option value="Namkeen Delight Box">Namkeen Delight Box (9 Bites + Namkeen)</option>
+                                <option value="Mini Pack Box">Mini Pack Box (4 Bites)</option>
+                                <option value="Dark Choco Hex Box">Dark Choco Hex Box (6 Bites)</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Estimated Quantity (Min 50 for branding)</label>
+                            <input type="number" id="eqBoxCount" class="form-control" min="10" step="10" value="100">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Gifting Occasion / Purpose</label>
+                        <input type="text" id="eqOccasion" class="form-control" placeholder="e.g. Diwali Gifting, Annual Summit, Client Welcome Kit">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Custom Message or Specific Requirements</label>
+                        <textarea id="eqMessage" class="form-control" rows="2" placeholder="Custom sleeve message, logo colors, multi-city delivery preferences..."></textarea>
+                    </div>
+
+                    <button type="button" id="btnRequestEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                        <span id="btnEnquiryText">Verify Mobile & Submit Enquiry</span>
+                        <div id="btnEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+                </div>
+
+                <!-- Step 2: OTP Verification Screen -->
+                <div id="stepEnquiryOtp" class="d-none text-center py-2">
+                    <div id="enquiryDevOtpBanner" class="alert alert-warning py-2 mb-3 small d-none text-center rounded-3">
+                        <strong>[Dev Mode]</strong> Simulated B2B OTP: <code id="enquiryDevOtpVal" class="fs-6 fw-bold"></code>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="small text-muted mb-1">We've sent a 4-digit verification code to:</p>
+                        <h6 class="fw-bold text-dark" id="displayEnquiryPhone">+91 XXXXX XXXXX</h6>
+                        <button type="button" id="btnEditEnquiryPhone" class="btn btn-link btn-sm p-0 text-primary small">Change Number</button>
+                    </div>
+
+                    <div class="mb-4 mx-auto" style="max-width: 260px;">
+                        <label class="form-label small fw-semibold text-secondary">Enter 4-Digit OTP</label>
+                        <input type="text" id="enquiryOtpInput" class="form-control text-center fs-2 fw-bold py-2 rounded-3 shadow-sm" placeholder="••••" maxlength="4" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing: 0.8rem;">
+                    </div>
+
+                    <button type="button" id="btnVerifyEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2 mb-3">
+                        <span id="btnVerifyEnquiryText">Confirm & Access Client Portal</span>
+                        <div id="btnVerifyEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+
+                    <div>
+                        <button type="button" id="btnResendEnquiryOtp" class="btn btn-link p-0 text-muted small text-decoration-none" disabled>
+                            Resend OTP in <span id="enquiryResendCountdown">30</span>s
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Estimator slider calculations
+    const slider = document.getElementById('calcQtySlider');
+    const qtyDisplay = document.getElementById('calcQtyDisplay');
+    const boxSelect = document.getElementById('estimatorBoxSelect');
+    const totalEstimate = document.getElementById('calcTotalEstimate');
+
+    function updateEstimate() {
+        if (!slider || !boxSelect || !totalEstimate) return;
+        const qty = parseInt(slider.value, 10);
+        const price = parseFloat(boxSelect.value);
+        qtyDisplay.textContent = `${qty} boxes`;
+        const total = qty * price;
+        totalEstimate.textContent = `₹${total.toLocaleString('en-IN')}`;
+    }
+
+    if (slider) slider.addEventListener('input', updateEstimate);
+    if (boxSelect) boxSelect.addEventListener('change', updateEstimate);
+
+    window.openEnquiryWithEstimate = function() {
+        const boxName = boxSelect.options[boxSelect.selectedIndex].getAttribute('data-name');
+        const qty = slider.value;
+        const eqBox = document.getElementById('eqBoxType');
+        const eqCount = document.getElementById('eqBoxCount');
+        if (eqBox) eqBox.value = boxSelect.options[boxSelect.selectedIndex].text.split('(')[0].trim();
+        if (eqCount) eqCount.value = qty;
+        
+        const modal = new bootstrap.Modal(document.getElementById('enquiryModal'));
+        modal.show();
+    };
+
+    window.selectBoxForEnquiry = function(boxName, defaultPrice) {
+        const eqBox = document.getElementById('eqBoxType');
+        if (eqBox) eqBox.value = boxName;
+        const modal = new bootstrap.Modal(document.getElementById('enquiryModal'));
+        modal.show();
+    };
+
+    // Modal OTP flow
+    const btnSendOtp = document.getElementById('btnRequestEnquiryOtp');
+    const btnSendText = document.getElementById('btnEnquiryText');
+    const btnSendSpinner = document.getElementById('btnEnquirySpinner');
+
+    const btnVerifyOtp = document.getElementById('btnVerifyEnquiryOtp');
+    const btnVerifyText = document.getElementById('btnVerifyEnquiryText');
+    const btnVerifySpinner = document.getElementById('btnVerifyEnquirySpinner');
+
+    const btnResendOtp = document.getElementById('btnResendEnquiryOtp');
+    const resendCountdown = document.getElementById('enquiryResendCountdown');
+    const btnEditPhone = document.getElementById('btnEditEnquiryPhone');
+
+    const stepForm = document.getElementById('stepEnquiryForm');
+    const stepOtp = document.getElementById('stepEnquiryOtp');
+    const alertBox = document.getElementById('enquiryAlert');
+
+    const devBanner = document.getElementById('enquiryDevOtpBanner');
+    const devOtpVal = document.getElementById('enquiryDevOtpVal');
+    const otpInput = document.getElementById('enquiryOtpInput');
+    const displayPhone = document.getElementById('displayEnquiryPhone');
+
+    let countdownTimer = null;
+
+    function showAlert(msg, type='danger') {
+        alertBox.className = `alert alert-${type} py-2 small mb-3 text-center rounded-3`;
+        alertBox.textContent = msg;
+        alertBox.classList.remove('d-none');
+    }
+
+    function hideAlert() {
+        alertBox.classList.add('d-none');
+    }
+
+    function startResendTimer(seconds = 30) {
+        if (countdownTimer) clearInterval(countdownTimer);
+        btnResendOtp.disabled = true;
+        btnResendOtp.className = "btn btn-link p-0 text-muted small text-decoration-none";
+        let remaining = seconds;
+        resendCountdown.textContent = remaining;
+
+        countdownTimer = setInterval(() => {
+            remaining -= 1;
+            resendCountdown.textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(countdownTimer);
+                btnResendOtp.disabled = false;
+                btnResendOtp.className = "btn btn-link p-0 text-primary fw-semibold small text-decoration-none";
+                btnResendOtp.innerHTML = 'Resend OTP';
+            }
+        }, 1000);
+    }
+
+    if (btnEditPhone) {
+        btnEditPhone.addEventListener('click', function() {
+            stepOtp.classList.add('d-none');
+            stepForm.classList.remove('d-none');
+            hideAlert();
+        });
+    }
+
+    // Trigger Send OTP for Enquiry
+    if (btnSendOtp) {
+        btnSendOtp.addEventListener('click', async function() {
+            const company = document.getElementById('eqCompany').value.trim();
+            const contact = document.getElementById('eqContact').value.trim();
+            const email = document.getElementById('eqEmail').value.trim();
+            const rawPhone = document.getElementById('eqPhone').value.trim();
+            const cleanPhone = rawPhone.replace(/\D/g, '');
+
+            if (!company || !contact || !email) {
+                showAlert('Please fill in Company Name, Contact Person, and Email.', 'danger');
+                return;
+            }
+
+            if (cleanPhone.length !== 10) {
+                showAlert('Please enter a valid 10-digit mobile number.', 'danger');
+                return;
+            }
+
+            btnSendOtp.disabled = true;
+            btnSendText.textContent = "Sending Verification OTP...";
+            btnSendSpinner.classList.remove('d-none');
+            hideAlert();
+
+            try {
+                const response = await fetch("{{ url_for('b2b.send_enquiry_otp') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: cleanPhone })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('OTP code dispatched to your phone.', 'success');
+                    displayPhone.textContent = `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`;
+                    stepForm.classList.add('d-none');
+                    stepOtp.classList.remove('d-none');
+
+                    if (result.dev_otp) {
+                        devOtpVal.textContent = result.dev_otp;
+                        devBanner.classList.remove('d-none');
+                    } else {
+                        devBanner.classList.add('d-none');
+                    }
+
+                    startResendTimer(30);
+                    setTimeout(() => { otpInput.focus(); }, 150);
+                } else {
+                    showAlert(result.message || 'Failed to send OTP.', 'danger');
+                }
+            } catch (err) {
+                showAlert('Network error occurred.', 'danger');
+            } finally {
+                btnSendOtp.disabled = false;
+                btnSendText.textContent = "Verify Mobile & Submit Enquiry";
+                btnSendSpinner.classList.add('d-none');
+            }
+        });
+    }
+
+    // Submit Full Enquiry with Verified OTP
+    async function triggerSubmitEnquiry() {
+        const company = document.getElementById('eqCompany').value.trim();
+        const contact = document.getElementById('eqContact').value.trim();
+        const email = document.getElementById('eqEmail').value.trim();
+        const rawPhone = document.getElementById('eqPhone').value.trim();
+        const cleanPhone = rawPhone.replace(/\D/g, '');
+        const boxType = document.getElementById('eqBoxType').value;
+        const boxCount = document.getElementById('eqBoxCount').value;
+        const occasion = document.getElementById('eqOccasion').value.trim();
+        const message = document.getElementById('eqMessage').value.trim();
+        const otp = otpInput.value.trim();
+
+        if (otp.length !== 4) {
+            showAlert('Please enter the 4-digit verification code.', 'danger');
+            otpInput.focus();
+            return;
+        }
+
+        btnVerifyOtp.disabled = true;
+        btnVerifyText.textContent = "Registering Enquiry...";
+        btnVerifySpinner.classList.remove('d-none');
+        hideAlert();
+
+        try {
+            const response = await fetch("{{ url_for('b2b.submit_enquiry') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    company_name: company,
+                    contact_name: contact,
+                    email: email,
+                    phone: cleanPhone,
+                    box_type: boxType,
+                    box_count: boxCount,
+                    custom_occasion: occasion,
+                    custom_message: message,
+                    otp: otp
+                })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(result.message, 'success');
+                setTimeout(() => {
+                    window.location.href = result.redirect_url || "{{ url_for('b2b.portal') }}";
+                }, 800);
+            } else {
+                showAlert(result.message || 'Verification failed.', 'danger');
+                btnVerifyOtp.disabled = false;
+                btnVerifyText.textContent = "Confirm & Access Client Portal";
+                btnVerifySpinner.classList.add('d-none');
+                otpInput.focus();
+            }
+        } catch (err) {
+            showAlert('Network error occurred.', 'danger');
+            btnVerifyOtp.disabled = false;
+            btnVerifyText.textContent = "Confirm & Access Client Portal";
+            btnVerifySpinner.classList.add('d-none');
+        }
+    }
+
+    if (btnVerifyOtp) btnVerifyOtp.addEventListener('click', triggerSubmitEnquiry);
+    if (otpInput) {
+        otpInput.addEventListener('input', function() {
+            this.value = this.value.replace(/[^0-9]/g, '');
+            if (this.value.length === 4) {
+                triggerSubmitEnquiry();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

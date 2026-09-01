@@ -1,0 +1,398 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}{{ client.company_name }} - B2B Client Portal - Sweet Scribbles{% endblock %}
+
+{% block content %}
+<div class="container py-4">
+    <!-- Top Client Header -->
+    <div class="glass-panel p-4 rounded-4 shadow-sm mb-4" style="background: linear-gradient(135deg, #fffaf1 0%, #ffffff 100%); border: 1px solid #eadfce;">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div>
+                <span class="badge bg-dark text-white px-3 py-1 rounded-pill small mb-1">Corporate Client Workspace</span>
+                <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">{{ client.company_name }}</h2>
+                <span class="text-muted small">Contact: <strong>{{ client.contact_name }}</strong> ({{ client.phone }}) · {{ client.email }}</span>
+            </div>
+            
+            <div class="d-flex gap-2">
+                <button type="button" class="btn btn-premium btn-sm px-3 py-2 fw-bold rounded-pill shadow-sm" data-bs-toggle="modal" data-bs-target="#newEnquiryModal">
+                    <i class="bi bi-plus-circle me-1"></i>New Festive Batch
+                </button>
+                <a href="{{ url_for('b2b.logout') }}" class="btn btn-outline-danger btn-sm px-3 py-2 fw-semibold rounded-pill">
+                    <i class="bi bi-box-arrow-right me-1"></i>Sign Out
+                </a>
+            </div>
+        </div>
+    </div>
+
+    <!-- Flashes -->
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert alert-{{ category }} alert-dismissible fade show py-2.5 rounded-3 mb-4" role="alert">
+            {{ message }}
+            <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+          </div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% if active_order %}
+    <!-- Active Order Banner -->
+    <div class="card border-0 rounded-4 shadow-sm mb-4 overflow-hidden" style="background: #ffffff; border: 1px solid #eadfce;">
+        <div class="card-header p-4 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2" style="background: #2b1711; color: white;">
+            <div>
+                <span class="badge bg-warning text-dark fw-bold me-2">ACTIVE BATCH</span>
+                <span class="fs-5 fw-bold text-light font-monospace">#{{ active_order.order_number }}</span>
+                <span class="ms-3 small text-light opacity-75">{{ active_order.box_type }} ({{ active_order.box_count }} boxes)</span>
+            </div>
+            <div>
+                <span class="badge {{ active_order.get_stage_badge_class() }} px-3 py-2 rounded-pill fs-6">
+                    {{ active_order.get_stage_display() }}
+                </span>
+            </div>
+        </div>
+
+        <div class="card-body p-4 p-md-5">
+            <!-- Visual Milestone Stepper -->
+            <h5 class="fw-bold text-dark mb-4" style="font-family: 'Playfair Display', serif;">Live Production & Gifting Journey</h5>
+            
+            <div class="position-relative mb-5 px-2">
+                <div class="row text-center g-2 position-relative z-1">
+                    <!-- Step 1: Enquiry -->
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 rounded-3 border {% if active_order.stage in ['enquiry', 'quotation_sent', 'advance_paid', 'design_review', 'details_locked', 'production', 'delivered'] %}bg-dark text-white border-dark{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
+                            <i class="bi bi-check-circle-fill fs-5"></i>
+                        </div>
+                        <span class="d-block small fw-bold text-dark">1. Enquiry</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">Verified</small>
+                    </div>
+
+                    <!-- Step 2: Quotation -->
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 rounded-3 border {% if active_order.stage in ['quotation_sent', 'advance_paid', 'design_review', 'details_locked', 'production', 'delivered'] %}bg-dark text-white border-dark{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
+                            <i class="bi {% if active_order.stage in ['quotation_sent', 'advance_paid', 'design_review', 'details_locked', 'production', 'delivered'] %}bi-check-circle-fill{% else %}bi-circle{% endif %} fs-5"></i>
+                        </div>
+                        <span class="d-block small fw-bold text-dark">2. Quotation</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">{% if active_order.quoted_price_per_box > 0 %}₹{{ active_order.quoted_price_per_box }}/box{% else %}In Review{% endif %}</small>
+                    </div>
+
+                    <!-- Step 3: Advance Deposit -->
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 rounded-3 border {% if active_order.stage in ['advance_paid', 'design_review', 'details_locked', 'production', 'delivered'] %}bg-dark text-white border-dark{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
+                            <i class="bi {% if active_order.advance_paid %}bi-check-circle-fill text-success{% else %}bi-clock{% endif %} fs-5"></i>
+                        </div>
+                        <span class="d-block small fw-bold text-dark">3. 50% Advance</span>
+                        <small class="{% if active_order.advance_paid %}text-success fw-bold{% else %}text-muted{% endif %}" style="font-size: 0.75rem;">
+                            {% if active_order.advance_paid %}Confirmed{% else %}Pending{% endif %}
+                        </small>
+                    </div>
+
+                    <!-- Step 4: Design Proof -->
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 rounded-3 border {% if active_order.stage in ['design_review', 'details_locked', 'production', 'delivered'] %}bg-dark text-white border-dark{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
+                            <i class="bi {% if active_order.design_status == 'approved' %}bi-check-circle-fill text-success{% elif active_order.design_proof_url %}bi-eye-fill text-warning{% else %}bi-circle{% endif %} fs-5"></i>
+                        </div>
+                        <span class="d-block small fw-bold text-dark">4. Artwork Proof</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            {% if active_order.design_status == 'approved' %}Approved{% elif active_order.design_proof_url %}Ready for Review{% else %}In Design{% endif %}
+                        </small>
+                    </div>
+
+                    <!-- Step 5: Handcrafted Production -->
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 rounded-3 border {% if active_order.stage in ['details_locked', 'production', 'delivered'] %}bg-dark text-white border-dark{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
+                            <i class="bi {% if active_order.stage in ['production', 'delivered'] %}bi-gear-wide-connected text-warning{% else %}bi-circle{% endif %} fs-5"></i>
+                        </div>
+                        <span class="d-block small fw-bold text-dark">5. Production</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">{% if active_order.eta_date %}ETA: {{ active_order.eta_date }}{% else %}Count & Date{% endif %}</small>
+                    </div>
+
+                    <!-- Step 6: Delivery Completed -->
+                    <div class="col-md-2 col-4">
+                        <div class="p-2 rounded-3 border {% if active_order.stage == 'delivered' %}bg-success text-white border-success{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
+                            <i class="bi {% if active_order.stage == 'delivered' %}bi-box-seam-fill{% else %}bi-truck{% endif %} fs-5"></i>
+                        </div>
+                        <span class="d-block small fw-bold text-dark">6. Delivery</span>
+                        <small class="text-muted" style="font-size: 0.75rem;">{% if active_order.stage == 'delivered' %}Delivered{% else %}Handover{% endif %}</small>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Two-Column Studio: Brand Assets & Artwork Proof Approval -->
+            <div class="row g-4 mb-4">
+                <!-- Left: Client Asset Upload -->
+                <div class="col-lg-5">
+                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #f2dfb7;">
+                        <h6 class="fw-bold text-dark mb-3">
+                            <i class="bi bi-file-earmark-arrow-up me-2 text-primary"></i>Your Brand Assets & Custom Text
+                        </h6>
+                        
+                        <form action="{{ url_for('b2b.upload_asset') }}" method="POST" enctype="multipart/form-data">
+                            <input type="hidden" name="order_id" value="{{ active_order.id }}">
+                            
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold text-secondary">High-Res Brand Logo (PNG / SVG / AI / PDF)</label>
+                                {% if active_order.client_logo_url %}
+                                <div class="p-2 bg-white rounded border mb-2 d-flex align-items-center justify-content-between">
+                                    <div class="d-flex align-items-center gap-2">
+                                        <img src="{{ active_order.client_logo_url }}" alt="Logo" style="height: 38px; max-width: 80px; object-fit: contain;">
+                                        <span class="small text-success fw-bold"><i class="bi bi-check-circle me-1"></i>Logo Uploaded</span>
+                                    </div>
+                                    <a href="{{ active_order.client_logo_url }}" target="_blank" class="btn btn-sm btn-link">View File</a>
+                                </div>
+                                {% endif %}
+                                <input type="file" name="client_logo" class="form-control form-control-sm" accept="image/*,.pdf,.ai,.svg">
+                            </div>
+
+                            <div class="mb-3">
+                                <label class="form-label small fw-semibold text-secondary">Custom Sleeve Message / Occasion Note</label>
+                                <textarea name="custom_message" class="form-control form-control-sm" rows="3" placeholder="e.g. Wishing our esteemed partners a joyous Diwali from the Leadership Team at Acme Corp.">{{ active_order.custom_message or '' }}</textarea>
+                            </div>
+
+                            <button type="submit" class="btn btn-outline-dark btn-sm w-100 py-2 fw-bold">
+                                Save / Update Brand Details
+                            </button>
+                        </form>
+                    </div>
+                </div>
+
+                <!-- Right: Sweet Scribbles Design Proof Viewer & Action Center -->
+                <div class="col-lg-7">
+                    <div class="p-4 rounded-4 h-100" style="background: #ffffff; border: 1px solid #eadfce;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <h6 class="fw-bold text-dark mb-0">
+                                <i class="bi bi-palette-fill me-2 text-warning"></i>Sweet Scribbles Custom Box Proof
+                            </h6>
+                            {% if active_order.design_status == 'approved' %}
+                                <span class="badge bg-success-subtle text-success border border-success px-3 py-1.5 fw-bold">
+                                    <i class="bi bi-check-circle-fill me-1"></i>Artwork Approved
+                                </span>
+                            {% elif active_order.design_status == 'revision_requested' %}
+                                <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-1.5 fw-bold">
+                                    <i class="bi bi-arrow-repeat me-1"></i>Revision Requested
+                                </span>
+                            {% elif active_order.design_proof_url %}
+                                <span class="badge bg-primary px-3 py-1.5 fw-bold animate-pulse">
+                                    Action Required: Review Proof
+                                </span>
+                            {% else %}
+                                <span class="badge bg-light text-muted border px-3 py-1.5">
+                                    Designer Preparing Artwork
+                                </span>
+                            {% endif %}
+                        </div>
+
+                        {% if active_order.design_proof_url %}
+                            <div class="text-center p-3 bg-light rounded-3 mb-3 border">
+                                <a href="{{ active_order.design_proof_url }}" target="_blank">
+                                    <img src="{{ active_order.design_proof_url }}" alt="Design Proof" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: contain;">
+                                </a>
+                                <small class="text-muted d-block mt-2">Click image to inspect full high-resolution mockup</small>
+                            </div>
+
+                            {% if active_order.design_status != 'approved' %}
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <form action="{{ url_for('b2b.approve_design', order_id=active_order.id) }}" method="POST">
+                                        <button type="submit" class="btn btn-success w-100 py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
+                                            <i class="bi bi-check-circle-fill"></i>Approve For Production
+                                        </button>
+                                    </form>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-outline-secondary w-100 py-2.5 fw-bold" data-bs-toggle="collapse" data-bs-target="#revisionCollapse">
+                                        <i class="bi bi-chat-left-dots me-1"></i>Request Revision
+                                    </button>
+                                </div>
+                            </div>
+
+                            <!-- Revision Feedback Collapse -->
+                            <div class="collapse mt-3" id="revisionCollapse">
+                                <form action="{{ url_for('b2b.request_revision', order_id=active_order.id) }}" method="POST" class="p-3 border rounded-3 bg-light">
+                                    <label class="form-label small fw-semibold text-secondary">What would you like us to adjust in the artwork?</label>
+                                    <textarea name="design_feedback" class="form-control form-control-sm mb-2" rows="2" placeholder="e.g. Please adjust the logo placement to top-center and use gold foil text..."></textarea>
+                                    <button type="submit" class="btn btn-warning btn-sm fw-bold">Submit Feedback</button>
+                                </form>
+                            </div>
+                            {% else %}
+                            <div class="alert alert-success py-2.5 small mb-0 rounded-3 text-center">
+                                🎉 Design proof approved! Production quantity is locked at <strong>{{ active_order.box_count }} boxes</strong>.
+                            </div>
+                            {% endif %}
+
+                        {% else %}
+                            <div class="text-center py-5 bg-light rounded-3 border">
+                                <div class="fs-2 mb-2 text-muted">🎨</div>
+                                <h6 class="fw-bold text-secondary mb-1">Our Design Team is Crafting Your Proof</h6>
+                                <p class="small text-muted mb-0" style="max-width: 380px; margin: 0 auto;">
+                                    Upload your vector logo on the left. Once ready, you'll receive an SMS alert to review the 3D box sleeve mockup right here.
+                                </p>
+                            </div>
+                        {% endif %}
+                    </div>
+                </div>
+            </div>
+
+            <!-- Financial & Quotation Summary Card -->
+            <div class="p-4 rounded-4 border bg-light mb-4">
+                <div class="row g-4 align-items-center">
+                    <div class="col-md-3 col-6">
+                        <span class="small text-muted d-block">Box Model</span>
+                        <strong class="text-dark">{{ active_order.box_type }}</strong>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <span class="small text-muted d-block">Batch Quantity</span>
+                        <strong class="text-dark">{{ active_order.box_count if active_order.box_count > 0 else 'To be decided' }} {% if active_order.box_count > 0 %}Units{% endif %}</strong>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <span class="small text-muted d-block">Quoted Rate / Box</span>
+                        <strong class="text-dark">{% if active_order.quoted_price_per_box > 0 %}₹{{ "{:,.0f}".format(active_order.quoted_price_per_box) }}{% else %}Consultation in prep{% endif %}</strong>
+                    </div>
+                    <div class="col-md-2 col-6">
+                        <span class="small text-muted d-block">50% Advance</span>
+                        <strong class="{% if active_order.advance_paid %}text-success{% else %}text-muted{% endif %}">
+                            {% if active_order.advance_paid %}Received (₹{{ "{:,.0f}".format(active_order.advance_amount_required) }}){% elif active_order.advance_amount_required > 0 %}₹{{ "{:,.0f}".format(active_order.advance_amount_required) }} Pending{% else %}Awaiting Quote{% endif %}
+                        </strong>
+                    </div>
+                    <div class="col-md-3 col-12 text-md-end">
+                        <span class="small text-muted d-block">Total Payable</span>
+                        <span class="fs-4 fw-bold text-primary">₹{{ "{:,.0f}".format(active_order.total_amount) }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Order Activity & Updates Log -->
+            {% if active_order.logs %}
+            <div class="p-4 rounded-4 border bg-white mb-2">
+                <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                    <i class="bi bi-clock-history me-1 text-warning"></i>Order Progress & Updates Log
+                </h6>
+                <div class="timeline ps-2">
+                    {% for log in active_order.logs %}
+                    <div class="d-flex gap-3 mb-2.5">
+                        <div class="text-center pt-1" style="width: 24px;">
+                            <div class="rounded-circle bg-warning text-dark d-flex align-items-center justify-content-center" style="width: 18px; height: 18px; font-size: 0.65rem;">
+                                <i class="bi bi-check"></i>
+                            </div>
+                        </div>
+                        <div class="flex-grow-1 small">
+                            <div class="d-flex justify-content-between align-items-center">
+                                <strong class="text-dark">{{ log.action_title }}</strong>
+                                <span class="text-muted font-monospace" style="font-size: 0.75rem;">{{ log.created_at.strftime('%d %b, %I:%M %p') }}</span>
+                            </div>
+                            {% if log.details %}
+                            <div class="text-secondary mt-0.5" style="font-size: 0.8rem;">
+                                {{ log.details }}
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
+
+
+    <!-- Order History (All Batches for this Company) -->
+    <div class="glass-panel p-4 rounded-4 shadow-sm" style="background: #ffffff; border: 1px solid #eadfce;">
+        <h5 class="fw-bold text-dark mb-3" style="font-family: 'Playfair Display', serif;">All Corporate Orders & Archives</h5>
+        
+        {% if orders %}
+        <div class="table-responsive">
+            <table class="table align-middle table-hover mb-0">
+                <thead class="table-light text-uppercase small">
+                    <tr>
+                        <th>Order #</th>
+                        <th>Date</th>
+                        <th>Box Style</th>
+                        <th>Quantity</th>
+                        <th>Occasion</th>
+                        <th>Status</th>
+                        <th>Total</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% for ord in orders %}
+                    <tr>
+                        <td class="font-monospace fw-bold">{{ ord.order_number }}</td>
+                        <td class="small text-muted">{{ ord.created_at.strftime('%d %b %Y') }}</td>
+                        <td>{{ ord.box_type }}</td>
+                        <td><strong>{{ ord.box_count }}</strong></td>
+                        <td class="small text-secondary">{{ ord.custom_occasion or 'Corporate Gifting' }}</td>
+                        <td>
+                            <span class="badge {{ ord.get_stage_badge_class() }} px-2.5 py-1">
+                                {{ ord.get_stage_display() }}
+                            </span>
+                        </td>
+                        <td class="fw-bold text-dark">₹{{ ord.total_amount }}</td>
+                    </tr>
+                    {% endfor %}
+                </tbody>
+            </table>
+        </div>
+        {% else %}
+        <div class="text-center py-4 text-muted small">
+            No corporate orders on record. Click <strong>New Festive Batch</strong> to submit your first gifting requirement!
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- NEW FESTIVE BATCH / REPEAT ENQUIRY MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="newEnquiryModal" tabindex="-1" aria-labelledby="newEnquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom px-4 py-3" style="background: #fffaf1;">
+                <h5 class="modal-title fw-bold text-dark" id="newEnquiryModalLabel" style="font-family: 'Playfair Display', serif;">
+                    Request New Corporate Batch
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('b2b.new_portal_enquiry') }}" method="POST">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Submitting for <strong>{{ client.company_name }}</strong>. Your contact and billing details are already saved.
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Box Style</label>
+                        <select name="box_type" class="form-select">
+                            <option value="Signature DIYA Box">Signature DIYA Box (8 Bites)</option>
+                            <option value="Small Celebration Box">Small Celebration Box (12 Bites)</option>
+                            <option value="Large Celebration Box">Large Celebration Box (24 Bites)</option>
+                            <option value="Dual Delight Box">Dual Delight Box (8 Bites + Choco Hex)</option>
+                            <option value="Namkeen Delight Box">Namkeen Delight Box (9 Bites + Namkeen)</option>
+                            <option value="Mini Pack Box">Mini Pack Box (4 Bites)</option>
+                            <option value="Dark Choco Hex Box">Dark Choco Hex Box (6 Bites)</option>
+                        </select>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Quantity</label>
+                        <input type="number" name="box_count" class="form-control" value="100" min="10" step="10" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Event / Occasion</label>
+                        <input type="text" name="custom_occasion" class="form-control" placeholder="e.g. New Year 2027, Founders Day, VIP Client Visit" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Custom Message or Specific Request</label>
+                        <textarea name="custom_message" class="form-control" rows="2" placeholder="Any change in sleeve text or bite preferences..."></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-premium btn-sm rounded-pill fw-bold px-4">Submit Batch Enquiry</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

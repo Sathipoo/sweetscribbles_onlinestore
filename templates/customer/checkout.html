@@ -10,7 +10,7 @@
                 <h3 class="fw-bold mb-3" style="color: var(--primary-color);">Delivery & Billing Address</h3>
                 <p class="text-muted mb-4">Please verify your shipping details before proceeding to secure payment.</p>
                 
-                <form action="{{ url_for('customer.checkout') }}" method="POST">
+                <form action="{{ url_for('customer.checkout') }}" method="POST" id="checkoutForm">
                     <div class="mb-3">
                         <label class="form-label fw-semibold">Full Name</label>
                         <input type="text" name="name" class="form-control" required placeholder="John Doe" value="{% if current_user.is_authenticated %}{{ current_user.name or '' }}{% endif %}">
@@ -28,11 +28,12 @@
                         <textarea name="shipping_address" class="form-control" rows="3" required placeholder="Enter full delivery address (Street, Apartment, Landmark, City, Pincode)">{% if current_user.is_authenticated %}{{ current_user.address or '' }}{% endif %}</textarea>
                     </div>
                     
-                    <button type="submit" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center shadow-sm fs-6">
-                        <span class="me-2 fw-bold">Pay {% if grand_total is defined %}₹{{ "%.2f"|format(grand_total) }}{% endif %} & Place Order</span>
-                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
+                    <button type="submit" id="btnSubmitCheckout" class="btn btn-premium w-100 py-3 d-flex justify-content-center align-items-center shadow-sm fs-6">
+                        <span id="btnCheckoutText" class="me-2 fw-bold">Pay {% if grand_total is defined %}₹{{ "%.2f"|format(grand_total) }}{% endif %} & Place Order</span>
+                        <svg id="btnCheckoutIcon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor" class="bi bi-lock-fill" viewBox="0 0 16 16">
                           <path d="M8 1a2 2 0 0 1 2 2v4H6V3a2 2 0 0 1 2-2zm3 6V3a3 3 0 0 0-6 0v4a2 2 0 0 0-2 2v5a2 2 0 0 0 2 2h6a2 2 0 0 0 2-2V9a2 2 0 0 0-2-2z"/>
                         </svg>
+                        <div id="btnCheckoutSpinner" class="spinner-border spinner-border-sm text-light d-none" role="status"></div>
                     </button>
                 </form>
             </div>
@@ -72,4 +73,29 @@
         </div>
     </div>
 </div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const form = document.getElementById('checkoutForm');
+    const btn = document.getElementById('btnSubmitCheckout');
+    const btnText = document.getElementById('btnCheckoutText');
+    const btnIcon = document.getElementById('btnCheckoutIcon');
+    const btnSpinner = document.getElementById('btnCheckoutSpinner');
+    let isSubmitting = false;
+
+    if (form && btn) {
+        form.addEventListener('submit', function(e) {
+            if (isSubmitting) {
+                e.preventDefault();
+                return false;
+            }
+            isSubmitting = true;
+            btn.disabled = true;
+            btnText.textContent = "Connecting to Secure Payment...";
+            if (btnIcon) btnIcon.classList.add('d-none');
+            if (btnSpinner) btnSpinner.classList.remove('d-none');
+        });
+    }
+});
+</script>
 {% endblock %}
