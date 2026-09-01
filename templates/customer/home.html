@@ -1120,4 +1120,101 @@ function scrollCollection(scrollId, direction) {
     </div>
   </div>
 </div>
+
+<!-- ========================================== -->
+<!-- B2B CORPORATE GIFTING 3-SECOND POPUP MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="b2bAnnouncementModal" tabindex="-1" aria-labelledby="b2bAnnouncementModalLabel" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content rounded-5 border-0 shadow-lg overflow-hidden" style="background: linear-gradient(145deg, #1c0e0b 0%, #3a1a12 55%, #522517 100%); color: #fffaf2; border: 1.5px solid rgba(255, 193, 7, 0.4) !important;">
+      
+      <!-- Modal Top Header Badge -->
+      <div class="modal-header border-0 pb-0 position-relative pt-4 px-4 px-md-5 d-flex justify-content-between align-items-start">
+        <span class="badge rounded-pill px-3 py-2 fw-bold text-dark shadow-sm d-inline-flex align-items-center gap-1" style="background: linear-gradient(90deg, #ffc107 0%, #f6a800 100%); font-size: 0.78rem; letter-spacing: 0.05em; text-transform: uppercase;">
+          <i class="bi bi-gift-fill"></i>
+          <span>Corporate &amp; Festive Gifting 2026</span>
+        </span>
+        <button type="button" class="btn-close btn-close-white opacity-75 shadow-none" data-bs-dismiss="modal" aria-label="Close"></button>
+      </div>
+
+      <!-- Modal Body -->
+      <div class="modal-body p-4 p-md-5 pt-3">
+        <div class="row align-items-center g-4">
+          <div class="col-lg-7">
+            <h2 class="display-6 fw-bold mb-2 text-white" style="font-family: 'Playfair Display', Georgia, serif; line-height: 1.15;">
+              Bespoke Corporate Gifting, <span style="background: linear-gradient(90deg, #ffc107, #ffe69c); -webkit-background-clip: text; -webkit-text-fill-color: transparent;">Handcrafted &amp; Pure</span>
+            </h2>
+            <p class="text-light opacity-90 small mb-4" style="line-height: 1.6; font-size: 0.95rem;">
+              Delight your clients, leadership, and teams with custom-branded luxury sweet boxes made with 100% wholesome, guilt-free ingredients.
+            </p>
+
+            <!-- 3 Key Value Props -->
+            <div class="d-flex flex-column gap-2 mb-4">
+              <div class="d-flex align-items-center gap-2.5 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <span class="badge bg-warning text-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">🏷️</span>
+                <span class="small text-light"><strong>Custom Branding:</strong> Company crest/logo on box, custom sleeves &amp; greetings.</span>
+              </div>
+              <div class="d-flex align-items-center gap-2.5 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <span class="badge bg-warning text-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">🌿</span>
+                <span class="small text-light"><strong>100% Guilt-Free:</strong> Pure Jaggery, Nuts &amp; Seeds · Zero Sugar · Zero Additives.</span>
+              </div>
+              <div class="d-flex align-items-center gap-2.5 p-2 rounded-3" style="background: rgba(255, 255, 255, 0.06); border: 1px solid rgba(255, 255, 255, 0.08);">
+                <span class="badge bg-warning text-dark rounded-circle p-2 d-flex align-items-center justify-content-center" style="width: 26px; height: 26px; font-size: 0.8rem;">🚚</span>
+                <span class="small text-light"><strong>Volume Discounts:</strong> Special corporate pricing &amp; pan-India door delivery.</span>
+              </div>
+            </div>
+
+            <!-- Action Buttons -->
+            <div class="d-flex flex-wrap align-items-center gap-3">
+              <a href="{{ url_for('b2b.index') }}" class="btn btn-warning text-dark fw-bold rounded-pill px-4 py-2.5 shadow-lg d-inline-flex align-items-center gap-2" style="background: #ffc107; font-size: 0.95rem;">
+                <i class="bi bi-briefcase-fill"></i>
+                <span>Explore B2B Catalogue &amp; Estimate &rarr;</span>
+              </a>
+              <button type="button" class="btn btn-link text-light opacity-75 text-decoration-none small px-2" data-bs-dismiss="modal">
+                Continue to Store
+              </button>
+            </div>
+          </div>
+
+          <!-- Right Column: Box Artwork Preview -->
+          <div class="col-lg-5 text-center d-none d-lg-block">
+            <div class="p-3 rounded-4 position-relative" style="background: radial-gradient(circle, rgba(255,193,7,0.18) 0%, rgba(0,0,0,0) 70%);">
+              <img src="/static/images/products/delight_gifting_box.png" alt="Corporate Gifting Box" class="img-fluid rounded-4 shadow-lg mb-2" style="max-height: 220px; object-fit: contain; transform: rotate(-2deg);">
+              <div class="badge bg-dark text-warning border border-warning px-3 py-1.5 rounded-pill shadow-sm" style="font-size: 0.75rem;">
+                ⭐ Starting at ₹210 / Box (Min 50 Boxes)
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
 {% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Show B2B announcement modal 3 seconds after landing on the home page (once per session)
+    try {
+        if (!sessionStorage.getItem('ss_b2b_home_modal_viewed')) {
+            setTimeout(function() {
+                const modalEl = document.getElementById('b2bAnnouncementModal');
+                if (modalEl && typeof bootstrap !== 'undefined') {
+                    const b2bModal = new bootstrap.Modal(modalEl, {
+                        backdrop: true,
+                        keyboard: true
+                    });
+                    b2bModal.show();
+                    sessionStorage.setItem('ss_b2b_home_modal_viewed', 'true');
+                }
+            }, 3000); // 3-second delay
+        }
+    } catch (e) {
+        console.warn('B2B modal trigger note:', e);
+    }
+});
+</script>
+{% endblock %}
+

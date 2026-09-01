@@ -93,9 +93,22 @@
         "templates/admin/b2b/order_detail.html",
         "templates/b2b/portal.html"
       ]
+    },
+    {
+      "id": "BEH-006",
+      "timestamp": "2026-09-01T15:06:00+05:30",
+      "category": "Customer Engagement & B2B Discovery",
+      "title": "Timed B2B Corporate Gifting Announcement Modal on Home Page with Session Caching",
+      "problem_addressed": "Visitors landing on the Sweet Scribbles retail home page were unaware of the dedicated corporate gifting catalogue, bespoke custom logo branding, and bulk festive pricing. An immediate interrupt popup on load causes high bounce rates, while missing the prompt entirely loses B2B corporate leads during festive gifting planning.",
+      "solution_implemented": "1. Timed 3-Second Delight Trigger: Implemented a 3-second delayed modal trigger on the home page (templates/customer/home.html), giving visitors a chance to see the retail storefront before presenting the corporate gifting invitation.\n2. Luxury Visual Presentation: Dark chocolate and warm gold aesthetic showcasing custom logo sleeve printing, 100% guilt-free nutrition (zero sugar/preservatives), volume discounts, and starting price badges.\n3. Frictionless CTA: High-contrast primary CTA leading directly to the dynamic B2B catalogue (/b2b/) alongside a clean 'Continue to Store' dismissal.\n4. Session Frequency Caching: Stored 'ss_b2b_home_modal_viewed' in sessionStorage so returning visitors in the same browsing session are not repeatedly interrupted.",
+      "files_affected": [
+        "templates/customer/home.html",
+        "templates/customer/base.html"
+      ]
     }
   ]
 }
+
 
 
 
