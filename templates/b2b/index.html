@@ -30,7 +30,7 @@
                             <i class="bi bi-send-fill me-2"></i>Request Custom Quotation
                         </button>
                         <a href="#catalogue" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-pill">
-                            Explore Boxes & Pricing
+                            Explore Boxes &amp; Pricing
                         </a>
                         <a href="{{ url_for('b2b.login') }}" class="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2">
                             <span>Client Portal Login</span> <i class="bi bi-arrow-right"></i>
@@ -42,7 +42,7 @@
                     <div class="p-4 rounded-4 shadow-lg text-dark" style="background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); border: 1px solid rgba(199, 148, 66, 0.3);">
                         <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
                             <h5 class="fw-bold mb-0 text-dark" style="font-family: 'Playfair Display', serif;">Quick Gifting Estimator</h5>
-                            <span class="badge bg-success-subtle text-success border border-success">Min 50 Boxes</span>
+                            <span class="badge bg-success-subtle text-success border border-success">Min 25 Boxes</span>
                         </div>
                         
                         <div class="mb-3">
@@ -57,25 +57,24 @@
                             </select>
                         </div>
 
-                        
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small fw-semibold text-muted mb-0">Quantity Required</label>
-                                <span class="badge bg-dark fs-6" id="calcQtyDisplay">100 boxes</span>
+                                <span class="badge bg-dark fs-6" id="calcQtyDisplay">50 boxes</span>
                             </div>
-                            <input type="range" class="form-range" id="calcQtySlider" min="50" max="2500" step="25" value="100">
+                            <input type="range" class="form-range" id="calcQtySlider" min="25" max="2500" step="5" value="50">
                         </div>
                         
                         <div class="p-3 rounded-3 bg-light border mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <span class="small text-muted">Estimated Budget:</span>
-                                <span class="fs-4 fw-bold text-dark" id="calcTotalEstimate">₹34,500</span>
+                                <span class="fs-4 fw-bold text-dark" id="calcTotalEstimate">₹17,250</span>
                             </div>
-                            <small class="text-success d-block"><i class="bi bi-check-circle-fill me-1"></i> Includes Custom Sleeve, Logo Branding & South India Delivery</small>
+                            <small class="text-success d-block"><i class="bi bi-check-circle-fill me-1"></i> Includes Custom Sleeve, Logo Branding &amp; South India Delivery</small>
                         </div>
                         
                         <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openEnquiryWithEstimate()">
-                            Lock This Estimate & Get Quote
+                            Lock This Estimate &amp; Get Quote
                         </button>
                     </div>
                 </div>
@@ -83,41 +82,48 @@
         </div>
     </section>
 
-    <!-- 2. The 4 Health & Quality Pillars -->
-    <section class="py-5 bg-white border-bottom">
-        <div class="container">
-            <div class="text-center mb-4">
-                <span class="text-uppercase small fw-bold tracking-wide" style="color: #c79442;">What Sets Sweet Scribbles Apart</span>
-                <h2 class="fw-bold text-dark mt-1" style="font-family: 'Playfair Display', serif;">Made with purpose. Created to be shared.</h2>
+    <!-- 2. The 4 Health & Quality Pillars (Enhanced with Background Image & Glassmorphism) -->
+    <section class="py-5 text-white position-relative" style="background: linear-gradient(135deg, rgba(26, 15, 11, 0.94) 0%, rgba(45, 23, 16, 0.92) 50%, rgba(30, 19, 15, 0.96) 100%), url('{{ url_for('static', filename='images/official_logo_gold.png') }}') center/cover fixed; overflow: hidden;">
+        <div class="container py-4 position-relative z-1">
+            <div class="text-center mb-5">
+                <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.25); color: #ffca64; border: 1px solid #c79442; letter-spacing: 1.5px; font-size: 0.78rem;">
+                    What Sets Sweet Scribbles Apart
+                </span>
+                <h2 class="display-6 fw-bold mt-1" style="font-family: 'Playfair Display', serif; color: #fffaf1;">
+                    Made with purpose. Created to be shared.
+                </h2>
+                <p class="text-light opacity-75 small mx-auto mb-0" style="max-width: 540px;">
+                    Clean-label luxury gifting crafted without compromising on purity, taste, or corporate elegance.
+                </p>
             </div>
             
             <div class="row g-4 text-center">
                 <div class="col-6 col-md-3">
-                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
-                        <div class="fs-1 mb-2 text-warning">🚫</div>
-                        <h6 class="fw-bold text-dark mb-1">No Added Sugar</h6>
-                        <p class="small text-muted mb-0">Naturally sweetened with premium Arabian dates & honey.</p>
+                    <div class="p-4 rounded-4 h-100 shadow-sm" style="background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 202, 100, 0.25); transition: transform 0.2s ease;">
+                        <div class="fs-1 mb-2">🚫</div>
+                        <h6 class="fw-bold mb-1" style="color: #ffca64;">No Added Sugar</h6>
+                        <p class="small text-white-50 mb-0">Naturally sweetened with premium Arabian dates &amp; raw honey.</p>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
-                        <div class="fs-1 mb-2 text-warning">🍯</div>
-                        <h6 class="fw-bold text-dark mb-1">No Jaggery</h6>
-                        <p class="small text-muted mb-0">Zero syrup or jaggery fillers; pure fruit and nut integrity.</p>
+                    <div class="p-4 rounded-4 h-100 shadow-sm" style="background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 202, 100, 0.25); transition: transform 0.2s ease;">
+                        <div class="fs-1 mb-2">🍯</div>
+                        <h6 class="fw-bold mb-1" style="color: #ffca64;">No Jaggery</h6>
+                        <p class="small text-white-50 mb-0">Zero syrup or jaggery fillers; pure fruit and roasted nut integrity.</p>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
-                        <div class="fs-1 mb-2 text-warning">🌿</div>
-                        <h6 class="fw-bold text-dark mb-1">No Preservatives</h6>
-                        <p class="small text-muted mb-0">Clean-label, zero artificial stabilizers or shelf-life chemicals.</p>
+                    <div class="p-4 rounded-4 h-100 shadow-sm" style="background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 202, 100, 0.25); transition: transform 0.2s ease;">
+                        <div class="fs-1 mb-2">🌿</div>
+                        <h6 class="fw-bold mb-1" style="color: #ffca64;">No Preservatives</h6>
+                        <p class="small text-white-50 mb-0">Clean-label, zero artificial stabilizers or shelf-life chemicals.</p>
                     </div>
                 </div>
                 <div class="col-6 col-md-3">
-                    <div class="p-4 rounded-4 h-100" style="background: #fffaf1; border: 1px solid #eadfce;">
-                        <div class="fs-1 mb-2 text-warning">🎨</div>
-                        <h6 class="fw-bold text-dark mb-1">No Artificial Flavors</h6>
-                        <p class="small text-muted mb-0">Real pistachios, roasted almonds, cashews & organic spices.</p>
+                    <div class="p-4 rounded-4 h-100 shadow-sm" style="background: rgba(255, 255, 255, 0.07); backdrop-filter: blur(14px); -webkit-backdrop-filter: blur(14px); border: 1px solid rgba(255, 202, 100, 0.25); transition: transform 0.2s ease;">
+                        <div class="fs-1 mb-2">🎨</div>
+                        <h6 class="fw-bold mb-1" style="color: #ffca64;">No Artificial Flavors</h6>
+                        <p class="small text-white-50 mb-0">Real pistachios, roasted almonds, cashews &amp; organic spices.</p>
                     </div>
                 </div>
             </div>
@@ -131,6 +137,7 @@
                 <div>
                     <span class="text-uppercase small fw-bold" style="color: #c79442;">Curated Collections</span>
                     <h2 class="fw-bold text-dark mt-1" style="font-family: 'Playfair Display', serif;">Explore Corporate Gifting Boxes</h2>
+                    <p class="text-muted small mb-0">Click any box to inspect full nutritional specs, bite compositions, and real client deliveries.</p>
                 </div>
                 <div>
                     <button class="btn btn-premium px-4 py-2 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#enquiryModal">
@@ -144,20 +151,28 @@
                 <div class="col-lg-4 col-md-6">
                     <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden" style="background: #ffffff; border: 1px solid #eadfce;">
                         <div class="position-relative">
-                            <img src="{{ box.image_url or url_for('static', filename='images/official_logo_gold.png') }}" class="card-img-top" alt="{{ box.name }}" style="height: 220px; object-fit: cover;">
+                            <a href="{{ url_for('b2b.product_detail', product_id=box.id) }}" class="d-block text-decoration-none">
+                                <img src="{{ box.image_url or url_for('static', filename='images/official_logo_gold.png') }}" class="card-img-top" alt="{{ box.name }}" style="height: 220px; object-fit: cover;">
+                            </a>
                             {% if box.badge %}
                             <span class="position-absolute top-0 start-0 m-3 badge rounded-pill px-3 py-2 bg-dark text-white fw-semibold">
                                 {{ box.badge }}
                             </span>
                             {% endif %}
-                            <span class="position-absolute bottom-0 end-0 m-3 badge rounded-pill px-3 py-2 bg-white text-dark shadow-sm fw-bold">
-                                {{ box.net_weight }}
+                            <span class="position-absolute bottom-0 end-0 m-3 badge rounded-pill px-3 py-1.5 bg-white text-dark shadow-sm fw-bold small">
+                                Net: {{ box.net_weight }} · Gross: {{ box.gross_weight or 'N/A' }}
                             </span>
+
+
                         </div>
                         
                         <div class="card-body p-4 d-flex flex-column">
                             <span class="text-uppercase small fw-bold text-muted">{{ box.category }}</span>
-                            <h4 class="card-title fw-bold text-dark mb-2" style="font-family: 'Playfair Display', serif;">{{ box.name }}</h4>
+                            <h4 class="card-title fw-bold text-dark mb-2" style="font-family: 'Playfair Display', serif;">
+                                <a href="{{ url_for('b2b.product_detail', product_id=box.id) }}" class="text-decoration-none text-dark hover-gold">
+                                    {{ box.name }}
+                                </a>
+                            </h4>
                             <p class="small text-muted mb-3">{{ box.customization_info or 'Includes custom corporate sleeve branding' }}</p>
                             
                             <!-- Price Card Breakdown -->
@@ -175,23 +190,29 @@
                             </div>
                             
                             <!-- Composition items -->
-                            <div class="mb-4 flex-grow-1">
+                            <div class="mb-3 flex-grow-1">
                                 <span class="small fw-bold text-dark d-block mb-1">Box Composition:</span>
                                 <ul class="small text-muted ps-3 mb-0">
-                                    {% for comp in box.get_composition_premium_list() %}
+                                    {% for comp in box.get_composition_premium_list()[:3] %}
                                     <li>{{ comp }}</li>
                                     {% else %}
-                                    <li>{{ box.bites_count }} Artisanal Nut & Date Bites</li>
+                                    <li>{{ box.bites_count }} Artisanal Nut &amp; Date Bites</li>
                                     {% endfor %}
                                 </ul>
                             </div>
-                            
-                            <button type="button" class="btn btn-outline-dark w-100 py-2.5 rounded-pill fw-bold mt-auto" onclick="selectBoxForEnquiry('{{ box.name }}', {{ box.price_premium }})">
-                                Select & Enquire
-                            </button>
+
+                            <!-- Interactive Sub-page and Enquiry Buttons -->
+                            <div class="d-flex flex-column gap-2 mt-auto">
+                                <a href="{{ url_for('b2b.product_detail', product_id=box.id) }}" class="btn btn-outline-dark w-100 py-2 rounded-pill fw-bold small d-flex align-items-center justify-content-center gap-1">
+                                    <i class="bi bi-eye"></i>
+                                    <span>View Details &amp; Client Deliveries</span>
+                                </a>
+                                <button type="button" class="btn btn-premium w-100 py-2.5 rounded-pill fw-bold" onclick="selectBoxForEnquiry('{{ box.name }}', {{ box.price_premium }})">
+                                    Quick Enquire
+                                </button>
+                            </div>
                         </div>
                     </div>
-
                 </div>
                 {% endfor %}
             </div>
@@ -238,20 +259,129 @@
                 <div class="col-md-4 col-sm-6">
                     <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
                         <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">5</span>
-                        <h5 class="fw-bold text-dark mb-2">Production & Quality Check</h5>
+                        <h5 class="fw-bold text-dark mb-2">Production &amp; Quality Check</h5>
                         <p class="small text-muted mb-0">Handcrafted by master halwais with fresh ingredients and packaged under strict quality seals.</p>
                     </div>
                 </div>
                 <div class="col-md-4 col-sm-6">
                     <div class="p-4 rounded-4 h-100 border" style="background: #fffdf9;">
                         <span class="badge rounded-circle p-3 bg-dark text-white fw-bold mb-3 fs-5" style="width: 44px; height: 44px; display: inline-flex; align-items: center; justify-content: center;">6</span>
-                        <h5 class="fw-bold text-dark mb-2">Dispatch & Delivery</h5>
+                        <h5 class="fw-bold text-dark mb-2">Dispatch &amp; Delivery</h5>
                         <p class="small text-muted mb-0">Delivered right to your corporate headquarters or multi-city employee addresses across South India.</p>
                     </div>
                 </div>
             </div>
         </div>
     </section>
+
+    <!-- 4.5. Corporate Client Collaborations & Testimonials Section -->
+    {% if testimonials %}
+    <section class="py-5" style="background: #fffaf1; border-bottom: 1px solid #eadfce;">
+        <div class="container py-3">
+            <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-2">
+                <div>
+                    <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.2); color: #9c6c23; letter-spacing: 1px;">
+                        Client Stories &amp; Collaborations
+                    </span>
+                    <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">Trusted by Industry Leaders</h2>
+                    <p class="text-muted small mb-0">See how corporate clients elevate employee appreciation and festive gifting with Sweet Scribbles.</p>
+                </div>
+                <a href="{{ url_for('b2b.testimonials') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-semibold">
+                    View All Client Stories &rarr;
+                </a>
+            </div>
+
+            <!-- Partner Logos / Badge Bar -->
+            <div class="p-3 bg-white rounded-4 border shadow-xs mb-4 d-flex flex-wrap align-items-center justify-content-around gap-3 text-center">
+                {% for t in testimonials[:5] %}
+                <div class="d-flex align-items-center gap-2 px-3 py-1">
+                    {% if t.company_logo_url %}
+                    <img src="{{ t.company_logo_url }}" alt="{{ t.company_name }}" style="height: 28px; max-width: 90px; object-fit: contain;">
+                    {% else %}
+                    <span class="fw-bold text-dark opacity-75 small"><i class="bi bi-building me-1 text-warning"></i>{{ t.company_name }}</span>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Testimonials Grid with Carousel -->
+            <div class="row g-4">
+                {% for t in testimonials[:3] %}
+                <div class="col-md-4">
+                    <div class="card h-100 border rounded-4 shadow-sm overflow-hidden bg-white d-flex flex-column justify-content-between">
+                        {% set photos = t.get_photos() %}
+                        {% if photos|length > 1 %}
+                        <div id="homeTestiCarousel{{ t.id }}" class="carousel slide position-relative overflow-hidden" data-bs-ride="carousel" data-bs-interval="4000" style="height: 190px; background: #1e130f;">
+                            <div class="carousel-indicators mb-1">
+                                {% for p in photos %}
+                                <button type="button" data-bs-target="#homeTestiCarousel{{ t.id }}" data-bs-slide-to="{{ loop.index0 }}" class="{% if loop.first %}active{% endif %}"></button>
+                                {% endfor %}
+                            </div>
+                            <div class="carousel-inner h-100">
+                                {% for p in photos %}
+                                <div class="carousel-item h-100 {% if loop.first %}active{% endif %}">
+                                    <img src="{{ p }}" alt="{{ t.company_name }}" class="d-block w-100 h-100" style="object-fit: cover;">
+                                </div>
+                                {% endfor %}
+                            </div>
+                            <button class="carousel-control-prev" type="button" data-bs-target="#homeTestiCarousel{{ t.id }}" data-bs-slide="prev" style="width: 35px; opacity: 0.9;">
+                                <span class="p-1 rounded-circle bg-dark bg-opacity-75 d-flex align-items-center justify-content-center text-white" style="width: 26px; height: 26px;">
+                                    <i class="bi bi-chevron-left" style="font-size: 0.75rem;"></i>
+                                </span>
+                            </button>
+                            <button class="carousel-control-next" type="button" data-bs-target="#homeTestiCarousel{{ t.id }}" data-bs-slide="next" style="width: 35px; opacity: 0.9;">
+                                <span class="p-1 rounded-circle bg-dark bg-opacity-75 d-flex align-items-center justify-content-center text-white" style="width: 26px; height: 26px;">
+                                    <i class="bi bi-chevron-right" style="font-size: 0.75rem;"></i>
+                                </span>
+                            </button>
+                            <span class="position-absolute top-0 end-0 m-2 badge bg-dark bg-opacity-75 text-white px-2 py-1 rounded-pill small" style="font-size: 0.65rem; z-index: 5;">
+                                <i class="bi bi-images me-1 text-warning"></i>{{ photos|length }} Photos
+                            </span>
+                            <span class="position-absolute bottom-0 start-0 w-100 p-1 text-center bg-dark bg-opacity-75 text-white" style="font-size: 0.68rem; z-index: 5;">
+                                Delivered Custom Batch
+                            </span>
+                        </div>
+                        {% elif photos|length == 1 %}
+                        <div class="position-relative" style="height: 190px;">
+                            <img src="{{ photos[0] }}" alt="{{ t.company_name }}" class="w-100 h-100" style="object-fit: cover;">
+                            <span class="position-absolute bottom-0 start-0 w-100 p-1 text-center bg-dark bg-opacity-75 text-white" style="font-size: 0.68rem;">
+                                Delivered Custom Batch
+                            </span>
+                        </div>
+                        {% endif %}
+
+                        <div class="card-body p-4 d-flex flex-column justify-content-between">
+                            <div>
+                                <div class="d-flex justify-content-between align-items-center mb-2">
+                                    <h5 class="fw-bold text-dark mb-0">{{ t.company_name }}</h5>
+                                    <div class="text-warning small">
+                                        {% for i in range(t.rating) %}★{% endfor %}
+                                    </div>
+                                </div>
+                                {% if t.order_details %}
+                                <span class="badge bg-light text-dark border small fw-normal mb-2 d-inline-block">
+                                    {{ t.order_details }}
+                                </span>
+                                {% endif %}
+                                <p class="small text-secondary fst-italic mb-3" style="line-height: 1.55;">
+                                    "{{ t.testimonial_text }}"
+                                </p>
+                            </div>
+
+                            <div class="pt-2 border-top">
+                                <strong class="d-block text-dark small">{{ t.contact_person or 'Representative' }}</strong>
+                                {% if t.designation %}
+                                <span class="text-muted" style="font-size: 0.72rem;">{{ t.designation }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+    </section>
+    {% endif %}
 
     <!-- 5. Lead Times & Consultation Card -->
     <section class="py-5" style="background: #2b1711; color: white;">
@@ -293,7 +423,7 @@
                     <div class="p-4 p-md-5 rounded-4 text-dark shadow-lg" style="background: #fffaf1; border: 2px solid #c79442;">
                         <span class="badge bg-dark text-white mb-2">Corporate Gifting Desk</span>
                         <h4 class="fw-bold mb-1" style="font-family: 'Playfair Display', serif;">Vishnu Govind</h4>
-                        <p class="text-muted small mb-3">Head of B2B Alliances & Client Gifting</p>
+                        <p class="text-muted small mb-3">Head of B2B Alliances &amp; Client Gifting</p>
                         
                         <div class="d-flex flex-column gap-2 mb-4 small text-secondary">
                             <div><i class="bi bi-telephone-fill text-primary me-2"></i><strong>Phone:</strong> 8088783044 | 9066611856</div>
@@ -322,7 +452,7 @@
                 <div>
                     <span class="badge bg-warning text-dark mb-1">A Pikachooz Product</span>
                     <h5 class="modal-title fw-bold text-dark" id="enquiryModalLabel" style="font-family: 'Playfair Display', serif;">
-                        Corporate Gifting Enquiry & Quotation
+                        Corporate Gifting Enquiry &amp; Quotation
                     </h5>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -369,8 +499,8 @@
                             </select>
                         </div>
                         <div class="col-md-6">
-                            <label class="form-label small fw-semibold text-secondary">Estimated Quantity (Min 50 for branding)</label>
-                            <input type="number" id="eqBoxCount" class="form-control" min="10" step="10" value="100">
+                            <label class="form-label small fw-semibold text-secondary">Estimated Quantity (Min 25 for branding)</label>
+                            <input type="number" id="eqBoxCount" class="form-control" min="25" step="5" value="50">
                         </div>
                     </div>
 
@@ -385,7 +515,7 @@
                     </div>
 
                     <button type="button" id="btnRequestEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
-                        <span id="btnEnquiryText">Verify Mobile & Submit Enquiry</span>
+                        <span id="btnEnquiryText">Verify Mobile &amp; Submit Enquiry</span>
                         <div id="btnEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
                     </button>
                 </div>
@@ -408,7 +538,7 @@
                     </div>
 
                     <button type="button" id="btnVerifyEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2 mb-3">
-                        <span id="btnVerifyEnquiryText">Confirm & Access Client Portal</span>
+                        <span id="btnVerifyEnquiryText">Confirm &amp; Access Client Portal</span>
                         <div id="btnVerifyEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
                     </button>
 
@@ -627,30 +757,32 @@ document.addEventListener('DOMContentLoaded', function() {
             const result = await response.json();
 
             if (result.success) {
-                showAlert(result.message, 'success');
+                showAlert(result.message || 'Enquiry successfully registered!', 'success');
                 setTimeout(() => {
                     window.location.href = result.redirect_url || "{{ url_for('b2b.portal') }}";
-                }, 800);
+                }, 1000);
             } else {
                 showAlert(result.message || 'Verification failed.', 'danger');
                 btnVerifyOtp.disabled = false;
                 btnVerifyText.textContent = "Confirm & Access Client Portal";
                 btnVerifySpinner.classList.add('d-none');
-                otpInput.focus();
             }
         } catch (err) {
-            showAlert('Network error occurred.', 'danger');
+            showAlert('Submission error occurred.', 'danger');
             btnVerifyOtp.disabled = false;
             btnVerifyText.textContent = "Confirm & Access Client Portal";
             btnVerifySpinner.classList.add('d-none');
         }
     }
 
-    if (btnVerifyOtp) btnVerifyOtp.addEventListener('click', triggerSubmitEnquiry);
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', triggerSubmitEnquiry);
+    }
+
     if (otpInput) {
-        otpInput.addEventListener('input', function() {
-            this.value = this.value.replace(/[^0-9]/g, '');
-            if (this.value.length === 4) {
+        otpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
                 triggerSubmitEnquiry();
             }
         });

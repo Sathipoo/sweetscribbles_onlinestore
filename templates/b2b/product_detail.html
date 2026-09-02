@@ -1,0 +1,708 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}{{ product.name }} - B2B Corporate Gifting Box Specs{% endblock %}
+
+{% block content %}
+<div class="b2b-product-detail py-4" style="background: #fbf5e9; min-height: 100vh;">
+    <div class="container py-3">
+        <!-- Breadcrumb Navigation -->
+        <nav aria-label="breadcrumb" class="mb-4">
+            <ol class="breadcrumb small">
+                <li class="breadcrumb-item"><a href="{{ url_for('b2b.index') }}" class="text-decoration-none text-muted">B2B Catalogue</a></li>
+                <li class="breadcrumb-item"><a href="{{ url_for('b2b.index') }}#catalogue" class="text-decoration-none text-muted">Curated Collections</a></li>
+                <li class="breadcrumb-item active text-dark fw-bold" aria-current="page">{{ product.name }}</li>
+            </ol>
+        </nav>
+
+        <!-- Product Overview Row -->
+        <div class="row g-5">
+            <!-- Left: High-Res Interactive Gallery -->
+            <div class="col-lg-6">
+                <div class="sticky-top" style="top: 100px; z-index: 10;">
+                    <!-- Main Image Viewport -->
+                    <div class="position-relative rounded-4 overflow-hidden border shadow-sm mb-3 bg-white" style="height: 420px; border-color: #eadfce !important;">
+                        <img id="mainGalleryImg" src="{{ product.image_url or url_for('static', filename='images/official_logo_gold.png') }}" alt="{{ product.name }}" class="w-100 h-100" style="object-fit: cover; transition: opacity 0.25s ease;">
+                        {% if product.badge %}
+                        <span class="position-absolute top-0 start-0 m-3 badge rounded-pill px-3 py-2 bg-dark text-white fw-semibold shadow-sm">
+                            {{ product.badge }}
+                        </span>
+                        {% endif %}
+                        <span class="position-absolute bottom-0 end-0 m-3 badge rounded-pill px-3 py-2 bg-white text-dark shadow-sm fw-bold border" style="font-size: 0.82rem;">
+                            Net: {{ product.net_weight }} · Gross: {{ product.gross_weight or 'N/A' }}
+                        </span>
+                    </div>
+
+                    <!-- Thumbnails Strip -->
+                    {% set all_imgs = product.get_all_images() %}
+                    {% if all_imgs|length > 1 %}
+                    <div class="d-flex gap-2 overflow-x-auto pb-2" style="scrollbar-width: thin;">
+                        {% for img_url in all_imgs %}
+                        <button type="button" class="btn p-0 border rounded-3 overflow-hidden gallery-thumb-btn {% if loop.first %}active-thumb border-gold{% endif %}" onclick="switchMainImage('{{ img_url }}', this)" style="width: 80px; height: 80px; flex-shrink: 0;">
+                            <img src="{{ img_url }}" alt="Thumbnail {{ loop.index }}" class="w-100 h-100" style="object-fit: cover;">
+                        </button>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+
+                    <!-- Corporate Guarantee Pill -->
+                    <div class="p-3 rounded-4 mt-3 bg-white border d-flex align-items-center gap-3 shadow-xs">
+                        <div class="fs-2 text-warning">🛡️</div>
+                        <div>
+                            <strong class="d-block text-dark small">Purity &amp; Quality Guarantee</strong>
+                            <span class="text-muted" style="font-size: 0.78rem;">0% Sugar · 0% Jaggery · 100% Roasted California Nuts &amp; Arabian Dates</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Right: Specifications & Pricing Calculator -->
+            <div class="col-lg-6">
+                <div class="bg-white p-4 p-md-5 rounded-4 border shadow-sm" style="border-color: #eadfce !important;">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <span class="badge px-3 py-1.5 rounded-pill text-uppercase fw-bold" style="background: rgba(199, 148, 66, 0.15); color: #9c6c23; letter-spacing: 1px; font-size: 0.75rem;">
+                            {{ product.category }}
+                        </span>
+                        <span class="badge bg-light text-secondary border small">Min Order: 25 Boxes</span>
+                    </div>
+
+                    <h1 class="fw-bold text-dark mb-2" style="font-family: 'Playfair Display', serif;">{{ product.name }}</h1>
+                    <p class="text-muted mb-4">{{ product.description or product.customization_info or 'Handcrafted corporate festive gift box tailored with custom logo sleeve and premium dry-fruit sweets.' }}</p>
+
+                    <!-- Pricing Tier Matrix -->
+                    <div class="p-4 rounded-4 mb-4" style="background: #fffaf1; border: 1.5px solid #f2dfb7;">
+                        <span class="small fw-bold text-uppercase d-block mb-3" style="color: #9c6c23; letter-spacing: 0.5px;">B2B Volume Pricing Tiers</span>
+                        <div class="row g-3">
+                            <div class="col-sm-6">
+                                <div class="p-3 rounded-3 bg-white border shadow-xs h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong class="text-dark">Premium Edition</strong>
+                                        <span class="badge bg-warning-subtle text-dark border border-warning small">All-Nut</span>
+                                    </div>
+                                    <div class="fs-3 fw-bold text-dark">₹{{ "{:,.0f}".format(product.price_premium) }}</div>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Per Box + Custom Sleeve</small>
+                                </div>
+                            </div>
+                            {% if product.price_assorted > 0 %}
+                            <div class="col-sm-6">
+                                <div class="p-3 rounded-3 bg-white border shadow-xs h-100">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong class="text-dark">Assorted Edition</strong>
+                                        <span class="badge bg-light text-secondary border small">Nut &amp; Seed</span>
+                                    </div>
+                                    <div class="fs-3 fw-bold text-muted">₹{{ "{:,.0f}".format(product.price_assorted) }}</div>
+                                    <small class="text-muted d-block" style="font-size: 0.75rem;">Per Box + Custom Sleeve</small>
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    <!-- ALWAYS VISIBLE: Packaging & Custom Sleeve Specifications Card -->
+                    <div class="p-4 rounded-4 mb-4 bg-light border shadow-xs" style="border-color: #ebdccb !important;">
+                        <div class="d-flex align-items-center gap-2 mb-3 pb-2 border-bottom">
+                            <i class="bi bi-box2-fill text-warning fs-5"></i>
+                            <h6 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif; font-size: 1.05rem;">
+                                Packaging &amp; Custom Sleeve Specifications
+                            </h6>
+                        </div>
+                        
+                        <div class="row g-3 small">
+                            <div class="col-sm-6">
+                                <div class="p-2.5 rounded-3 bg-white border h-100">
+                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Outer Box Dimensions</span>
+                                    <strong class="text-dark">{{ product.box_dimensions or '24 cm x 16 cm x 4.5 cm' }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-6">
+                                <div class="p-2.5 rounded-3 bg-white border h-100">
+                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Net Weight</span>
+                                    <strong class="text-dark">{{ product.net_weight }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-sm-3 col-6">
+                                <div class="p-2.5 rounded-3 bg-white border h-100">
+                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Gross Weight</span>
+                                    <strong class="text-dark">{{ product.gross_weight or 'N/A' }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-2.5 rounded-3 bg-white border h-100">
+                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Production Lead Time</span>
+                                    <strong class="text-dark">{{ product.lead_time or '5 - 7 Business Days' }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-sm-6">
+                                <div class="p-2.5 rounded-3 bg-white border h-100">
+                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Shelf Life</span>
+                                    <strong class="text-dark">{{ product.shelf_life or '60 Days from Dispatch' }}</strong>
+                                </div>
+                            </div>
+                            <div class="col-12">
+                                <div class="p-2.5 rounded-3 bg-white border">
+                                    <span class="text-muted d-block" style="font-size: 0.75rem;">Custom Sleeve Branding</span>
+                                    <strong class="text-dark">{{ product.sleeve_specs or 'Full 4-Color Offset Sleeve with matte lamination & metallic gold foil stamping' }}</strong>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Accordion: Box Composition & Nutrition -->
+                    <div class="accordion mb-4" id="boxSpecsAccordion">
+                        <!-- 1. Flavors & Sweet Compositions -->
+                        <div class="accordion-item border rounded-3 overflow-hidden mb-2">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button fw-bold text-dark py-3" type="button" data-bs-toggle="collapse" data-bs-target="#specFlavors" aria-expanded="true">
+                                    <i class="bi bi-stars text-warning me-2"></i> Box Composition &amp; Bite Flavors
+                                </button>
+                            </h2>
+                            <div id="specFlavors" class="accordion-collapse collapse show" data-bs-parent="#boxSpecsAccordion">
+                                <div class="accordion-body small bg-light">
+                                    <h6 class="fw-bold text-dark mb-2">Premium Edition Includes:</h6>
+                                    <ul class="text-secondary ps-3 mb-3">
+                                        {% for c in product.get_composition_premium_list() %}
+                                        <li>{{ c }}</li>
+                                        {% else %}
+                                        <li>Anjeer Dry Fruit Dates Energy Ball</li>
+                                        <li>Pista Badam Cashew Truffle Bite</li>
+                                        <li>Roasted Almond Arabian Delight</li>
+                                        {% endfor %}
+                                    </ul>
+
+                                    {% if product.get_composition_assorted_list() %}
+                                    <h6 class="fw-bold text-dark mb-2">Assorted Edition Includes:</h6>
+                                    <ul class="text-secondary ps-3 mb-0">
+                                        {% for c in product.get_composition_assorted_list() %}
+                                        <li>{{ c }}</li>
+                                        {% endfor %}
+                                    </ul>
+                                    {% endif %}
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 2. Clean Label Nutrition & Shelf Life -->
+                        <div class="accordion-item border rounded-3 overflow-hidden">
+                            <h2 class="accordion-header">
+                                <button class="accordion-button collapsed fw-bold text-dark py-3" type="button" data-bs-toggle="collapse" data-bs-target="#specNutrition">
+                                    <i class="bi bi-shield-check text-success me-2"></i> Clean Nutrition &amp; Purity
+                                </button>
+                            </h2>
+                            <div id="specNutrition" class="accordion-collapse collapse" data-bs-parent="#boxSpecsAccordion">
+                                <div class="accordion-body small bg-light">
+                                    <div class="row g-2">
+                                        <div class="col-6">
+                                            <strong class="d-block text-dark">Refined Sugar / Jaggery:</strong>
+                                            <span class="text-success fw-semibold">0% (Completely Sugar-Free)</span>
+                                        </div>
+                                        <div class="col-6">
+                                            <strong class="d-block text-dark">Sweetening Agent:</strong>
+                                            <span class="text-secondary">Arabian Dates &amp; Raw Honey</span>
+                                        </div>
+                                    </div>
+                                    <div class="mt-2">
+                                        <strong class="d-block text-dark">Allergen Information:</strong>
+                                        <span class="text-secondary">Contains Almonds, Cashews, Pistachios &amp; Hazelnuts. 100% Vegetarian &amp; Gluten-Free.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+
+                    <!-- Live Instant Budget Estimator -->
+                    <div class="p-4 rounded-4 mb-4 shadow-sm" style="background: #fffdf9; border: 1.5px solid #ebdccb;">
+                        <div class="d-flex justify-content-between align-items-center mb-3">
+                            <div>
+                                <span class="fw-bold text-dark d-block" style="font-size: 1.05rem;">Estimate Order Budget</span>
+                                <small class="text-muted" style="font-size: 0.76rem;">Drag slider to calculate instant batch pricing</small>
+                            </div>
+                            <span class="badge px-3 py-2 rounded-pill fs-6 fw-bold shadow-sm" id="detailQtyBadge" style="background: #1e130f; color: #ffca64; border: 1px solid #c79442;">50 boxes</span>
+                        </div>
+                        
+                        <div class="py-2">
+                            <input type="range" class="form-range custom-b2b-slider w-100" id="detailQtySlider" min="25" max="2500" step="5" value="50">
+                            <div class="d-flex justify-content-between text-muted mt-1" style="font-size: 0.72rem;">
+                                <span class="fw-semibold text-dark">25 (Min)</span>
+                                <span>100</span>
+                                <span>250</span>
+                                <span>500</span>
+                                <span>1,000</span>
+                                <span>2,500+</span>
+                            </div>
+                        </div>
+
+                        <div class="d-flex justify-content-between align-items-center pt-3 border-top mt-2">
+                            <div>
+                                <span class="small text-secondary d-block fw-semibold">Estimated Total (Premium):</span>
+                                <small class="text-success" style="font-size: 0.72rem;"><i class="bi bi-check-circle-fill me-1"></i>Includes custom logo sleeve branding</small>
+                            </div>
+                            <span class="fs-3 fw-bold text-dark" id="detailTotalVal" style="font-family: 'Playfair Display', serif;">₹17,250</span>
+                        </div>
+                    </div>
+
+                    <style>
+                        .custom-b2b-slider {
+                            height: 8px;
+                            border-radius: 6px;
+                            background: #e5d7c5;
+                            outline: none;
+                        }
+                        .custom-b2b-slider::-webkit-slider-thumb {
+                            -webkit-appearance: none;
+                            appearance: none;
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 50%;
+                            background: #c79442;
+                            border: 3px solid #1e130f;
+                            cursor: pointer;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+                            transition: transform 0.1s ease;
+                        }
+                        .custom-b2b-slider::-webkit-slider-thumb:hover {
+                            transform: scale(1.15);
+                            background: #e0aa53;
+                        }
+                        .custom-b2b-slider::-moz-range-thumb {
+                            width: 22px;
+                            height: 22px;
+                            border-radius: 50%;
+                            background: #c79442;
+                            border: 3px solid #1e130f;
+                            cursor: pointer;
+                            box-shadow: 0 2px 6px rgba(0,0,0,0.25);
+                        }
+                        .gallery-thumb-btn.active-thumb {
+                            border: 2px solid #c79442 !important;
+                            opacity: 1;
+                        }
+                        .gallery-thumb-btn {
+                            opacity: 0.7;
+                            transition: opacity 0.2s ease;
+                        }
+                        .gallery-thumb-btn:hover {
+                            opacity: 1;
+                        }
+                    </style>
+
+                    <!-- Primary Action Button -->
+                    <button type="button" class="btn btn-premium w-100 py-3 fw-bold rounded-pill shadow-lg d-flex align-items-center justify-content-center gap-2" onclick="openEnquiryForThisProduct('{{ product.name }}', {{ product.price_premium }})">
+                        <i class="bi bi-send-fill"></i>
+                        <span>Enquire &amp; Request Sample for {{ product.name }}</span>
+                    </button>
+                    <div class="text-center mt-2">
+                        <small class="text-muted"><i class="bi bi-patch-check-fill text-success me-1"></i>Digital design proof mockup provided within 24 hours of enquiry.</small>
+                    </div>
+
+                </div>
+            </div>
+        </div>
+
+        <!-- ============================================================= -->
+        <!-- BOTTOM SECTION: REAL CLIENT DELIVERIES SLIDESHOW / CAROUSEL -->
+        <!-- ============================================================= -->
+        <section class="mt-5 pt-4 border-top">
+            <div class="d-flex flex-wrap justify-content-between align-items-end mb-4 gap-2">
+                <div>
+                    <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.2); color: #9c6c23; letter-spacing: 1px;">
+                        Corporate Trust &amp; Execution
+                    </span>
+                    <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">Real Client Deliveries of this Box Style</h2>
+                    <p class="text-muted small mb-0">Browse corporate gifting orders of {{ product.name }} delivered to companies across India.</p>
+                </div>
+                <a href="{{ url_for('b2b.testimonials') }}" class="btn btn-outline-dark btn-sm rounded-pill px-3">
+                    View All Client Stories &rarr;
+                </a>
+            </div>
+
+            <div class="row g-4">
+                {% for sc in product.showcase_items %}
+                <div class="col-md-6 col-lg-4">
+                    <div class="card h-100 border rounded-4 shadow-sm overflow-hidden bg-white">
+                        <div class="position-relative overflow-hidden" style="height: 220px;">
+                            <img src="{{ sc.box_photo_url }}" alt="Delivered for {{ sc.client_name }}" class="w-100 h-100" style="object-fit: cover;">
+                            <span class="position-absolute top-0 start-0 m-2.5 badge bg-dark bg-opacity-75 text-white px-2.5 py-1 rounded-pill small">
+                                <i class="bi bi-box-seam me-1 text-warning"></i>{{ sc.order_volume }}
+                            </span>
+                        </div>
+                        <div class="card-body p-4">
+                            <div class="d-flex align-items-center justify-content-between mb-2">
+                                <div class="d-flex align-items-center gap-2">
+                                    {% if sc.client_logo_url %}
+                                    <img src="{{ sc.client_logo_url }}" alt="{{ sc.client_name }}" style="height: 24px; max-width: 65px; object-fit: contain;">
+                                    {% endif %}
+                                    <h6 class="fw-bold text-dark mb-0">{{ sc.client_name }}</h6>
+                                </div>
+                                {% if sc.occasion %}
+                                <span class="badge bg-light text-muted border small">{{ sc.occasion }}</span>
+                                {% endif %}
+                            </div>
+                            {% if sc.client_feedback %}
+                            <blockquote class="small text-secondary mb-0 fst-italic" style="line-height: 1.55;">
+                                "{{ sc.client_feedback }}"
+                            </blockquote>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+                {% else %}
+                <div class="col-12 text-center py-4">
+                    <div class="p-4 rounded-4 bg-white border">
+                        <p class="text-muted small mb-0"><i class="bi bi-info-circle me-1"></i> Corporate delivery showcases for this box style will appear here after recent dispatches.</p>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </section>
+    </div>
+</div>
+
+<!-- ========================================== -->
+<!-- B2B OTP-VERIFIED ENQUIRY MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="enquiryModal" tabindex="-1" aria-labelledby="enquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: #ffffff;">
+            <div class="modal-header border-bottom px-4 py-3" style="background: #fffaf1;">
+                <div>
+                    <span class="badge bg-warning text-dark mb-1">A Pikachooz Product</span>
+                    <h5 class="modal-title fw-bold text-dark" id="enquiryModalLabel" style="font-family: 'Playfair Display', serif;">
+                        Corporate Gifting Enquiry &amp; Quotation
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div id="enquiryAlert" class="alert d-none py-2 small mb-3 text-center rounded-3"></div>
+
+                <!-- Step 1: Enquiry Details Form -->
+                <div id="stepEnquiryForm">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Company / Organization Name *</label>
+                            <input type="text" id="eqCompany" class="form-control" placeholder="e.g. Acme Technologies Pvt Ltd" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Contact Person Name *</label>
+                            <input type="text" id="eqContact" class="form-control" placeholder="e.g. Priya Sharma" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Official Email Address *</label>
+                            <input type="email" id="eqEmail" class="form-control" placeholder="priya@acme.com" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Mobile Number (For Verification) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold border-end-0">🇮🇳 +91</span>
+                                <input type="tel" id="eqPhone" class="form-control" placeholder="98765 43210" maxlength="10" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Preferred Box Style</label>
+                            <select id="eqBoxType" class="form-select">
+                                {% for b in boxes %}
+                                <option value="{{ b.name }}" {% if b.id == product.id %}selected{% endif %}>{{ b.name }} ({{ b.bites_count }} Bites)</option>
+                                {% endfor %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Estimated Quantity (Min 25 for branding)</label>
+                            <input type="number" id="eqBoxCount" class="form-control" min="25" step="5" value="50">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Gifting Occasion / Purpose</label>
+                        <input type="text" id="eqOccasion" class="form-control" placeholder="e.g. Diwali Gifting, Annual Summit, Client Welcome Kit">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Custom Message or Specific Requirements</label>
+                        <textarea id="eqMessage" class="form-control" rows="2" placeholder="Custom sleeve message, logo colors, multi-city delivery preferences..."></textarea>
+                    </div>
+
+                    <button type="button" id="btnRequestEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                        <span id="btnEnquiryText">Verify Mobile &amp; Submit Enquiry</span>
+                        <div id="btnEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+                </div>
+
+                <!-- Step 2: OTP Verification Screen -->
+                <div id="stepEnquiryOtp" class="d-none text-center py-2">
+                    <div id="enquiryDevOtpBanner" class="alert alert-warning py-2 mb-3 small d-none text-center rounded-3">
+                        <strong>[Dev Mode]</strong> Simulated B2B OTP: <code id="enquiryDevOtpVal" class="fs-6 fw-bold"></code>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="small text-muted mb-1">We've sent a 4-digit verification code to:</p>
+                        <h6 class="fw-bold text-dark" id="displayEnquiryPhone">+91 XXXXX XXXXX</h6>
+                        <button type="button" id="btnEditEnquiryPhone" class="btn btn-link btn-sm p-0 text-primary small">Change Number</button>
+                    </div>
+
+                    <div class="mb-4 mx-auto" style="max-width: 260px;">
+                        <label class="form-label small fw-semibold text-secondary">Enter 4-Digit OTP</label>
+                        <input type="text" id="enquiryOtpInput" class="form-control text-center fs-2 fw-bold py-2 rounded-3 shadow-sm" placeholder="••••" maxlength="4" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing: 0.8rem;">
+                    </div>
+
+                    <button type="button" id="btnVerifyEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2 mb-3">
+                        <span id="btnVerifyEnquiryText">Confirm &amp; Access Client Portal</span>
+                        <div id="btnVerifyEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+
+                    <div>
+                        <button type="button" id="btnResendEnquiryOtp" class="btn btn-link p-0 text-muted small text-decoration-none" disabled>
+                            Resend OTP in <span id="enquiryResendCountdown">30</span>s
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Thumbnail Switcher
+    window.switchMainImage = function(imgUrl, btnElem) {
+        const mainImg = document.getElementById('mainGalleryImg');
+        if (mainImg) {
+            mainImg.style.opacity = '0.4';
+            setTimeout(() => {
+                mainImg.src = imgUrl;
+                mainImg.style.opacity = '1';
+            }, 100);
+        }
+        document.querySelectorAll('.gallery-thumb-btn').forEach(b => b.classList.remove('active-thumb'));
+        if (btnElem) btnElem.classList.add('active-thumb');
+    };
+
+    // Live Budget Estimator for Product Sub-Page
+    const detailSlider = document.getElementById('detailQtySlider');
+    const detailBadge = document.getElementById('detailQtyBadge');
+    const detailTotal = document.getElementById('detailTotalVal');
+    const unitPrice = {{ product.price_premium }};
+
+    function updateDetailEstimate() {
+        if (!detailSlider || !detailBadge || !detailTotal) return;
+        const qty = parseInt(detailSlider.value, 10);
+        detailBadge.textContent = `${qty} boxes`;
+        const total = qty * unitPrice;
+        detailTotal.textContent = `₹${total.toLocaleString('en-IN')}`;
+    }
+
+    if (detailSlider) {
+        detailSlider.addEventListener('input', updateDetailEstimate);
+        updateDetailEstimate();
+    }
+
+    window.openEnquiryForThisProduct = function(boxName, price) {
+        const qty = detailSlider ? detailSlider.value : 50;
+        const eqBox = document.getElementById('eqBoxType');
+        const eqCount = document.getElementById('eqBoxCount');
+        if (eqBox) eqBox.value = boxName;
+        if (eqCount) eqCount.value = qty;
+        
+        const modal = new bootstrap.Modal(document.getElementById('enquiryModal'));
+        modal.show();
+    };
+
+    // Modal OTP Flow logic
+    const btnSendOtp = document.getElementById('btnRequestEnquiryOtp');
+    const btnSendText = document.getElementById('btnEnquiryText');
+    const btnSendSpinner = document.getElementById('btnEnquirySpinner');
+
+    const btnVerifyOtp = document.getElementById('btnVerifyEnquiryOtp');
+    const btnVerifyText = document.getElementById('btnVerifyEnquiryText');
+    const btnVerifySpinner = document.getElementById('btnVerifyEnquirySpinner');
+
+    const btnResendOtp = document.getElementById('btnResendEnquiryOtp');
+    const resendCountdown = document.getElementById('enquiryResendCountdown');
+    const btnEditPhone = document.getElementById('btnEditEnquiryPhone');
+
+    const stepForm = document.getElementById('stepEnquiryForm');
+    const stepOtp = document.getElementById('stepEnquiryOtp');
+    const alertBox = document.getElementById('enquiryAlert');
+
+    const devBanner = document.getElementById('enquiryDevOtpBanner');
+    const devOtpVal = document.getElementById('enquiryDevOtpVal');
+    const otpInput = document.getElementById('enquiryOtpInput');
+    const displayPhone = document.getElementById('displayEnquiryPhone');
+
+    let countdownTimer = null;
+
+    function showAlert(msg, type='danger') {
+        alertBox.className = `alert alert-${type} py-2 small mb-3 text-center rounded-3`;
+        alertBox.textContent = msg;
+        alertBox.classList.remove('d-none');
+    }
+
+    function hideAlert() {
+        alertBox.classList.add('d-none');
+    }
+
+    function startResendTimer(seconds = 30) {
+        if (countdownTimer) clearInterval(countdownTimer);
+        btnResendOtp.disabled = true;
+        btnResendOtp.className = "btn btn-link p-0 text-muted small text-decoration-none";
+        let remaining = seconds;
+        resendCountdown.textContent = remaining;
+
+        countdownTimer = setInterval(() => {
+            remaining -= 1;
+            resendCountdown.textContent = remaining;
+            if (remaining <= 0) {
+                clearInterval(countdownTimer);
+                btnResendOtp.disabled = false;
+                btnResendOtp.className = "btn btn-link p-0 text-primary fw-semibold small text-decoration-none";
+                btnResendOtp.innerHTML = 'Resend OTP';
+            }
+        }, 1000);
+    }
+
+    if (btnEditPhone) {
+        btnEditPhone.addEventListener('click', function() {
+            stepOtp.classList.add('d-none');
+            stepForm.classList.remove('d-none');
+            hideAlert();
+        });
+    }
+
+    if (btnSendOtp) {
+        btnSendOtp.addEventListener('click', async function() {
+            const company = document.getElementById('eqCompany').value.trim();
+            const contact = document.getElementById('eqContact').value.trim();
+            const email = document.getElementById('eqEmail').value.trim();
+            const rawPhone = document.getElementById('eqPhone').value.trim();
+            const cleanPhone = rawPhone.replace(/\D/g, '');
+
+            if (!company || !contact || !email) {
+                showAlert('Please fill in Company Name, Contact Person, and Email.', 'danger');
+                return;
+            }
+
+            if (cleanPhone.length !== 10) {
+                showAlert('Please enter a valid 10-digit mobile number.', 'danger');
+                return;
+            }
+
+            btnSendOtp.disabled = true;
+            btnSendText.textContent = "Sending Verification OTP...";
+            btnSendSpinner.classList.remove('d-none');
+            hideAlert();
+
+            try {
+                const response = await fetch("{{ url_for('b2b.send_enquiry_otp') }}", {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ phone: cleanPhone })
+                });
+                const result = await response.json();
+
+                if (result.success) {
+                    showAlert('OTP code dispatched to your phone.', 'success');
+                    displayPhone.textContent = `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`;
+                    stepForm.classList.add('d-none');
+                    stepOtp.classList.remove('d-none');
+
+                    if (result.dev_otp) {
+                        devOtpVal.textContent = result.dev_otp;
+                        devBanner.classList.remove('d-none');
+                    } else {
+                        devBanner.classList.add('d-none');
+                    }
+
+                    startResendTimer(30);
+                    setTimeout(() => { otpInput.focus(); }, 150);
+                } else {
+                    showAlert(result.message || 'Failed to send OTP.', 'danger');
+                }
+            } catch (err) {
+                showAlert('Network error occurred.', 'danger');
+            } finally {
+                btnSendOtp.disabled = false;
+                btnSendText.textContent = "Verify Mobile & Submit Enquiry";
+                btnSendSpinner.classList.add('d-none');
+            }
+        });
+    }
+
+    async function triggerSubmitEnquiry() {
+        const company = document.getElementById('eqCompany').value.trim();
+        const contact = document.getElementById('eqContact').value.trim();
+        const email = document.getElementById('eqEmail').value.trim();
+        const rawPhone = document.getElementById('eqPhone').value.trim();
+        const cleanPhone = rawPhone.replace(/\D/g, '');
+        const boxType = document.getElementById('eqBoxType').value;
+        const boxCount = document.getElementById('eqBoxCount').value;
+        const occasion = document.getElementById('eqOccasion').value.trim();
+        const message = document.getElementById('eqMessage').value.trim();
+        const otp = otpInput.value.trim();
+
+        if (otp.length !== 4) {
+            showAlert('Please enter the 4-digit verification code.', 'danger');
+            otpInput.focus();
+            return;
+        }
+
+        btnVerifyOtp.disabled = true;
+        btnVerifyText.textContent = "Registering Enquiry...";
+        btnVerifySpinner.classList.remove('d-none');
+        hideAlert();
+
+        try {
+            const response = await fetch("{{ url_for('b2b.submit_enquiry') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    company_name: company,
+                    contact_name: contact,
+                    email: email,
+                    phone: cleanPhone,
+                    box_type: boxType,
+                    box_count: boxCount,
+                    custom_occasion: occasion,
+                    custom_message: message,
+                    otp: otp
+                })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(result.message || 'Enquiry successfully registered!', 'success');
+                setTimeout(() => {
+                    window.location.href = result.redirect_url || "{{ url_for('b2b.portal') }}";
+                }, 1000);
+            } else {
+                showAlert(result.message || 'Verification failed.', 'danger');
+                btnVerifyOtp.disabled = false;
+                btnVerifyText.textContent = "Confirm & Access Client Portal";
+                btnVerifySpinner.classList.add('d-none');
+            }
+        } catch (err) {
+            showAlert('Submission error occurred.', 'danger');
+            btnVerifyOtp.disabled = false;
+            btnVerifyText.textContent = "Confirm & Access Client Portal";
+            btnVerifySpinner.classList.add('d-none');
+        }
+    }
+
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', triggerSubmitEnquiry);
+    }
+
+    if (otpInput) {
+        otpInput.addEventListener('keypress', function(e) {
+            if (e.key === 'Enter') {
+                e.preventDefault();
+                triggerSubmitEnquiry();
+            }
+        });
+    }
+});
+</script>
+{% endblock %}

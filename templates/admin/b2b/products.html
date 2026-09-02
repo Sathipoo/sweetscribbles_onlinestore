@@ -58,7 +58,8 @@
                     </td>
                     <td>
                         <span class="fw-semibold text-dark d-block">{{ prod.bites_count }}</span>
-                        <small class="text-muted">{{ prod.net_weight }}</small>
+                        <small class="text-muted d-block">Net: {{ prod.net_weight }}</small>
+                        <small class="text-secondary d-block" style="font-size: 0.72rem;">Gross: {{ prod.gross_weight or 'N/A' }}</small>
                     </td>
                     <td>
                         <div class="small">
@@ -89,8 +90,11 @@
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
+                            <a href="{{ url_for('b2b_admin.product_manage', product_id=prod.id) }}" class="btn btn-sm btn-gold" title="Manage Gallery & Delivery Showcases">
+                                <i class="bi bi-images me-1"></i>Specs & Showcases
+                            </a>
                             <button type="button" class="btn btn-sm btn-outline-dark" data-bs-toggle="modal" data-bs-target="#editProductModal{{ prod.id }}">
-                                <i class="bi bi-pencil me-1"></i>Edit
+                                <i class="bi bi-pencil"></i>
                             </button>
                             <form action="{{ url_for('b2b_admin.delete_product', product_id=prod.id) }}" method="POST" onsubmit="return confirm('Delete box &quot;{{ prod.name }}&quot; from catalogue?');">
                                 <button type="submit" class="btn btn-sm btn-outline-danger">
@@ -129,6 +133,10 @@
                                             <input type="text" name="net_weight" class="form-control" value="{{ prod.net_weight }}">
                                         </div>
                                         <div class="col-md-3">
+                                            <label class="form-label small fw-semibold text-secondary">Gross Weight</label>
+                                            <input type="text" name="gross_weight" class="form-control" value="{{ prod.gross_weight or '' }}" placeholder="e.g. 520 gms">
+                                        </div>
+                                        <div class="col-md-3">
                                             <label class="form-label small fw-semibold text-secondary">Premium Price (₹)</label>
                                             <input type="number" name="price_premium" class="form-control" value="{{ prod.price_premium }}" step="0.5" required>
                                         </div>
@@ -136,6 +144,32 @@
                                             <label class="form-label small fw-semibold text-secondary">Assorted Price (₹)</label>
                                             <input type="number" name="price_assorted" class="form-control" value="{{ prod.price_assorted }}" step="0.5">
                                         </div>
+                                    </div>
+
+
+                                    <div class="row g-3 mb-3">
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Box Dimensions</label>
+                                            <input type="text" name="box_dimensions" class="form-control" value="{{ prod.box_dimensions or '24 cm x 16 cm x 4.5 cm' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Shelf Life</label>
+                                            <input type="text" name="shelf_life" class="form-control" value="{{ prod.shelf_life or '60 Days from Dispatch' }}">
+                                        </div>
+                                        <div class="col-md-4">
+                                            <label class="form-label small fw-semibold text-secondary">Production Lead Time</label>
+                                            <input type="text" name="lead_time" class="form-control" value="{{ prod.lead_time or '5 - 7 Business Days' }}">
+                                        </div>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold text-secondary">Product Overview</label>
+                                        <textarea name="description" class="form-control" rows="2">{{ prod.description or '' }}</textarea>
+                                    </div>
+
+                                    <div class="mb-3">
+                                        <label class="form-label small fw-semibold text-secondary">Custom Sleeve Specs</label>
+                                        <input type="text" name="sleeve_specs" class="form-control" value="{{ prod.sleeve_specs or '' }}">
                                     </div>
 
                                     <div class="row g-3 mb-3">
@@ -171,6 +205,7 @@
                                     </div>
 
                                     <div class="row g-3">
+
                                         <div class="col-md-6">
                                             <label class="form-label small fw-semibold text-secondary">Premium Edition Composition (1 item per line)</label>
                                             <textarea name="composition_premium" class="form-control font-monospace" rows="4">{{ prod.composition_premium or '' }}</textarea>
@@ -233,6 +268,10 @@
                             <input type="text" name="net_weight" class="form-control" placeholder="e.g. 240 gms" value="210 gms">
                         </div>
                         <div class="col-md-3">
+                            <label class="form-label small fw-semibold text-secondary">Gross Weight</label>
+                            <input type="text" name="gross_weight" class="form-control" placeholder="e.g. 520 gms" value="520 gms">
+                        </div>
+                        <div class="col-md-3">
                             <label class="form-label small fw-semibold text-secondary">Premium Price (₹) *</label>
                             <input type="number" name="price_premium" class="form-control" placeholder="399" step="0.5" required>
                         </div>
@@ -240,6 +279,7 @@
                             <label class="form-label small fw-semibold text-secondary">Assorted Price (₹)</label>
                             <input type="number" name="price_assorted" class="form-control" placeholder="329" step="0.5">
                         </div>
+
                     </div>
 
                     <div class="row g-3 mb-3">

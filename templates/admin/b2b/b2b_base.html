@@ -83,22 +83,24 @@
                             <i class="bi bi-kanban me-1"></i>Pipeline Board
                         </a>
                     </li>
-                    <li class="nav-item">
-                        <a class="nav-link nav-link-b2b {% if request.endpoint == 'b2b_admin.orders' %}active{% endif %}" href="{{ url_for('b2b_admin.orders') }}">
-                            <i class="bi bi-box-seam me-1"></i>B2B Orders
-                        </a>
-                    </li>
+
                     <li class="nav-item">
                         <a class="nav-link nav-link-b2b {% if request.endpoint in ['b2b_admin.clients', 'b2b_admin.client_detail'] %}active{% endif %}" href="{{ url_for('b2b_admin.clients') }}">
                             <i class="bi bi-building me-1"></i>Corporate Clients
                         </a>
                     </li>
                     <li class="nav-item">
-                        <a class="nav-link nav-link-b2b {% if request.endpoint == 'b2b_admin.products' %}active{% endif %}" href="{{ url_for('b2b_admin.products') }}">
+                        <a class="nav-link nav-link-b2b {% if request.endpoint == 'b2b_admin.products' or request.endpoint == 'b2b_admin.product_manage' %}active{% endif %}" href="{{ url_for('b2b_admin.products') }}">
                             <i class="bi bi-gift me-1"></i>B2B Products & Boxes
                         </a>
                     </li>
+                    <li class="nav-item">
+                        <a class="nav-link nav-link-b2b {% if request.endpoint == 'b2b_admin.testimonials' %}active{% endif %}" href="{{ url_for('b2b_admin.testimonials') }}">
+                            <i class="bi bi-chat-heart me-1"></i>Client Stories & Reviews
+                        </a>
+                    </li>
                 </ul>
+
                 
                 <ul class="navbar-nav ms-auto align-items-center gap-2">
                     <li class="nav-item">

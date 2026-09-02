@@ -3,7 +3,7 @@ import time
 from datetime import datetime, timedelta
 from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, jsonify
 from extensions import db
-from models.b2b import B2BClient, B2BOrder
+from models.b2b import B2BClient, B2BOrder, B2BProduct, B2BProductImage, B2BProductShowcase, B2BTestimonial, B2BTestimonialImage
 from utils.otp_utils import generate_otp, send_b2b_enquiry_otp, send_msg91_otp, normalize_phone, format_phone_for_msg91
 from utils.gcp_storage import upload_file
 
@@ -25,14 +25,29 @@ def b2b_auth_required(f):
         return f(client, *args, **kwargs)
     return decorated_function
 
-from models.b2b import B2BClient, B2BOrder, B2BProduct
 
 # --- Public B2B Catalogue & Landing Page ---
 @b2b_bp.route('/')
 def index():
-    # Load dynamic boxes from database
+    # Load dynamic boxes and featured client testimonials from database
     catalog_boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
-    return render_template('b2b/index.html', boxes=catalog_boxes)
+    featured_testimonials = B2BTestimonial.query.filter_by(is_active=True, is_featured=True).order_by(B2BTestimonial.display_order.asc(), B2BTestimonial.id.asc()).all()
+    return render_template('b2b/index.html', boxes=catalog_boxes, testimonials=featured_testimonials)
+
+# --- Dedicated Product Sub-Page with Multi-Image Gallery & Delivered Showcase ---
+@b2b_bp.route('/product/<int:product_id>')
+def product_detail(product_id):
+    product = B2BProduct.query.get_or_404(product_id)
+    all_boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+    return render_template('b2b/product_detail.html', product=product, boxes=all_boxes)
+
+# --- Dedicated Corporate Client Stories & Testimonials Page ---
+@b2b_bp.route('/testimonials')
+def testimonials():
+    all_testimonials = B2BTestimonial.query.filter_by(is_active=True).order_by(B2BTestimonial.display_order.asc(), B2BTestimonial.id.desc()).all()
+    all_boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+    return render_template('b2b/testimonials.html', testimonials=all_testimonials, boxes=all_boxes)
+
 
 # --- Send OTP for B2B Enquiry Verification ---
 @b2b_bp.route('/send-enquiry-otp', methods=['POST'])

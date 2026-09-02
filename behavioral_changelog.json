@@ -135,9 +135,50 @@
         "routes/admin.py",
         "scripts/test_sms.py"
       ]
+    },
+    {
+      "id": "BEH-009",
+      "timestamp": "2026-09-02T22:20:00+05:30",
+      "category": "B2B Corporate Portal & Client Trust",
+      "title": "B2B Curated Collection Sub-Pages with Client Delivery Showcases, Testimonials Suite & Glassmorphism Aesthetics",
+      "problem_addressed": "Corporate prospects needed deeper insight into individual box styles (bite compositions, packaging dimensions, shelf life, and real delivered order photos with custom sleeves) rather than just a high-level catalog card. Additionally, the B2B portal needed social proof (corporate client logos, reviews, and delivered batch case studies) and a luxury aesthetic for the 'What Sets Sweet Scribbles Apart' quality pillars section.",
+      "solution_implemented": "1. Dedicated Box Sub-Pages (/b2b/product/<id>): Multi-image gallery with thumbnail switcher, comprehensive box composition and flavor breakdowns, dual pricing tier matrix, live instant quantity estimator, and direct modal quotation trigger.\n2. Real Client Deliveries Slideshow: Per-box showcase carousel displaying high-res photos of finished corporate batches, client names (e.g. Razorpay, Titan), order counts, occasion tags, and feedback snippets.\n3. Testimonials Suite (/b2b/testimonials & Landing Section): Corporate partner logo strip, verified client review cards, delivered custom box gallery, trust metrics (50,000+ boxes delivered), and filterable case studies.\n4. B2B Admin Control Desk (/admin/b2b/testimonials & /admin/b2b/products/<id>/manage): Full CRUD interface to upload and manage client logos, delivered box photos, testimonials, secondary product gallery images, and delivery showcases.\n5. Elevated Quality Pillars Section: Redesigned with warm artisanal background imagery, dark chocolate gradient opaqueness, and glowing gold glassmorphism cards.",
+      "files_affected": [
+        "models/b2b.py",
+        "models/__init__.py",
+        "routes/b2b.py",
+        "routes/b2b_admin.py",
+        "templates/b2b/index.html",
+        "templates/b2b/product_detail.html",
+        "templates/b2b/testimonials.html",
+        "templates/admin/b2b/b2b_base.html",
+        "templates/admin/b2b/products.html",
+        "templates/admin/b2b/product_manage.html",
+        "templates/admin/b2b/testimonials.html"
+      ]
+    },
+    {
+      "id": "BEH-010",
+      "timestamp": "2026-09-02T23:00:00+05:30",
+      "category": "B2B UI Polish & Multi-Photo Carousel",
+      "title": "B2B Product Estimator Range Slider Refinement & Testimonials Multi-Photo Carousel Suite",
+      "problem_addressed": "1. The product budget estimator range slider on /b2b/product/<id> had cramped border padding, basic browser track/thumb styling, and non-intuitive increment steps.\n2. The corporate testimonials page and landing cards only allowed a single photo per client testimonial instead of an interactive multi-photo carousel with next/previous controls and thumbnail management in Admin.",
+      "solution_implemented": "1. Product Estimator Slider Refinement: Configured minimum threshold to 25 boxes with step increments of 5 boxes (25, 30, 35, 40... 2,500+). Restyled with luxury dark & gold thumb styling, warm card container, clean legend ticks, and real-time total budget calculations.\n2. Testimonial Multi-Photo Carousel: Created B2BTestimonialImage model with database migrations and seeded sample photos. Updated public /b2b/testimonials and /b2b/ cards to render interactive Bootstrap carousels with smooth transitions, next/prev arrow buttons, indicator pills, and photo count badges.\n3. Admin Multi-Photo Control: Updated /admin/b2b/testimonials to support uploading multiple files at once, viewing attached carousel thumbnails, and deleting individual photos.",
+      "files_affected": [
+        "models/b2b.py",
+        "models/__init__.py",
+        "routes/b2b_admin.py",
+        "templates/b2b/product_detail.html",
+        "templates/b2b/testimonials.html",
+        "templates/b2b/index.html",
+        "templates/admin/b2b/testimonials.html",
+        "scripts/test_b2b_upgrades.py"
+      ]
     }
   ]
 }
+
+
 
 
 
