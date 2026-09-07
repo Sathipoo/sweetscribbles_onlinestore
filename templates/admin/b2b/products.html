@@ -10,7 +10,11 @@
         <p class="text-muted small mb-0">Manage corporate gift boxes, upload box photos, configure Premium vs. Assorted pricing, and curate bite compositions.</p>
     </div>
     
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 flex-wrap">
+        <a href="{{ url_for('b2b_admin.product_photos') }}" class="btn btn-outline-dark shadow-sm d-flex align-items-center gap-2">
+            <i class="bi bi-images text-warning"></i>
+            <span>Product Photos Desk</span>
+        </a>
         <button type="button" class="btn btn-gold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#addProductModal">
             <i class="bi bi-plus-circle-fill"></i>
             <span>Add New Gift Box</span>
@@ -49,7 +53,9 @@
                 {% for prod in products %}
                 <tr class="{% if not prod.is_active %}opacity-50{% endif %}">
                     <td>
-                        <img src="{{ prod.image_url or url_for('static', filename='images/official_logo_gold.png') }}" alt="{{ prod.name }}" class="rounded-3 shadow-sm border" style="width: 60px; height: 60px; object-fit: cover;">
+                        <a href="{{ url_for('b2b_admin.product_photos') }}#product-{{ prod.id }}" title="Click to manage photos">
+                            <img src="{{ prod.image_url or url_for('static', filename='images/official_logo_gold.png') }}" alt="{{ prod.name }}" class="rounded-3 shadow-sm border" style="width: 60px; height: 60px; object-fit: cover;">
+                        </a>
                     </td>
                     <td>
                         <strong class="text-dark d-block fs-6">{{ prod.name }}</strong>
@@ -58,25 +64,19 @@
                     </td>
                     <td>
                         <span class="fw-semibold text-dark d-block">{{ prod.bites_count }}</span>
-                        <small class="text-muted d-block">Net: {{ prod.net_weight }}</small>
-                        <small class="text-secondary d-block" style="font-size: 0.72rem;">Gross: {{ prod.gross_weight or 'N/A' }}</small>
+                        <span class="text-muted small">Net: {{ prod.net_weight }}</span>
+                        {% if prod.gross_weight %}
+                        <span class="text-muted small d-block">Gross: {{ prod.gross_weight }}</span>
+                        {% endif %}
                     </td>
                     <td>
-                        <div class="small">
-                            <div class="d-flex justify-content-between gap-3">
-                                <span class="text-secondary">Premium:</span>
-                                <strong class="text-dark">₹{{ "{:,.0f}".format(prod.price_premium) }}</strong>
-                            </div>
-                            {% if prod.price_assorted > 0 %}
-                            <div class="d-flex justify-content-between gap-3">
-                                <span class="text-secondary">Assorted:</span>
-                                <span class="text-muted">₹{{ "{:,.0f}".format(prod.price_assorted) }}</span>
-                            </div>
-                            {% endif %}
-                        </div>
+                        <strong class="text-dark d-block">₹{{ "{:,.0f}".format(prod.price_premium) }} <span class="small text-muted fw-normal">Premium</span></strong>
+                        {% if prod.price_assorted > 0 %}
+                        <span class="text-muted small">₹{{ "{:,.0f}".format(prod.price_assorted) }} Assorted</span>
+                        {% endif %}
                     </td>
                     <td>
-                        <span class="badge bg-dark mb-1 d-inline-block">{{ prod.min_order_qty }} Min</span>
+                        <span class="badge bg-light text-dark border d-block mb-1">{{ prod.min_order_qty }} boxes min</span>
                         {% if prod.badge %}
                         <span class="badge bg-warning text-dark d-block">{{ prod.badge }}</span>
                         {% endif %}
@@ -90,6 +90,9 @@
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
+                            <a href="{{ url_for('b2b_admin.product_photos') }}#product-{{ prod.id }}" class="btn btn-sm btn-outline-secondary" title="Manage Photos &amp; Multi-Angle Gallery">
+                                <i class="bi bi-camera-fill text-warning"></i>
+                            </a>
                             <a href="{{ url_for('b2b_admin.product_manage', product_id=prod.id) }}" class="btn btn-sm btn-gold" title="Manage Gallery & Delivery Showcases">
                                 <i class="bi bi-images me-1"></i>Specs & Showcases
                             </a>

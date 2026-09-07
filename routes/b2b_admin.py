@@ -743,11 +743,76 @@ def product_manage(product_id):
     return render_template('admin/b2b/product_manage.html', product=product)
 
 
+# --- Dedicated Product Photos & Galleries Desk ---
+@b2b_admin_bp.route('/photos')
+@admin_required
+def product_photos():
+    category_filter = request.args.get('category', '').strip()
+    search_q = request.args.get('q', '').strip()
+    
+    query = B2BProduct.query
+    if category_filter:
+        query = query.filter_by(category=category_filter)
+    if search_q:
+        query = query.filter(B2BProduct.name.ilike(f'%{search_q}%'))
+        
+    products = query.order_by(B2BProduct.category.asc(), B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+    
+    all_categories = [r[0] for r in db.session.query(B2BProduct.category).distinct().all() if r[0]]
+    all_products = B2BProduct.query.all()
+    total_products = len(all_products)
+    total_gallery_photos = sum(len(p.gallery_images) for p in all_products)
+    hamper_photos_count = sum(len(p.gallery_images) for p in all_products if p.category == 'Hampers & Gift Sets')
+    
+    return render_template(
+        'admin/b2b/product_photos.html',
+        products=products,
+        categories=all_categories,
+        selected_category=category_filter,
+        search_q=search_q,
+        total_products=total_products,
+        total_gallery_photos=total_gallery_photos,
+        hamper_photos_count=hamper_photos_count
+    )
+
+
+@b2b_admin_bp.route('/products/<int:product_id>/cover', methods=['POST'])
+@admin_required
+def update_product_cover(product_id):
+    product = B2BProduct.query.get_or_404(product_id)
+    return_to = request.form.get('return_to', 'photos')
+    
+    image_url = None
+    if 'image' in request.files:
+        file = request.files['image']
+        if file and file.filename:
+            try:
+                image_url = upload_file(file, file.filename, folder="b2b_products")
+            except Exception as e:
+                pass
+                
+    fallback_img = request.form.get('image_url_fallback', '').strip()
+    if not image_url and fallback_img:
+        image_url = fallback_img
+        
+    if image_url:
+        product.image_url = image_url
+        db.session.commit()
+        flash(f'Primary cover photo updated for {product.name}!', 'success')
+    else:
+        flash('No image file or URL was provided.', 'warning')
+        
+    if return_to == 'photos':
+        return redirect(url_for('b2b_admin.product_photos') + f'#product-{product.id}')
+    return redirect(url_for('b2b_admin.product_manage', product_id=product.id))
+
+
 @b2b_admin_bp.route('/products/<int:product_id>/images/add', methods=['POST'])
 @admin_required
 def add_product_image(product_id):
     product = B2BProduct.query.get_or_404(product_id)
     caption = request.form.get('caption', '').strip()
+    return_to = request.form.get('return_to', 'manage')
     
     try:
         display_order = int(request.form.get('display_order', 0) or 0)
@@ -769,6 +834,8 @@ def add_product_image(product_id):
         
     if not image_url:
         flash('Please upload an image file or provide an image URL.', 'danger')
+        if return_to == 'photos':
+            return redirect(url_for('b2b_admin.product_photos') + f'#product-{product.id}')
         return redirect(url_for('b2b_admin.product_manage', product_id=product.id))
         
     img = B2BProductImage(
@@ -780,6 +847,8 @@ def add_product_image(product_id):
     db.session.add(img)
     db.session.commit()
     flash(f'Gallery photo added to {product.name}!', 'success')
+    if return_to == 'photos':
+        return redirect(url_for('b2b_admin.product_photos') + f'#product-{product.id}')
     return redirect(url_for('b2b_admin.product_manage', product_id=product.id))
 
 
@@ -788,9 +857,12 @@ def add_product_image(product_id):
 def delete_product_image(image_id):
     img = B2BProductImage.query.get_or_404(image_id)
     product_id = img.product_id
+    return_to = request.form.get('return_to', request.args.get('return_to', 'manage'))
     db.session.delete(img)
     db.session.commit()
     flash('Gallery image deleted.', 'info')
+    if return_to == 'photos':
+        return redirect(url_for('b2b_admin.product_photos') + f'#product-{product_id}')
     return redirect(url_for('b2b_admin.product_manage', product_id=product_id))
 
 

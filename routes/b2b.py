@@ -48,6 +48,14 @@ def testimonials():
     all_boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
     return render_template('b2b/testimonials.html', testimonials=all_testimonials, boxes=all_boxes)
 
+# --- Dedicated Hampers & Luxury Gift Sets Page ---
+@b2b_bp.route('/hampers')
+def hampers():
+    hamper_products = B2BProduct.query.filter_by(category='Hampers & Gift Sets', is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+    all_boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+    hamper_map = {h.name: h for h in hamper_products}
+    return render_template('b2b/hampers.html', hampers=hamper_products, boxes=all_boxes, hamper_map=hamper_map)
+
 
 # --- Send OTP for B2B Enquiry Verification ---
 @b2b_bp.route('/send-enquiry-otp', methods=['POST'])

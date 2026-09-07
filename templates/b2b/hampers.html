@@ -1,0 +1,1271 @@
+{% extends 'customer/base.html' %}
+
+{% block title %}B2B Celebration Hampers & Luxury Gift Sets - Sweet Scribbles{% endblock %}
+
+{% block content %}
+{% set p_petite = hamper_map.get('Celebration Carry Hamper — Petite') %}
+{% set p_grande = hamper_map.get('Celebration Carry Hamper — Grande') %}
+{% set p_mag = hamper_map.get('Grand Celebration Magnetic Hamper') %}
+{% set p_six = hamper_map.get('Curated Drawer Gift Set — Sixfold') %}
+{% set p_imp = hamper_map.get('Premium Three-Jar Gift Set (Imperial Wooden Box)') %}
+{% set p_hex = hamper_map.get('Hex Trio Chocolate Gift Set') %}
+
+<div class="b2b-hampers-experience">
+    <!-- 1. Hero Section -->
+    <section class="hero-hampers position-relative py-5 text-white" style="background: linear-gradient(135deg, #24140e 0%, #442014 55%, #632e1b 100%); border-radius: 0 0 32px 32px; overflow: hidden;">
+        <div class="position-absolute top-0 end-0 opacity-10 pe-none" style="transform: translate(20%, -20%);">
+            <svg width="650" height="650" viewBox="0 0 200 200" xmlns="http://www.w3.org/2000/svg">
+              <path fill="#c79442" d="M44.7,-76.4C58.8,-69.2,71.8,-59.1,79.6,-45.8C87.4,-32.6,90,-16.3,88.5,-0.9C87,14.6,81.4,29.1,72.9,41.4C64.4,53.7,53,63.7,40.1,70.9C27.1,78.1,13.6,82.4,-0.4,83.1C-14.3,83.8,-28.6,80.8,-41.3,73.5C-54,66.2,-65.1,54.5,-73.4,41.1C-81.7,27.7,-87.2,13.8,-86.6,0.3C-86,-13.2,-79.3,-26.4,-70.4,-37.7C-61.5,-49,-50.4,-58.4,-38,-66.4C-25.6,-74.4,-12.8,-81,1.1,-82.9C15,-84.8,30.6,-83.6,44.7,-76.4Z" transform="translate(100 100)" />
+            </svg>
+        </div>
+
+        <div class="container py-4 position-relative z-1">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-7">
+                    <div class="d-inline-flex align-items-center gap-2 px-3 py-1.5 rounded-pill mb-3" style="background: rgba(199, 148, 66, 0.25); border: 1px solid #c79442;">
+                        <span class="badge bg-warning text-dark fw-bold text-uppercase" style="font-size: 0.72rem; letter-spacing: 1px;">A Pikachooz Product</span>
+                        <span class="text-white-50 small">|</span>
+                        <span class="small fw-semibold" style="color: #f2dfb7; letter-spacing: 1px;">HANDCRAFTED · CURATED · CUSTOMISABLE</span>
+                    </div>
+
+                    <h1 class="display-4 fw-bold mb-3" style="font-family: 'Playfair Display', serif; line-height: 1.15; color: #fffaf1;">
+                        Celebration Hampers <br><span style="color: #f0ca82; font-style: italic;">&amp; Luxury Gift Sets.</span>
+                    </h1>
+                    <p class="lead mb-4 text-light opacity-90" style="font-size: 1.12rem; max-width: 600px; line-height: 1.6;">
+                        Exquisite bespoke hampers designed for Diwali &amp; festive gifting, corporate celebrations, weddings, executive milestones, and client appreciation. Handcrafted zero-sugar treats paired with premium artisanal accessories.
+                    </p>
+
+                    <!-- Trust indicators -->
+                    <div class="d-flex flex-wrap gap-3 mb-4 text-white-50 small">
+                        <span><i class="bi bi-check-circle-fill text-warning me-1"></i>Min 25 for Custom Branding</span>
+                        <span><i class="bi bi-check-circle-fill text-warning me-1"></i>5–7 Days Dispatch</span>
+                        <span><i class="bi bi-check-circle-fill text-warning me-1"></i>Pan-India Logistics</span>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-3 mb-3">
+                        <button type="button" class="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow-lg text-dark" style="background: #f0c978; border-color: #f0c978;" onclick="openHamperEnquiry('Celebration Carry Hamper — Petite', 849, 25)">
+                            <i class="bi bi-send-fill me-2"></i>Request Custom Quotation
+                        </button>
+                        <a href="#curated-sets" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-pill">
+                            Explore Gift Sets
+                        </a>
+                        <a href="{{ url_for('static', filename='uploads/Sweet_Scribbles_Celebration_Hampers_Catalogue.pdf') }}" class="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2" download>
+                            <i class="bi bi-file-earmark-pdf-fill text-warning fs-5"></i>
+                            <span>Download Catalogue (PDF)</span>
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-5">
+                    <!-- Quick Hero Highlights Card -->
+                    <div class="p-4 rounded-4 shadow-lg text-dark position-relative" style="background: rgba(255, 255, 255, 0.96); backdrop-filter: blur(10px); border: 1px solid rgba(199, 148, 66, 0.35);">
+                        <div class="d-flex align-items-center justify-content-between mb-3 border-bottom pb-2">
+                            <div>
+                                <span class="badge bg-warning text-dark fw-bold mb-1">Catalogue Highlights</span>
+                                <h5 class="fw-bold mb-0 text-dark" style="font-family: 'Playfair Display', serif;">Gifting Formats At A Glance</h5>
+                            </div>
+                            <span class="fs-4">🎁</span>
+                        </div>
+
+                        <div class="list-group list-group-flush small mb-3">
+                            <a href="#carry-hampers" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2.5 px-0 border-bottom">
+                                <div>
+                                    <strong class="d-block text-dark">Celebration Carry Hampers</strong>
+                                    <span class="text-muted">Petite &amp; Grande kraft boxes with handles</span>
+                                </div>
+                                <span class="badge bg-warning-subtle text-dark border border-warning fw-bold">From ₹849*</span>
+                            </a>
+                            <a href="#magnetic-hamper" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2.5 px-0 border-bottom">
+                                <div>
+                                    <strong class="d-block text-dark">Grand Celebration Magnetic Hamper</strong>
+                                    <span class="text-muted">Rigid board presentation with magnetic lid</span>
+                                </div>
+                                <span class="badge bg-warning-subtle text-dark border border-warning fw-bold">From ₹999*</span>
+                            </a>
+                            <a href="#curated-sets" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2.5 px-0 border-bottom">
+                                <div>
+                                    <strong class="d-block text-dark">Sixfold Drawer Gift Set</strong>
+                                    <span class="text-muted">6 Jars · Assorted Bliss Bites or Just Nuts</span>
+                                </div>
+                                <span class="badge bg-warning-subtle text-dark border border-warning fw-bold">₹1,099 – ₹1,499</span>
+                            </a>
+                            <a href="#curated-sets" class="list-group-item list-group-item-action d-flex justify-content-between align-items-center py-2.5 px-0">
+                                <div>
+                                    <strong class="d-block text-dark">Imperial Wooden Box (3 Jars)</strong>
+                                    <span class="text-muted">Handcrafted wood chest with brass clasp</span>
+                                </div>
+                                <span class="badge bg-warning-subtle text-dark border border-warning fw-bold">₹1,799</span>
+                            </a>
+                        </div>
+
+                        <a href="#hamper-estimator" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                            <i class="bi bi-calculator"></i>
+                            <span>Open Interactive Hamper Estimator</span>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 2. Celebration Carry Hampers -->
+    <section id="carry-hampers" class="py-5 bg-white">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.15); color: #8a5717; border: 1px solid #c79442;">
+                    Modular Carry Hampers
+                </span>
+                <h2 class="display-6 fw-bold" style="font-family: 'Playfair Display', serif; color: #2b1711;">
+                    Celebration Carry Hampers
+                </h2>
+                <p class="text-muted mx-auto" style="max-width: 650px;">
+                    A thoughtfully curated hamper for festive gifting, corporate celebrations and special occasions. Personalise it with your logo, preferred products and festive theme.
+                </p>
+            </div>
+
+            <div class="row g-4 justify-content-center">
+                <!-- 1. Petite Carry Hamper Card -->
+                <div class="col-lg-6">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden" style="background: #fffdf9; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <div class="row g-0 h-100">
+                            <div class="col-md-6 position-relative d-flex align-items-center justify-content-center p-3" style="background: #f8f4ec;">
+                                <span class="position-absolute top-0 start-0 m-3 badge bg-dark text-white rounded-pill px-3 py-1 fw-bold z-2">
+                                    Compact Festive
+                                </span>
+                                <a href="{{ url_for('b2b.product_detail', product_id=p_petite.id) if p_petite else '#' }}" target="_blank" class="d-block position-relative text-decoration-none w-100 text-center hamper-img-link" title="Open product page with photo gallery in a new tab">
+                                    <img src="{{ url_for('static', filename='images/hampers/carry_hamper_petite.jpg') }}" alt="Celebration Carry Hamper — Petite" class="img-fluid rounded-3 shadow-sm hamper-zoom-img" style="max-height: 240px; object-fit: contain; transition: transform 0.3s ease;">
+                                    <span class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white rounded-pill px-2.5 py-1 small">
+                                        <i class="bi bi-images me-1 text-warning"></i>View Photos
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h4 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">
+                                            <a href="{{ url_for('b2b.product_detail', product_id=p_petite.id) if p_petite else '#' }}" target="_blank" class="text-decoration-none text-dark hover-gold">
+                                                Celebration Carry Hamper — Petite <i class="bi bi-box-arrow-up-right fs-6 ms-1 text-muted"></i>
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div class="mb-3">
+                                        <span class="fs-4 fw-bold" style="color: #b87333;">Starting from ₹849*</span>
+                                        <span class="small text-muted d-block">Indicative base price · Entry options</span>
+                                    </div>
+
+                                    <p class="small text-secondary mb-3">
+                                        Suitable for compact festive and corporate gifting combinations. Features integrated handle and custom corporate branding tag.
+                                    </p>
+
+                                    <!-- Specs Matrix -->
+                                    <div class="p-2.5 rounded-3 bg-light border small mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Box Dimensions:</span>
+                                            <strong class="text-dark">25.5 × 25.5 × 13 cm</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Customization:</span>
+                                            <strong class="text-dark">Logo Sleeve &amp; Tag</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Lead Time:</span>
+                                            <strong class="text-dark">5 – 7 Business Days</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Min Order Qty:</span>
+                                            <strong class="text-success">25 Hampers</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2">
+                                    {% if p_petite %}
+                                    <a href="{{ url_for('b2b.product_detail', product_id=p_petite.id) }}" target="_blank" class="btn btn-outline-dark w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-1 mb-2 shadow-xs">
+                                        <i class="bi bi-images text-warning me-1"></i>
+                                        <span>View Details &amp; Photos &rarr;</span>
+                                    </a>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openHamperEnquiry('Celebration Carry Hamper — Petite', 849, 25)">
+                                        Inquire About Petite Hamper
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- 2. Grande Carry Hamper Card -->
+                <div class="col-lg-6">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden" style="background: #fffdf9; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <div class="row g-0 h-100">
+                            <div class="col-md-6 position-relative d-flex align-items-center justify-content-center p-3" style="background: #f8f4ec;">
+                                <span class="position-absolute top-0 start-0 m-3 badge bg-warning text-dark rounded-pill px-3 py-1 fw-bold z-2">
+                                    Grand Selection
+                                </span>
+                                <a href="{{ url_for('b2b.product_detail', product_id=p_grande.id) if p_grande else '#' }}" target="_blank" class="d-block position-relative text-decoration-none w-100 text-center hamper-img-link" title="Open product page with photo gallery in a new tab">
+                                    <img src="{{ url_for('static', filename='images/hampers/carry_hamper_grande.jpg') }}" alt="Celebration Carry Hamper — Grande" class="img-fluid rounded-3 shadow-sm hamper-zoom-img" style="max-height: 240px; object-fit: contain; transition: transform 0.3s ease;">
+                                    <span class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white rounded-pill px-2.5 py-1 small">
+                                        <i class="bi bi-images me-1 text-warning"></i>View Photos
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="col-md-6 p-4 d-flex flex-column justify-content-between">
+                                <div>
+                                    <div class="d-flex justify-content-between align-items-start mb-2">
+                                        <h4 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">
+                                            <a href="{{ url_for('b2b.product_detail', product_id=p_grande.id) if p_grande else '#' }}" target="_blank" class="text-decoration-none text-dark hover-gold">
+                                                Celebration Carry Hamper — Grande <i class="bi bi-box-arrow-up-right fs-6 ms-1 text-muted"></i>
+                                            </a>
+                                        </h4>
+                                    </div>
+                                    <div class="mb-3">
+                                        <span class="fs-4 fw-bold" style="color: #b87333;">Starting from ₹949*</span>
+                                        <span class="small text-muted d-block">Indicative base price · Extended capacity</span>
+                                    </div>
+
+                                    <p class="small text-secondary mb-3">
+                                        Suitable for a larger selection of products and accessories, such as sweet boxes, namkeen boxes, scented candles, and essential oils.
+                                    </p>
+
+                                    <!-- Specs Matrix -->
+                                    <div class="p-2.5 rounded-3 bg-light border small mb-3">
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Box Dimensions:</span>
+                                            <strong class="text-dark">32.5 × 25.5 × 13 cm</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Customization:</span>
+                                            <strong class="text-dark">Full Color Sleeve + Tag</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between mb-1">
+                                            <span class="text-muted">Lead Time:</span>
+                                            <strong class="text-dark">5 – 7 Business Days</strong>
+                                        </div>
+                                        <div class="d-flex justify-content-between">
+                                            <span class="text-muted">Min Order Qty:</span>
+                                            <strong class="text-success">25 Hampers</strong>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <div class="mt-2">
+                                    {% if p_grande %}
+                                    <a href="{{ url_for('b2b.product_detail', product_id=p_grande.id) }}" target="_blank" class="btn btn-outline-dark w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-1 mb-2 shadow-xs">
+                                        <i class="bi bi-images text-warning me-1"></i>
+                                        <span>View Details &amp; Photos &rarr;</span>
+                                    </a>
+                                    {% endif %}
+                                    <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openHamperEnquiry('Celebration Carry Hamper — Grande', 949, 25)">
+                                        Inquire About Grande Hamper
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 3. Grand Celebration Magnetic Hamper -->
+    <section id="magnetic-hamper" class="py-5" style="background: #fdfaf5;">
+        <div class="container py-3">
+            <div class="card border-0 rounded-4 shadow-md overflow-hidden" style="background: #ffffff; border: 1px solid rgba(199, 148, 66, 0.3) !important;">
+                <div class="row g-0 align-items-center">
+                    <div class="col-lg-6 p-4 p-md-5 d-flex align-items-center justify-content-center" style="background: #fbf7ef;">
+                        <div class="text-center w-100">
+                            <span class="badge bg-dark text-white rounded-pill px-3 py-1 fw-bold mb-3">
+                                Rigid Board · Magnetic Clasp
+                            </span>
+                            <a href="{{ url_for('b2b.product_detail', product_id=p_mag.id) if p_mag else '#' }}" target="_blank" class="d-block position-relative text-decoration-none hamper-img-link" title="Open product page with photo gallery in a new tab">
+                                <img src="{{ url_for('static', filename='images/hampers/grand_magnetic_hamper.jpg') }}" alt="Grand Celebration Magnetic Hamper" class="img-fluid rounded-4 shadow-sm hamper-zoom-img" style="max-height: 320px; object-fit: contain; transition: transform 0.3s ease;">
+                                <span class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white rounded-pill px-3 py-1.5 small">
+                                    <i class="bi bi-images me-1 text-warning"></i>View Inside Photos &amp; Specs
+                                </span>
+                            </a>
+                            <span class="small text-muted d-block mt-2">Showing open and closed presentation with custom branded sleeve</span>
+                        </div>
+                    </div>
+
+                    <div class="col-lg-6 p-4 p-md-5">
+                        <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.15); color: #8a5717; border: 1px solid #c79442;">
+                            Executive Luxury · Premium Rigid Box
+                        </span>
+                        <h2 class="display-6 fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: #2b1711;">
+                            <a href="{{ url_for('b2b.product_detail', product_id=p_mag.id) if p_mag else '#' }}" target="_blank" class="text-decoration-none text-dark hover-gold">
+                                Grand Celebration Magnetic Hamper <i class="bi bi-box-arrow-up-right fs-5 ms-1 text-muted"></i>
+                            </a>
+                        </h2>
+                        
+                        <div class="mb-3">
+                            <span class="fs-3 fw-bold" style="color: #b87333;">Starting from ₹999*</span>
+                            <span class="small text-muted d-block">Entry-level configuration · Final pricing based on curation</span>
+                        </div>
+
+                        <p class="text-secondary mb-4" style="line-height: 1.6;">
+                            A premium rigid hamper with an elegant magnetic closure, designed for elevated corporate and festive gifting. Customise the selection, presentation and branding to suit your occasion.
+                        </p>
+
+                        <!-- Highlights Grid -->
+                        <div class="row g-3 mb-4">
+                            <div class="col-6">
+                                <div class="p-2.5 rounded-3 bg-light border h-100">
+                                    <span class="small text-muted d-block">Box Dimensions</span>
+                                    <strong class="text-dark">35.5 × 25.5 × 13 cm</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 rounded-3 bg-light border h-100">
+                                    <span class="small text-muted d-block">Presentation</span>
+                                    <strong class="text-dark">Concealed Magnetic Flap</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 rounded-3 bg-light border h-100">
+                                    <span class="small text-muted d-block">Best Suited For</span>
+                                    <strong class="text-dark">VIPs, CXOs &amp; Weddings</strong>
+                                </div>
+                            </div>
+                            <div class="col-6">
+                                <div class="p-2.5 rounded-3 bg-light border h-100">
+                                    <span class="small text-muted d-block">Lead Time</span>
+                                    <strong class="text-dark">5 – 7 Business Days</strong>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-flex flex-wrap gap-3">
+                            {% if p_mag %}
+                            <a href="{{ url_for('b2b.product_detail', product_id=p_mag.id) }}" target="_blank" class="btn btn-outline-dark px-4 py-3 fw-bold rounded-pill shadow-xs d-flex align-items-center gap-2">
+                                <i class="bi bi-images text-warning"></i>
+                                <span>View Details &amp; Photos &rarr;</span>
+                            </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-premium px-4 py-3 fw-bold rounded-pill shadow-sm" onclick="openHamperEnquiry('Grand Celebration Magnetic Hamper', 999, 25)">
+                                Inquire About Magnetic Hamper
+                            </button>
+                            <a href="#curation-palette" class="btn btn-outline-dark px-4 py-3 fw-bold rounded-pill">
+                                View Items to Pack Inside
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 4. Items Available for Hamper Curation (Visual Section) -->
+    <section id="curation-palette" class="py-5 bg-white">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.15); color: #8a5717; border: 1px solid #c79442;">
+                    Modular Hamper Curation
+                </span>
+                <h2 class="display-6 fw-bold" style="font-family: 'Playfair Display', serif; color: #2b1711;">
+                    Items Available for Hamper Curation
+                </h2>
+                <p class="text-muted mx-auto mb-1" style="max-width: 680px;">
+                    Choose from the categories below to create your preferred bespoke combination. Every hamper can be configured with the ideal mix of artisanal sweets, savouries, and lifestyle accessories.
+                </p>
+                <small class="text-muted fst-italic">* Prices shown are indicative per unit. Final hamper quotation reflects chosen items, quantities, and branding.</small>
+            </div>
+
+            <!-- Curation Items Grid -->
+            <div class="row g-4 justify-content-center text-center">
+                <!-- 1. Sweet Box -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm p-3 hover-lift" style="background: #fffcf7; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <span class="badge rounded-pill mb-2 fw-bold" style="background: #fdf1d8; color: #8a5717; font-size: 0.75rem;">
+                            ₹249 to ₹1,399
+                        </span>
+                        <div class="my-2 d-flex align-items-center justify-content-center" style="height: 120px;">
+                            <img src="{{ url_for('static', filename='images/hampers/curation_sweet_box.jpg') }}" alt="Sweet Box" class="img-fluid rounded-3 shadow-xs" style="max-height: 110px; object-fit: contain;">
+                        </div>
+                        <h6 class="fw-bold mb-1 text-dark">Sweet Box</h6>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Sweet Scribbles Bliss Bite boxes (Dry fruits &amp; dates)</p>
+                    </div>
+                </div>
+
+                <!-- 2. Namkeen Box -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm p-3 hover-lift" style="background: #fffcf7; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <span class="badge rounded-pill mb-2 fw-bold" style="background: #fdf1d8; color: #8a5717; font-size: 0.75rem;">
+                            ₹120 to ₹499
+                        </span>
+                        <div class="my-2 d-flex align-items-center justify-content-center" style="height: 120px;">
+                            <img src="{{ url_for('static', filename='images/hampers/curation_namkeen_box.jpg') }}" alt="Namkeen Box" class="img-fluid rounded-3 shadow-xs" style="max-height: 110px; object-fit: contain;">
+                        </div>
+                        <h6 class="fw-bold mb-1 text-dark">Namkeen Box</h6>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Namkeen &amp; savoury boxes with crisp festive treats</p>
+                    </div>
+                </div>
+
+                <!-- 3. Choco Box -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm p-3 hover-lift" style="background: #fffcf7; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <span class="badge rounded-pill mb-2 fw-bold" style="background: #fdf1d8; color: #8a5717; font-size: 0.75rem;">
+                            ₹200 to ₹799
+                        </span>
+                        <div class="my-2 d-flex align-items-center justify-content-center" style="height: 120px;">
+                            <img src="{{ url_for('static', filename='images/hampers/curation_choco_box.jpg') }}" alt="Choco Box" class="img-fluid rounded-3 shadow-xs" style="max-height: 110px; object-fit: contain;">
+                        </div>
+                        <h6 class="fw-bold mb-1 text-dark">Choco Box</h6>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Choco Bliss Bites in hex boxes or sealed glass jars</p>
+                    </div>
+                </div>
+
+                <!-- 4. Scented Candles -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm p-3 hover-lift" style="background: #fffcf7; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <span class="badge rounded-pill mb-2 fw-bold" style="background: #fdf1d8; color: #8a5717; font-size: 0.75rem;">
+                            ₹150 to ₹799
+                        </span>
+                        <div class="my-2 d-flex align-items-center justify-content-center" style="height: 120px;">
+                            <img src="{{ url_for('static', filename='images/hampers/curation_scented_candles.jpg') }}" alt="Scented Candles" class="img-fluid rounded-3 shadow-xs" style="max-height: 110px; object-fit: contain;">
+                        </div>
+                        <h6 class="fw-bold mb-1 text-dark">Scented Candles</h6>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Hand-poured aromatic soy wax candles in glass jars</p>
+                    </div>
+                </div>
+
+                <!-- 5. Essential Oils -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm p-3 hover-lift" style="background: #fffcf7; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <span class="badge rounded-pill mb-2 fw-bold" style="background: #fdf1d8; color: #8a5717; font-size: 0.75rem;">
+                            ₹200 to ₹799
+                        </span>
+                        <div class="my-2 d-flex align-items-center justify-content-center" style="height: 120px;">
+                            <img src="{{ url_for('static', filename='images/hampers/curation_essential_oils.jpg') }}" alt="Essential Oils" class="img-fluid rounded-3 shadow-xs" style="max-height: 110px; object-fit: contain;">
+                        </div>
+                        <h6 class="fw-bold mb-1 text-dark">Essential Oils</h6>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Pure therapeutic aromatherapy oils in amber dropper bottles</p>
+                    </div>
+                </div>
+
+                <!-- 6. Approved Accessories -->
+                <div class="col-6 col-md-4 col-lg-2">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm p-3 hover-lift" style="background: #fffcf7; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <span class="badge rounded-pill mb-2 fw-bold bg-success-subtle text-success" style="font-size: 0.75rem;">
+                            Included in Curation
+                        </span>
+                        <div class="my-2 d-flex align-items-center justify-content-center fs-1 text-warning" style="height: 120px;">
+                            🪔
+                        </div>
+                        <h6 class="fw-bold mb-1 text-dark">Festive Accessories</h6>
+                        <p class="small text-muted mb-0" style="font-size: 0.78rem;">Brass/terracotta diyas, greeting cards, customized sleeves</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 5. Signature Curated Gift Sets (Sections 4.3 – 4.5) -->
+    <section id="curated-sets" class="py-5" style="background: #fdfaf5;">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.15); color: #8a5717; border: 1px solid #c79442;">
+                    Signature Pre-Curated Collections
+                </span>
+                <h2 class="display-6 fw-bold" style="font-family: 'Playfair Display', serif; color: #2b1711;">
+                    Curated Drawer &amp; Wooden Gift Sets
+                </h2>
+                <p class="text-muted mx-auto" style="max-width: 650px;">
+                    Artisanal gift sets ready for presentation. Built for executive desks, festive family gatherings, and luxury client appreciation.
+                </p>
+            </div>
+
+            <div class="row g-4">
+                <!-- Curated Drawer Gift Set — Sixfold -->
+                <div class="col-lg-4">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden d-flex flex-column justify-content-between" style="background: #ffffff; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <div>
+                            <div class="position-relative p-3 text-center" style="background: #f8f4ec;">
+                                <span class="position-absolute top-0 start-0 m-3 badge bg-dark text-white rounded-pill px-2.5 py-1 z-2">
+                                    6 Glass Jars · Drawer Set
+                                </span>
+                                <a href="{{ url_for('b2b.product_detail', product_id=p_six.id) if p_six else '#' }}" target="_blank" class="d-block position-relative text-decoration-none w-100 text-center hamper-img-link" title="Open product page with photo gallery in a new tab">
+                                    <img src="{{ url_for('static', filename='images/hampers/drawer_sixfold_jars.jpg') }}" alt="Curated Drawer Gift Set — Sixfold" class="img-fluid rounded-3 hamper-zoom-img" style="max-height: 200px; object-fit: contain; transition: transform 0.3s ease;">
+                                    <span class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white rounded-pill px-2.5 py-1 small">
+                                        <i class="bi bi-images me-1 text-warning"></i>View Photos
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="p-4">
+                                <h5 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif;">
+                                    <a href="{{ url_for('b2b.product_detail', product_id=p_six.id) if p_six else '#' }}" target="_blank" class="text-decoration-none text-dark hover-gold">
+                                        Curated Drawer Gift Set — Sixfold <i class="bi bi-box-arrow-up-right fs-6 ms-1 text-muted"></i>
+                                    </a>
+                                </h5>
+                                <p class="small text-muted mb-3">
+                                    Drawer-style presentation with six jars arranged in two rows and three columns. Features smooth pull-out ribbon drawer and custom branded sleeve.
+                                </p>
+
+                                <div class="p-2 rounded-3 bg-light border small mb-3">
+                                    <span class="text-muted d-block">Dimensions:</span>
+                                    <span class="fw-semibold text-dark">Outer: 28 × 20 × 8 cm | Inner: 23 × 15 × 8 cm</span>
+                                </div>
+
+                                <h6 class="fw-bold text-dark small mb-2 text-uppercase" style="letter-spacing: 0.5px;">Recommended Configurations:</h6>
+
+                                <!-- Config 1: Assorted -->
+                                <div class="p-2.5 rounded-3 mb-2 border" style="background: #fffcf7;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong class="text-dark small">Assorted Bliss Bites (6 Jars)</strong>
+                                        <span class="badge bg-warning text-dark fw-bold">₹1,499/-</span>
+                                    </div>
+                                    <ul class="small text-muted mb-0 ps-3" style="font-size: 0.78rem;">
+                                        <li>Mini Signature Bliss Bite · Mini Core Bliss Bite</li>
+                                        <li>Mini Sesame Date Bite · Mini Peanut Bite</li>
+                                        <li>Mini Cashew Almond Bite · Dark Choco Bliss Bite</li>
+                                    </ul>
+                                </div>
+
+                                <!-- Config 2: Just Nuts -->
+                                <div class="p-2.5 rounded-3 mb-3 border" style="background: #fffcf7;">
+                                    <div class="d-flex justify-content-between align-items-center mb-1">
+                                        <strong class="text-dark small">Nuts &amp; Dried Fruits / Just Nuts (6 Jars)</strong>
+                                        <span class="badge bg-secondary text-white fw-bold">₹1,099/-</span>
+                                    </div>
+                                    <ul class="small text-muted mb-0 ps-3" style="font-size: 0.78rem;">
+                                        <li>Premium Cashews · California Almonds · Pistachios</li>
+                                        <li>Walnut Kernels · Golden Raisins · Dried Figs</li>
+                                    </ul>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 pt-0">
+                            {% if p_six %}
+                            <a href="{{ url_for('b2b.product_detail', product_id=p_six.id) }}" target="_blank" class="btn btn-outline-dark w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-1 mb-2 shadow-xs">
+                                <i class="bi bi-images text-warning me-1"></i>
+                                <span>View Details &amp; Photos &rarr;</span>
+                            </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openHamperEnquiry('Curated Drawer Gift Set — Sixfold', 1499, 25)">
+                                Inquire About Sixfold Set
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Premium Three-Jar Gift Set -->
+                <div class="col-lg-4">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden d-flex flex-column justify-content-between" style="background: #ffffff; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <div>
+                            <div class="position-relative p-3 text-center" style="background: #f8f4ec;">
+                                <span class="position-absolute top-0 start-0 m-3 badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold z-2">
+                                    Handcrafted Wooden Chest
+                                </span>
+                                <a href="{{ url_for('b2b.product_detail', product_id=p_imp.id) if p_imp else '#' }}" target="_blank" class="d-block position-relative text-decoration-none w-100 text-center hamper-img-link" title="Open product page with photo gallery in a new tab">
+                                    <img src="{{ url_for('static', filename='images/hampers/imperial_three_jars.jpg') }}" alt="Premium Three-Jar Gift Set" class="img-fluid rounded-3 hamper-zoom-img" style="max-height: 200px; object-fit: contain; transition: transform 0.3s ease;">
+                                    <span class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white rounded-pill px-2.5 py-1 small">
+                                        <i class="bi bi-images me-1 text-warning"></i>View Photos
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">
+                                        <a href="{{ url_for('b2b.product_detail', product_id=p_imp.id) if p_imp else '#' }}" target="_blank" class="text-decoration-none text-dark hover-gold">
+                                            Premium Three-Jar Gift Set <i class="bi bi-box-arrow-up-right fs-6 ms-1 text-muted"></i>
+                                        </a>
+                                    </h5>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="fs-4 fw-bold" style="color: #b87333;">₹1,799/-</span>
+                                    <span class="badge bg-success-subtle text-success ms-2">3 Glass Jars</span>
+                                </div>
+
+                                <p class="small text-muted mb-3">
+                                    Premium presentation containing three glass jars nested in an ornate wooden box with brass latch and satin lining.
+                                </p>
+
+                                <div class="p-2.5 rounded-3 mb-3 border" style="background: #fffcf7;">
+                                    <strong class="text-dark small d-block mb-1">Recommended Selection:</strong>
+                                    <ul class="small text-secondary mb-2 ps-3" style="font-size: 0.8rem;">
+                                        <li>Mini Signature Bliss Bite</li>
+                                        <li>Mini Core or Anjeer Bliss Bite</li>
+                                        <li>Dark Choco Bliss Bite</li>
+                                    </ul>
+                                    <div class="alert alert-warning py-1 px-2 small mb-0 rounded-2" style="font-size: 0.74rem;">
+                                        <i class="bi bi-info-circle me-1"></i>Varieties may be changed based on availability and client preference.
+                                    </div>
+                                </div>
+
+                                <div class="p-2 rounded-3 bg-light border small mb-2">
+                                    <span class="text-muted d-block">Presentation:</span>
+                                    <span class="fw-semibold text-dark">Handcrafted Wood Box with Brass Clasp &amp; Satin Bed</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 pt-0">
+                            {% if p_imp %}
+                            <a href="{{ url_for('b2b.product_detail', product_id=p_imp.id) }}" target="_blank" class="btn btn-outline-dark w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-1 mb-2 shadow-xs">
+                                <i class="bi bi-images text-warning me-1"></i>
+                                <span>View Details &amp; Photos &rarr;</span>
+                            </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openHamperEnquiry('Premium Three-Jar Gift Set (Imperial Wooden Box)', 1799, 25)">
+                                Inquire About Three-Jar Set
+                            </button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Hex Trio Chocolate Gift Set -->
+                <div class="col-lg-4">
+                    <div class="card h-100 border-0 rounded-4 shadow-sm overflow-hidden d-flex flex-column justify-content-between" style="background: #ffffff; border: 1px solid rgba(199, 148, 66, 0.25) !important;">
+                        <div>
+                            <div class="position-relative p-3 text-center" style="background: #f8f4ec;">
+                                <span class="position-absolute top-0 start-0 m-3 badge bg-dark text-white rounded-pill px-2.5 py-1 z-2">
+                                    Artisanal Chocolate · Hex Trio
+                                </span>
+                                <a href="{{ url_for('b2b.product_detail', product_id=p_hex.id) if p_hex else '#' }}" target="_blank" class="d-block position-relative text-decoration-none w-100 text-center hamper-img-link" title="Open product page with photo gallery in a new tab">
+                                    <img src="{{ url_for('static', filename='images/hampers/hex_trio_set.jpg') }}" alt="Hex Trio Chocolate Gift Set" class="img-fluid rounded-3 hamper-zoom-img" style="max-height: 200px; object-fit: contain; transition: transform 0.3s ease;">
+                                    <span class="position-absolute bottom-0 start-50 translate-middle-x mb-2 badge bg-dark bg-opacity-75 text-white rounded-pill px-2.5 py-1 small">
+                                        <i class="bi bi-images me-1 text-warning"></i>View Photos
+                                    </span>
+                                </a>
+                            </div>
+                            <div class="p-4">
+                                <div class="d-flex justify-content-between align-items-start mb-2">
+                                    <h5 class="fw-bold mb-0" style="font-family: 'Playfair Display', serif;">
+                                        <a href="{{ url_for('b2b.product_detail', product_id=p_hex.id) if p_hex else '#' }}" target="_blank" class="text-decoration-none text-dark hover-gold">
+                                            Hex Trio Chocolate Gift Set <i class="bi bi-box-arrow-up-right fs-6 ms-1 text-muted"></i>
+                                        </a>
+                                    </h5>
+                                </div>
+                                <div class="mb-2">
+                                    <span class="fs-4 fw-bold" style="color: #b87333;">₹649/-</span>
+                                    <span class="badge bg-info-subtle text-info-emphasis ms-2">3 Hex Boxes</span>
+                                </div>
+
+                                <p class="small text-muted mb-3">
+                                    Drawer-style gift set containing three angled hexagonal chocolate boxes. Features rich couverture chocolate dipped artisanal bites.
+                                </p>
+
+                                <div class="p-2.5 rounded-3 mb-3 border" style="background: #fffcf7;">
+                                    <strong class="text-dark small d-block mb-1">Recommended Selection:</strong>
+                                    <ul class="small text-secondary mb-0 ps-3" style="font-size: 0.8rem;">
+                                        <li>Dark Chocolate Hex Box</li>
+                                        <li>Milk Chocolate Hex Box</li>
+                                        <li>White Chocolate Hex Box</li>
+                                    </ul>
+                                </div>
+
+                                <div class="p-2 rounded-3 bg-light border small mb-2">
+                                    <span class="text-muted d-block">Presentation:</span>
+                                    <span class="fw-semibold text-dark">Vertical slide-out drawer holding 3 nested hex boxes</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="p-4 pt-0">
+                            {% if p_hex %}
+                            <a href="{{ url_for('b2b.product_detail', product_id=p_hex.id) }}" target="_blank" class="btn btn-outline-dark w-100 py-2 fw-semibold rounded-3 d-flex align-items-center justify-content-center gap-1 mb-2 shadow-xs">
+                                <i class="bi bi-images text-warning me-1"></i>
+                                <span>View Details &amp; Photos &rarr;</span>
+                            </a>
+                            {% endif %}
+                            <button type="button" class="btn btn-premium w-100 py-2.5 fw-bold rounded-3" onclick="openHamperEnquiry('Hex Trio Chocolate Gift Set', 649, 25)">
+                                Inquire About Hex Trio Set
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 6. Interactive Hamper Estimator & Calculator -->
+    <section id="hamper-estimator" class="py-5 text-white position-relative" style="background: linear-gradient(135deg, #2b1711 0%, #442015 60%, #5e2a1b 100%);">
+        <div class="container py-3 position-relative z-1">
+            <div class="row align-items-center g-5">
+                <div class="col-lg-6">
+                    <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.25); color: #f2dfb7; border: 1px solid #c79442;">
+                        Procurement Budget Planner
+                    </span>
+                    <h2 class="display-6 fw-bold mb-3" style="font-family: 'Playfair Display', serif; color: #fffaf1;">
+                        Build Your Hamper &amp; Calculate Indicative Estimate
+                    </h2>
+                    <p class="text-light opacity-80 mb-4" style="line-height: 1.6;">
+                        Select your preferred base hamper presentation, choose your add-on curation items, and adjust your gifting quantity to project your budget instantly.
+                    </p>
+
+                    <div class="p-3 rounded-3 mb-4" style="background: rgba(255, 255, 255, 0.08); border: 1px solid rgba(255, 202, 100, 0.2);">
+                        <h6 class="fw-bold mb-2 text-warning"><i class="bi bi-shield-check me-2"></i>What's Included with Every Corporate Order:</h6>
+                        <ul class="small text-light opacity-90 ps-3 mb-0" style="line-height: 1.7;">
+                            <li>Custom corporate sleeve with your high-res logo and brand colors</li>
+                            <li>Personalized festive greeting card &amp; branded ribbon/tag</li>
+                            <li>Batch-fresh handcrafted production with zero refined sugar</li>
+                            <li>Safe multi-city or consolidated single-point doorstep dispatch</li>
+                        </ul>
+                    </div>
+
+                    <div class="d-flex align-items-center gap-3">
+                        <span class="small text-white-50">Need a bespoke procurement deck?</span>
+                        <a href="{{ url_for('static', filename='uploads/Sweet_Scribbles_Celebration_Hampers_Catalogue.pdf') }}" class="btn btn-outline-light btn-sm rounded-pill px-3" download>
+                            Download PDF Catalogue
+                        </a>
+                    </div>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="p-4 rounded-4 shadow-lg text-dark" style="background: rgba(255, 255, 255, 0.98); border: 1px solid rgba(199, 148, 66, 0.4);">
+                        <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                            <h5 class="fw-bold mb-0 text-dark" style="font-family: 'Playfair Display', serif;">Interactive Hamper Calculator</h5>
+                            <span class="badge bg-success text-white">Min 25 Hampers</span>
+                        </div>
+
+                        <!-- Step 1: Base Hamper Selection -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-secondary">1. Choose Base Gifting Format</label>
+                            <select id="calcHamperBase" class="form-select form-select-sm py-2">
+                                <option value="849" data-name="Celebration Carry Hamper — Petite">Celebration Carry Hamper — Petite (From ₹849)</option>
+                                <option value="949" data-name="Celebration Carry Hamper — Grande">Celebration Carry Hamper — Grande (From ₹949)</option>
+                                <option value="999" data-name="Grand Celebration Magnetic Hamper">Grand Celebration Magnetic Hamper (From ₹999)</option>
+                                <option value="1499" data-name="Curated Drawer Gift Set — Sixfold (Assorted)">Sixfold Drawer Gift Set — Assorted (₹1,499)</option>
+                                <option value="1099" data-name="Curated Drawer Gift Set — Sixfold (Just Nuts)">Sixfold Drawer Gift Set — Just Nuts (₹1,099)</option>
+                                <option value="1799" data-name="Premium Three-Jar Gift Set (Imperial Wooden Box)">Imperial Wooden Box (3 Jars) — ₹1,799</option>
+                                <option value="649" data-name="Hex Trio Chocolate Gift Set">Hex Trio Chocolate Gift Set — ₹649</option>
+                            </select>
+                        </div>
+
+                        <!-- Step 2: Curation Add-ons -->
+                        <div class="mb-3">
+                            <label class="form-label small fw-semibold text-secondary">2. Select Optional Add-on Inclusions</label>
+                            <div class="row g-2">
+                                <div class="col-6">
+                                    <div class="form-check p-2 border rounded-2 bg-light small">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" id="addCandle" value="250" onchange="updateHamperEstimate()">
+                                        <label class="form-check-label text-dark" for="addCandle">Scented Candle (+₹250)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check p-2 border rounded-2 bg-light small">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" id="addNamkeen" value="180" onchange="updateHamperEstimate()">
+                                        <label class="form-check-label text-dark" for="addNamkeen">Namkeen Box (+₹180)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check p-2 border rounded-2 bg-light small">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" id="addOil" value="250" onchange="updateHamperEstimate()">
+                                        <label class="form-check-label text-dark" for="addOil">Essential Oil (+₹250)</label>
+                                    </div>
+                                </div>
+                                <div class="col-6">
+                                    <div class="form-check p-2 border rounded-2 bg-light small">
+                                        <input class="form-check-input ms-0 me-2" type="checkbox" id="addDiya" value="150" onchange="updateHamperEstimate()">
+                                        <label class="form-check-label text-dark" for="addDiya">Brass Diya Pair (+₹150)</label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Step 3: Quantity Slider -->
+                        <div class="mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small fw-semibold text-secondary mb-0">3. Order Volume (Hampers)</label>
+                                <span class="badge bg-dark fs-6" id="calcHamperQtyDisplay">50 hampers</span>
+                            </div>
+                            <input type="range" class="form-range" id="calcHamperQtySlider" min="25" max="1000" step="5" value="50">
+                        </div>
+
+                        <!-- Summary Display -->
+                        <div class="p-3 rounded-3 bg-light border mb-3">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <span class="small text-muted">Estimated Per Hamper:</span>
+                                <strong class="fs-5 text-dark" id="calcHamperUnitPrice">₹849</strong>
+                            </div>
+                            <div class="d-flex justify-content-between align-items-center border-top pt-2 mt-2">
+                                <span class="small fw-semibold text-muted">Total Estimated Budget:</span>
+                                <span class="fs-3 fw-bold text-dark" id="calcHamperTotalEstimate">₹42,450</span>
+                            </div>
+                            <small class="text-success d-block mt-1"><i class="bi bi-check-circle-fill me-1"></i> Includes Custom Sleeve, Logo Branding &amp; Tag</small>
+                        </div>
+
+                        <button type="button" class="btn btn-premium w-100 py-3 fw-bold rounded-3" onclick="submitEstimatedHamper()">
+                            Lock This Estimate &amp; Request Formal Quote
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 7. Corporate Customization & Ordering Workflow -->
+    <section class="py-5 bg-white">
+        <div class="container py-3">
+            <div class="text-center mb-5">
+                <span class="badge px-3 py-1.5 rounded-pill fw-bold text-uppercase mb-2" style="background: rgba(199, 148, 66, 0.15); color: #8a5717; border: 1px solid #c79442;">
+                    Seamless Fulfillment
+                </span>
+                <h2 class="display-6 fw-bold" style="font-family: 'Playfair Display', serif; color: #2b1711;">
+                    How Hamper Customisation Works
+                </h2>
+                <p class="text-muted mx-auto" style="max-width: 600px;">
+                    From curated selection to branded sleeve approval and doorstep dispatch — tailored for corporate ease.
+                </p>
+            </div>
+
+            <div class="row g-4 text-center">
+                <div class="col-md-3">
+                    <div class="p-4 rounded-4 bg-light border h-100">
+                        <div class="fs-1 text-warning mb-2">1️⃣</div>
+                        <h6 class="fw-bold text-dark mb-2">Select Hamper Format</h6>
+                        <p class="small text-muted mb-0">Choose between Petite or Grande Carry hampers, Rigid Magnetic boxes, or Drawer gift sets.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-4 rounded-4 bg-light border h-100">
+                        <div class="fs-1 text-warning mb-2">2️⃣</div>
+                        <h6 class="fw-bold text-dark mb-2">Curate Inner Selection</h6>
+                        <p class="small text-muted mb-0">Mix and match Bliss Bite varieties, savouries, candles, aroma oils, and festive diyas.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-4 rounded-4 bg-light border h-100">
+                        <div class="fs-1 text-warning mb-2">3️⃣</div>
+                        <h6 class="fw-bold text-dark mb-2">Brand &amp; Personalize</h6>
+                        <p class="small text-muted mb-0">Share your company logo and theme. We craft custom foiled sleeves and personal greeting notes.</p>
+                    </div>
+                </div>
+                <div class="col-md-3">
+                    <div class="p-4 rounded-4 bg-light border h-100">
+                        <div class="fs-1 text-warning mb-2">4️⃣</div>
+                        <h6 class="fw-bold text-dark mb-2">Pan-India Dispatch</h6>
+                        <p class="small text-muted mb-0">Batch-fresh handcrafted delivery with tracking updates directly into your B2B Client Portal.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- 8. Direct Account Manager & Concierge Strip -->
+    <section class="py-5" style="background: #fbf7ef; border-top: 1px solid rgba(199, 148, 66, 0.25);">
+        <div class="container py-2">
+            <div class="row align-items-center justify-content-between g-4">
+                <div class="col-lg-7">
+                    <div class="d-flex align-items-center gap-3">
+                        <div class="rounded-circle p-3 shadow-sm d-flex align-items-center justify-content-center" style="background: #f0c978; width: 64px; height: 64px;">
+                            <i class="bi bi-person-badge text-dark fs-2"></i>
+                        </div>
+                        <div>
+                            <span class="badge bg-warning text-dark fw-bold mb-1">Dedicated Gifting Desk</span>
+                            <h4 class="fw-bold mb-1 text-dark" style="font-family: 'Playfair Display', serif;">Vishnu Govind</h4>
+                            <p class="small text-muted mb-0">Business Development Head · Corporate &amp; Festive Gifting</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-lg-5 d-flex flex-wrap gap-2 justify-content-lg-end">
+                    <a href="https://wa.me/918088783044?text=Hi%20Vishnu,%20I'm%20interested%20in%20Sweet%20Scribbles%20Festive%20Celebration%20Hampers." target="_blank" class="btn btn-success px-4 py-2.5 rounded-pill fw-bold d-flex align-items-center gap-2 shadow-sm">
+                        <i class="bi bi-whatsapp fs-5"></i>
+                        <span>WhatsApp +91 80887 83044</span>
+                    </a>
+                    <a href="mailto:vishnu.govind@pikachooz.com?subject=Sweet%20Scribbles%20Corporate%20Hamper%20Enquiry" class="btn btn-outline-dark px-4 py-2.5 rounded-pill fw-bold d-flex align-items-center gap-2">
+                        <i class="bi bi-envelope"></i>
+                        <span>Email Desk</span>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </section>
+</div>
+
+<!-- ========================================== -->
+<!-- B2B OTP-VERIFIED ENQUIRY MODAL -->
+<!-- ========================================== -->
+<div class="modal fade" id="enquiryModal" tabindex="-1" aria-labelledby="enquiryModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow-lg" style="background: #ffffff;">
+            <div class="modal-header border-bottom px-4 py-3" style="background: #fffaf1;">
+                <div>
+                    <span class="badge bg-warning text-dark mb-1">A Pikachooz Product</span>
+                    <h5 class="modal-title fw-bold text-dark" id="enquiryModalLabel" style="font-family: 'Playfair Display', serif;">
+                        Celebration Hamper &amp; Gift Set Quotation
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <div class="modal-body p-4">
+                <div id="enquiryAlert" class="alert d-none py-2 small mb-3 text-center rounded-3"></div>
+
+                <!-- Step 1: Enquiry Details Form -->
+                <div id="stepEnquiryForm">
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Company / Organization Name *</label>
+                            <input type="text" id="eqCompany" class="form-control" placeholder="e.g. Acme Technologies Pvt Ltd" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Contact Person Name *</label>
+                            <input type="text" id="eqContact" class="form-control" placeholder="e.g. Priya Sharma" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Official Email Address *</label>
+                            <input type="email" id="eqEmail" class="form-control" placeholder="priya@acme.com" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Mobile Number (For Verification) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light fw-bold border-end-0">🇮🇳 +91</span>
+                                <input type="tel" id="eqPhone" class="form-control" placeholder="98765 43210" maxlength="10" required>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Selected Hamper / Gift Set</label>
+                            <select id="eqBoxType" class="form-select">
+                                <optgroup label="Celebration Hampers">
+                                    <option value="Celebration Carry Hamper — Petite">Celebration Carry Hamper — Petite (From ₹849)</option>
+                                    <option value="Celebration Carry Hamper — Grande">Celebration Carry Hamper — Grande (From ₹949)</option>
+                                    <option value="Grand Celebration Magnetic Hamper">Grand Celebration Magnetic Hamper (From ₹999)</option>
+                                </optgroup>
+                                <optgroup label="Curated Gift Sets">
+                                    <option value="Curated Drawer Gift Set — Sixfold">Curated Drawer Gift Set — Sixfold (₹1,099 – ₹1,499)</option>
+                                    <option value="Premium Three-Jar Gift Set (Imperial Wooden Box)">Premium Three-Jar Gift Set (Imperial Wooden Box — ₹1,799)</option>
+                                    <option value="Hex Trio Chocolate Gift Set">Hex Trio Chocolate Gift Set (₹649)</option>
+                                </optgroup>
+                                <optgroup label="Other Corporate Boxes">
+                                    {% for b in boxes %}
+                                    <option value="{{ b.name }}">{{ b.name }} (₹{{ "{:,.0f}".format(b.price_premium) }})</option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Estimated Quantity (Min 25 for branding)</label>
+                            <input type="number" id="eqBoxCount" class="form-control" min="25" step="5" value="50">
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Gifting Occasion / Purpose</label>
+                        <input type="text" id="eqOccasion" class="form-control" placeholder="e.g. Diwali Festive Gifting, Annual Summit, Wedding Welcome Hamper">
+                    </div>
+
+                    <div class="mb-4">
+                        <label class="form-label small fw-semibold text-secondary">Custom Message or Specific Curation Requirements</label>
+                        <textarea id="eqMessage" class="form-control" rows="2" placeholder="Tell us if you want specific add-ons (candle, oil, namkeen), logo foiling, or multi-city delivery..."></textarea>
+                    </div>
+
+                    <button type="button" id="btnRequestEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
+                        <span id="btnEnquiryText">Verify Mobile &amp; Request Formal Quote</span>
+                        <div id="btnEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+                </div>
+
+                <!-- Step 2: OTP Verification Screen -->
+                <div id="stepEnquiryOtp" class="d-none text-center py-2">
+                    <div id="enquiryDevOtpBanner" class="alert alert-warning py-2 mb-3 small d-none text-center rounded-3">
+                        <strong>[Dev Mode]</strong> Simulated B2B OTP: <code id="enquiryDevOtpVal" class="fs-6 fw-bold"></code>
+                    </div>
+
+                    <div class="mb-3">
+                        <p class="small text-muted mb-1">We've sent a 4-digit verification code to:</p>
+                        <h6 class="fw-bold text-dark" id="displayEnquiryPhone">+91 XXXXX XXXXX</h6>
+                        <button type="button" id="btnEditEnquiryPhone" class="btn btn-link btn-sm p-0 text-primary small">Change Number</button>
+                    </div>
+
+                    <div class="mb-4 mx-auto" style="max-width: 260px;">
+                        <label class="form-label small fw-semibold text-secondary">Enter 4-Digit OTP</label>
+                        <input type="text" id="enquiryOtpInput" class="form-control text-center fs-2 fw-bold py-2 rounded-3 shadow-sm" placeholder="••••" maxlength="4" autocomplete="one-time-code" inputmode="numeric" style="letter-spacing: 0.8rem;">
+                    </div>
+
+                    <button type="button" id="btnVerifyEnquiryOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2 mb-3">
+                        <span id="btnVerifyEnquiryText">Confirm &amp; Access B2B Portal</span>
+                        <div id="btnVerifyEnquirySpinner" class="spinner-border spinner-border-sm d-none" role="status"></div>
+                    </button>
+
+                    <div>
+                        <button type="button" id="btnResendEnquiryOtp" class="btn btn-link p-0 text-muted small text-decoration-none" disabled>
+                            Resend OTP in <span id="enquiryResendCountdown">30</span>s
+                        </button>
+                    </div>
+                </div>
+
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.hover-lift {
+    transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+.hover-lift:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 10px 20px rgba(0,0,0,0.08) !important;
+}
+.btn-premium {
+    background: linear-gradient(135deg, #c79442 0%, #e5b364 100%);
+    color: #2b1711;
+    border: none;
+    transition: all 0.2s ease;
+}
+.btn-premium:hover {
+    background: linear-gradient(135deg, #b88330 0%, #d4a253 100%);
+    color: #1a0e0a;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(199, 148, 66, 0.35);
+}
+.hover-gold:hover {
+    color: #c79442 !important;
+    transition: color 0.2s ease;
+}
+.hamper-img-link {
+    cursor: pointer;
+}
+.hamper-img-link:hover .hamper-zoom-img {
+    transform: scale(1.05);
+}
+</style>
+
+<script>
+// Hamper Calculator Logic
+function updateHamperEstimate() {
+    const basePrice = parseFloat(document.getElementById('calcHamperBase').value) || 849;
+    const addCandle = document.getElementById('addCandle').checked ? parseFloat(document.getElementById('addCandle').value) : 0;
+    const addNamkeen = document.getElementById('addNamkeen').checked ? parseFloat(document.getElementById('addNamkeen').value) : 0;
+    const addOil = document.getElementById('addOil').checked ? parseFloat(document.getElementById('addOil').value) : 0;
+    const addDiya = document.getElementById('addDiya').checked ? parseFloat(document.getElementById('addDiya').value) : 0;
+
+    const unitPrice = basePrice + addCandle + addNamkeen + addOil + addDiya;
+    const qty = parseInt(document.getElementById('calcHamperQtySlider').value) || 50;
+
+    document.getElementById('calcHamperQtyDisplay').innerText = qty + ' hampers';
+    document.getElementById('calcHamperUnitPrice').innerText = '₹' + unitPrice.toLocaleString('en-IN');
+    const total = unitPrice * qty;
+    document.getElementById('calcHamperTotalEstimate').innerText = '₹' + total.toLocaleString('en-IN');
+}
+
+function submitEstimatedHamper() {
+    const select = document.getElementById('calcHamperBase');
+    const selectedOption = select.options[select.selectedIndex];
+    const name = selectedOption.getAttribute('data-name') || selectedOption.text;
+    const qty = parseInt(document.getElementById('calcHamperQtySlider').value) || 50;
+
+    // Collect add-ons
+    let addons = [];
+    if (document.getElementById('addCandle').checked) addons.push('Scented Candle');
+    if (document.getElementById('addNamkeen').checked) addons.push('Namkeen Box');
+    if (document.getElementById('addOil').checked) addons.push('Essential Oil');
+    if (document.getElementById('addDiya').checked) addons.push('Brass Diya Pair');
+
+    let msg = 'Estimated Selection: ' + name + ' (Qty: ' + qty + ')';
+    if (addons.length > 0) {
+        msg += ' with add-ons: ' + addons.join(', ');
+    }
+
+    openHamperEnquiry(name, select.value, qty, msg);
+}
+
+function openHamperEnquiry(hamperName, startingPrice, minQty, customMsg) {
+    const select = document.getElementById('eqBoxType');
+    let matched = false;
+    for (let i = 0; i < select.options.length; i++) {
+        if (select.options[i].value === hamperName || select.options[i].text.includes(hamperName)) {
+            select.selectedIndex = i;
+            matched = true;
+            break;
+        }
+    }
+    if (!matched) {
+        select.value = hamperName;
+    }
+    document.getElementById('eqBoxCount').value = minQty || 50;
+    if (customMsg) {
+        document.getElementById('eqMessage').value = customMsg;
+    }
+    const modal = new bootstrap.Modal(document.getElementById('enquiryModal'));
+    modal.show();
+}
+
+document.addEventListener('DOMContentLoaded', function() {
+    const qtySlider = document.getElementById('calcHamperQtySlider');
+    const hamperBase = document.getElementById('calcHamperBase');
+    if (qtySlider) qtySlider.addEventListener('input', updateHamperEstimate);
+    if (hamperBase) hamperBase.addEventListener('change', updateHamperEstimate);
+    updateHamperEstimate();
+
+    // OTP Verification Workflow
+    let resendTimer = null;
+    let resendSeconds = 30;
+
+    function showAlert(msg, isSuccess = false) {
+        const el = document.getElementById('enquiryAlert');
+        el.className = 'alert py-2 small mb-3 text-center rounded-3 ' + (isSuccess ? 'alert-success' : 'alert-danger');
+        el.innerText = msg;
+        el.classList.remove('d-none');
+    }
+
+    function hideAlert() {
+        document.getElementById('enquiryAlert').classList.add('d-none');
+    }
+
+    function startResendCountdown() {
+        resendSeconds = 30;
+        const btn = document.getElementById('btnResendEnquiryOtp');
+        const span = document.getElementById('enquiryResendCountdown');
+        btn.disabled = true;
+        span.innerText = resendSeconds;
+
+        if (resendTimer) clearInterval(resendTimer);
+        resendTimer = setInterval(function() {
+            resendSeconds--;
+            span.innerText = resendSeconds;
+            if (resendSeconds <= 0) {
+                clearInterval(resendTimer);
+                btn.disabled = false;
+                btn.innerText = "Resend Code via SMS";
+            }
+        }, 1000);
+    }
+
+    const btnRequestOtp = document.getElementById('btnRequestEnquiryOtp');
+    if (btnRequestOtp) {
+        btnRequestOtp.addEventListener('click', function() {
+            hideAlert();
+            const company = document.getElementById('eqCompany').value.trim();
+            const contact = document.getElementById('eqContact').value.trim();
+            const email = document.getElementById('eqEmail').value.trim();
+            const phone = document.getElementById('eqPhone').value.trim();
+
+            if (!company || !contact || !email || !phone) {
+                showAlert('Please fill in your company, contact name, email, and 10-digit mobile number.');
+                return;
+            }
+
+            const digits = phone.replace(/\D/g, '');
+            if (digits.length < 10) {
+                showAlert('Please enter a valid 10-digit mobile number.');
+                return;
+            }
+
+            const btn = document.getElementById('btnRequestEnquiryOtp');
+            const spinner = document.getElementById('btnEnquirySpinner');
+            const text = document.getElementById('btnEnquiryText');
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            text.innerText = 'Sending Verification Code...';
+
+            fetch("{{ url_for('b2b.send_enquiry_otp') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ phone: phone })
+            })
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(({ status, body }) => {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                text.innerText = 'Verify Mobile & Request Formal Quote';
+
+                if (body.success) {
+                    document.getElementById('stepEnquiryForm').classList.add('d-none');
+                    document.getElementById('stepEnquiryOtp').classList.remove('d-none');
+                    document.getElementById('displayEnquiryPhone').innerText = '+91 ' + digits.slice(-10);
+
+                    if (body.dev_otp) {
+                        document.getElementById('enquiryDevOtpBanner').classList.remove('d-none');
+                        document.getElementById('enquiryDevOtpVal').innerText = body.dev_otp;
+                        document.getElementById('enquiryOtpInput').value = body.dev_otp;
+                    } else {
+                        document.getElementById('enquiryDevOtpBanner').classList.add('d-none');
+                    }
+
+                    showAlert('Verification OTP sent successfully.', true);
+                    startResendCountdown();
+                } else {
+                    showAlert(body.message || 'Error sending OTP. Please check your number.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                text.innerText = 'Verify Mobile & Request Formal Quote';
+                showAlert('Network error communicating with OTP service. Please retry.');
+            });
+        });
+    }
+
+    const btnEditPhone = document.getElementById('btnEditEnquiryPhone');
+    if (btnEditPhone) {
+        btnEditPhone.addEventListener('click', function() {
+            document.getElementById('stepEnquiryOtp').classList.add('d-none');
+            document.getElementById('stepEnquiryForm').classList.remove('d-none');
+            hideAlert();
+        });
+    }
+
+    const btnResend = document.getElementById('btnResendEnquiryOtp');
+    if (btnResend) {
+        btnResend.addEventListener('click', function() {
+            btnRequestOtp.click();
+        });
+    }
+
+    const btnVerifyOtp = document.getElementById('btnVerifyEnquiryOtp');
+    if (btnVerifyOtp) {
+        btnVerifyOtp.addEventListener('click', function() {
+            hideAlert();
+            const otp = document.getElementById('enquiryOtpInput').value.trim();
+            if (!otp || otp.length < 4) {
+                showAlert('Please enter the 4-digit code sent to your phone.');
+                return;
+            }
+
+            const payload = {
+                company_name: document.getElementById('eqCompany').value.trim(),
+                contact_name: document.getElementById('eqContact').value.trim(),
+                email: document.getElementById('eqEmail').value.trim(),
+                phone: document.getElementById('eqPhone').value.trim(),
+                box_type: document.getElementById('eqBoxType').value,
+                box_count: parseInt(document.getElementById('eqBoxCount').value) || 50,
+                custom_occasion: document.getElementById('eqOccasion').value.trim(),
+                custom_message: document.getElementById('eqMessage').value.trim(),
+                otp: otp
+            };
+
+            const btn = document.getElementById('btnVerifyEnquiryOtp');
+            const spinner = document.getElementById('btnVerifyEnquirySpinner');
+            const text = document.getElementById('btnVerifyEnquiryText');
+            btn.disabled = true;
+            spinner.classList.remove('d-none');
+            text.innerText = 'Confirming Enquiry...';
+
+            fetch("{{ url_for('b2b.submit_enquiry') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            })
+            .then(res => res.json().then(data => ({ status: res.status, body: data })))
+            .then(({ status, body }) => {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                text.innerText = 'Confirm & Access B2B Portal';
+
+                if (body.success) {
+                    showAlert('Enquiry submitted successfully! Redirecting to your B2B Client Portal...', true);
+                    setTimeout(function() {
+                        window.location.href = body.redirect_url || "{{ url_for('b2b.portal') }}";
+                    }, 1200);
+                } else {
+                    showAlert(body.message || 'Verification failed. Please check the code.');
+                }
+            })
+            .catch(err => {
+                btn.disabled = false;
+                spinner.classList.add('d-none');
+                text.innerText = 'Confirm & Access B2B Portal';
+                showAlert('Network error submitting enquiry. Please try again.');
+            });
+        });
+    }
+});
+</script>
+{% endblock %}

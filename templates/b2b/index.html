@@ -29,8 +29,11 @@
                         <button type="button" class="btn btn-lg px-4 py-3 fw-bold rounded-pill shadow-lg text-dark" style="background: #f0c978; border-color: #f0c978;" data-bs-toggle="modal" data-bs-target="#enquiryModal">
                             <i class="bi bi-send-fill me-2"></i>Request Custom Quotation
                         </button>
+                        <a href="{{ url_for('b2b.hampers') }}" class="btn btn-warning btn-lg px-4 py-3 fw-bold rounded-pill text-dark shadow-sm" style="background: #ffca64; border-color: #ffca64;">
+                            🎁 Festive Hampers &amp; Sets
+                        </a>
                         <a href="#catalogue" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-pill">
-                            Explore Boxes &amp; Pricing
+                            Explore Boxes
                         </a>
                         <a href="{{ url_for('b2b.login') }}" class="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2">
                             <span>Client Portal Login</span> <i class="bi bi-arrow-right"></i>
@@ -143,6 +146,33 @@
                     <button class="btn btn-premium px-4 py-2 rounded-pill fw-bold" data-bs-toggle="modal" data-bs-target="#enquiryModal">
                         <i class="bi bi-file-earmark-text me-1"></i>Enquire for Custom Batch
                     </button>
+                </div>
+            </div>
+
+            <!-- Festive Hampers & Gift Sets Highlight Banner -->
+            <div class="card border-0 rounded-4 shadow-sm mb-5 overflow-hidden" style="background: linear-gradient(135deg, #24140e 0%, #442014 55%, #632e1b 100%); color: #fffaf1;">
+                <div class="row align-items-center g-0">
+                    <div class="col-md-8 p-4 p-md-5">
+                        <span class="badge bg-warning text-dark fw-bold text-uppercase px-3 py-1 mb-2">Festive &amp; Corporate Special</span>
+                        <h3 class="fw-bold mb-2" style="font-family: 'Playfair Display', serif; color: #fffaf1;">
+                            Celebration Hampers &amp; Luxury Gift Sets
+                        </h3>
+                        <p class="text-light opacity-85 mb-4" style="max-width: 580px; font-size: 0.98rem; line-height: 1.6;">
+                            Looking for grander festive presentations? Discover our Celebration Carry Hampers (Petite &amp; Grande), Grand Magnetic Hamper, Sixfold Drawer Sets, and Handcrafted Wooden Chests with customizable savouries, aroma candles, and essential oils.
+                        </p>
+                        <div class="d-flex flex-wrap gap-3">
+                            <a href="{{ url_for('b2b.hampers') }}" class="btn btn-premium px-4 py-2.5 rounded-pill fw-bold text-dark shadow-sm">
+                                Explore Hampers &amp; Curation Options &rarr;
+                            </a>
+                            <a href="{{ url_for('static', filename='uploads/Sweet_Scribbles_Celebration_Hampers_Catalogue.pdf') }}" class="btn btn-outline-light px-4 py-2.5 rounded-pill fw-bold" download>
+                                <i class="bi bi-file-earmark-pdf me-1"></i>Download PDF Catalogue
+                            </a>
+                        </div>
+                    </div>
+                    <div class="col-md-4 p-4 text-center d-none d-md-block" style="background: rgba(0,0,0,0.18);">
+                        <img src="{{ url_for('static', filename='images/hampers/carry_hamper_petite.jpg') }}" alt="Hampers Preview" class="img-fluid rounded-3 shadow" style="max-height: 175px; object-fit: contain;">
+                        <span class="badge bg-dark-subtle text-warning border border-warning d-block mt-2 mx-auto" style="width: fit-content; font-size: 0.8rem;">Starting from ₹849*</span>
+                    </div>
                 </div>
             </div>
 
