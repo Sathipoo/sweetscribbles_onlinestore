@@ -17,6 +17,7 @@ class B2BClient(db.Model):
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     orders = db.relationship('B2BOrder', backref='client', lazy=True, order_by="desc(B2BOrder.created_at)", cascade="all, delete-orphan")
+    communication_logs = db.relationship('B2BCommunicationLog', backref='client', lazy=True, order_by="desc(B2BCommunicationLog.created_at)", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<B2BClient {self.company_name} ({self.contact_name})>"
@@ -39,7 +40,11 @@ class B2BOrder(db.Model):
     custom_occasion = db.Column(db.String(150), nullable=True)
     custom_message = db.Column(db.Text, nullable=True)
     
-    # Financials
+    # Financials & Quotation Builder
+    subtotal_amount = db.Column(db.Float, default=0.0)
+    discount_amount = db.Column(db.Float, default=0.0)
+    discount_percent = db.Column(db.Float, default=0.0)
+    advance_percent = db.Column(db.Float, default=50.0) # Configurable, not hardcoded
     quoted_price_per_box = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, default=0.0)
     advance_amount_required = db.Column(db.Float, default=0.0)
@@ -68,6 +73,8 @@ class B2BOrder(db.Model):
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     logs = db.relationship('B2BOrderLog', backref='order', lazy=True, order_by="desc(B2BOrderLog.created_at)", cascade="all, delete-orphan")
+    items = db.relationship('B2BOrderItem', backref='order', lazy=True, order_by="B2BOrderItem.id.asc()", cascade="all, delete-orphan")
+    communication_logs = db.relationship('B2BCommunicationLog', backref='order', lazy=True, order_by="desc(B2BCommunicationLog.created_at)", cascade="all, delete-orphan")
 
     @classmethod
     def generate_order_number(cls):
@@ -84,7 +91,7 @@ class B2BOrder(db.Model):
             'delivered': 'Delivered Successfully',
             'cancelled': 'Cancelled'
         }
-        return stage_map.get(self.stage, self.stage.title())
+        return stage_map.get(self.stage, (self.stage or 'enquiry').title())
 
     def get_stage_badge_class(self):
         badge_map = {
@@ -98,6 +105,63 @@ class B2BOrder(db.Model):
             'cancelled': 'bg-danger text-white'
         }
         return badge_map.get(self.stage, 'bg-secondary text-white')
+
+    @property
+    def advance_percent_calc(self):
+        if self.advance_percent and self.advance_percent > 0:
+            return round(self.advance_percent, 1)
+        if self.total_amount and self.total_amount > 0 and self.advance_amount_required:
+            return round((self.advance_amount_required / self.total_amount) * 100, 1)
+        return 50.0
+
+    @property
+    def taxable_amount(self):
+        sub = self.subtotal_amount or 0.0
+        disc = self.discount_amount or 0.0
+        return max(0.0, round(sub - disc, 2))
+
+    @property
+    def is_interstate(self):
+        if self.client and self.client.gst_number:
+            gst = self.client.gst_number.strip().upper()
+            if len(gst) >= 2 and gst[:2].isdigit():
+                return gst[:2] != '29'
+        if self.client and self.client.shipping_address:
+            addr = self.client.shipping_address.lower()
+            if any(k in addr for k in ['karnataka', 'bangalore', 'bengaluru']):
+                return False
+            other_states = ['maharashtra', 'delhi', 'tamil nadu', 'telangana', 'kerala', 'andhra', 'gujarat', 'mumbai', 'hyderabad', 'chennai', 'pune', 'noida', 'gurugram']
+            if any(s in addr for s in other_states):
+                return True
+        return False
+
+    @property
+    def cgst_rate(self):
+        return 0.0 if self.is_interstate else 2.5
+
+    @property
+    def sgst_rate(self):
+        return 0.0 if self.is_interstate else 2.5
+
+    @property
+    def igst_rate(self):
+        return 5.0 if self.is_interstate else 0.0
+
+    @property
+    def cgst_amount(self):
+        return round(self.taxable_amount * (self.cgst_rate / 100.0), 2)
+
+    @property
+    def sgst_amount(self):
+        return round(self.taxable_amount * (self.sgst_rate / 100.0), 2)
+
+    @property
+    def igst_amount(self):
+        return round(self.taxable_amount * (self.igst_rate / 100.0), 2)
+
+    @property
+    def total_tax_amount(self):
+        return round(self.taxable_amount * 0.05, 2)
 
     def add_log(self, action_title, to_stage=None, from_stage=None, actor='Admin', details=None):
         if to_stage is None:
@@ -115,6 +179,48 @@ class B2BOrder(db.Model):
         )
         db.session.add(log)
         return log
+
+
+class B2BOrderItem(db.Model):
+    """Line item within a B2B quotation / order."""
+    __tablename__ = 'b2b_order_items'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('b2b_orders.id'), nullable=False, index=True)
+    product_id = db.Column(db.Integer, db.ForeignKey('b2b_products.id'), nullable=True, index=True)
+    
+    item_name = db.Column(db.String(150), nullable=False)
+    item_category = db.Column(db.String(100), default='Corporate Gift Box')
+    description = db.Column(db.Text, nullable=True)
+    quantity = db.Column(db.Integer, default=50)
+    unit_price = db.Column(db.Float, default=0.0)
+    total_price = db.Column(db.Float, default=0.0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    product = db.relationship('B2BProduct', backref='order_items', lazy=True)
+
+    def __repr__(self):
+        return f"<B2BOrderItem {self.item_name} x {self.quantity} @ ₹{self.unit_price}>"
+
+
+class B2BCommunicationLog(db.Model):
+    """Audit log of all outbound client communications across SMS and Email channels."""
+    __tablename__ = 'b2b_communication_logs'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('b2b_orders.id'), nullable=True, index=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('b2b_clients.id'), nullable=False, index=True)
+    channel = db.Column(db.String(20), nullable=False)  # 'sms' or 'email'
+    event_type = db.Column(db.String(50), nullable=False)  # 'welcome', 'quotation', 'advance_paid', 'design_ready', 'production_eta', 'delivered'
+    recipient = db.Column(db.String(150), nullable=False)  # Mobile or Email
+    subject = db.Column(db.String(200), nullable=True)  # Email Subject or SMS template name
+    message_preview = db.Column(db.Text, nullable=True)
+    attachment_name = db.Column(db.String(150), nullable=True)  # e.g., 'Quotation-SSB2B-321873.pdf'
+    status = db.Column(db.String(50), default='sent')  # 'sent', 'delivered', 'failed', 'simulated'
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<B2BCommunicationLog [{self.channel.upper()}] {self.event_type} to {self.recipient} ({self.status})>"
 
 
 class B2BOrderLog(db.Model):

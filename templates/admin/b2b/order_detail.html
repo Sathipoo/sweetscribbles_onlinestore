@@ -1,10 +1,10 @@
 {% extends 'admin/b2b/b2b_base.html' %}
 
-{% block title %}Order #{{ order.order_number }} - B2B Operations{% endblock %}
+{% block title %}Order #{{ order.order_number }} - B2B Operations & Quotation Builder{% endblock %}
 
 {% block content %}
-<!-- Top Navigation & Actions -->
-<div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-2">
+<!-- Top Navigation & Client Breadcrumb -->
+<div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
         <a href="{{ url_for('b2b_admin.orders') }}" class="text-decoration-none text-muted small">
             &larr; Back to B2B Orders
@@ -17,11 +17,15 @@
         </h2>
         <span class="text-muted small">
             Client: <strong><a href="{{ url_for('b2b_admin.client_detail', client_id=order.client.id) }}" class="text-dark">{{ order.client.company_name }}</a></strong> 
-            ({{ order.client.contact_name }} · {{ order.client.phone }})
+            ({{ order.client.contact_name }} · {{ order.client.phone }} · {{ order.client.email }})
         </span>
     </div>
     
-    <div class="d-flex gap-2">
+    <div class="d-flex gap-2 align-items-center">
+        <!-- Direct PDF Download Link -->
+        <a href="{{ url_for('b2b_admin.download_quotation_pdf', order_id=order.id) }}" target="_blank" class="btn btn-outline-dark btn-sm fw-bold">
+            <i class="bi bi-file-earmark-pdf text-danger me-1"></i>View Quotation PDF
+        </a>
         <form action="{{ url_for('b2b_admin.delete_order', order_id=order.id) }}" method="POST" onsubmit="return confirm('Are you sure you want to delete this order?');">
             <button type="submit" class="btn btn-outline-danger btn-sm">Delete Order</button>
         </form>
@@ -40,113 +44,529 @@
   {% endif %}
 {% endwith %}
 
-<!-- Top Action Banner (Milestone Triggers) -->
-<div class="card border-0 shadow-sm rounded-4 mb-4 text-white p-4" style="background: #1e130f; border-left: 5px solid #c79442;">
-    <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
-        <h5 class="fw-bold mb-0 text-warning">
-            <i class="bi bi-broadcast me-2"></i>Workflow Stage & DLT SMS Automations
-        </h5>
-        <span class="badge bg-dark border border-secondary text-light">DLT PE: PIKACHOOZ</span>
-    </div>
-    
-    <div class="d-flex flex-wrap gap-3 align-items-center">
-        <!-- 1. Mark Advance Paid -->
-        {% if not order.advance_paid %}
-        <form action="{{ url_for('b2b_admin.mark_advance_paid', order_id=order.id) }}" method="POST" onsubmit="return confirm('Confirm receipt of 50% advance payment? This will dispatch the DLT Order Confirmation SMS to the client.');">
-            <button type="submit" class="btn btn-primary fw-bold shadow-sm">
-                <i class="bi bi-cash-stack me-1"></i>Confirm 50% Advance (SMS Trigger)
+
+<!-- ========================================================================= -->
+<!-- 1. TOP SECTION: ORDER LIFECYCLE PROGRESSION TRACKER & WORKFLOW CONTROLS  -->
+<!-- ========================================================================= -->
+<div class="card border-0 shadow-sm rounded-4 mb-4 overflow-hidden" style="background: #191c21; border-left: 5px solid #d4af37;">
+    <div class="p-4 text-white">
+        <!-- Milestone Stages Progress Bar -->
+        <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
+            <h5 class="fw-bold mb-0" style="color: #f1c40f; letter-spacing: 0.5px;">
+                <i class="bi bi-diagram-3-fill me-2"></i>Order Lifecycle & Omnichannel Workflow Control
+            </h5>
+            <div class="d-flex align-items-center gap-2">
+                <span class="badge bg-dark border border-secondary text-light">DLT PE: PIKACHOOZ</span>
+                <span class="badge bg-dark border border-secondary text-warning">SMTP: pooja.sathish@pikachooz.com</span>
+            </div>
+        </div>
+
+        <!-- Stage Progression Steps -->
+        {% set stages = [
+            ('enquiry', '1. Enquiry Received', 'bi-chat-dots'),
+            ('quotation_sent', '2. Quotation Shared', 'bi-file-earmark-text'),
+            ('advance_paid', '3. Advance Confirmed', 'bi-cash-coin'),
+            ('design_review', '4. Design Proof', 'bi-brush'),
+            ('details_locked', '5. Production Locked', 'bi-lock'),
+            ('delivered', '6. Delivered', 'bi-check-circle-fill')
+        ] %}
+        
+        <div class="row g-2 mb-4">
+            {% for st_key, st_label, st_icon in stages %}
+            {% set is_current = (order.stage == st_key) %}
+            {% set is_past = false %}
+            {% if order.stage == 'delivered' %}
+                {% set is_past = true %}
+            {% elif order.stage == 'production' or order.stage == 'details_locked' %}
+                {% if st_key in ['enquiry', 'quotation_sent', 'advance_paid', 'design_review'] %}{% set is_past = true %}{% endif %}
+            {% elif order.stage == 'design_review' %}
+                {% if st_key in ['enquiry', 'quotation_sent', 'advance_paid'] %}{% set is_past = true %}{% endif %}
+            {% elif order.stage == 'advance_paid' %}
+                {% if st_key in ['enquiry', 'quotation_sent'] %}{% set is_past = true %}{% endif %}
+            {% elif order.stage == 'quotation_sent' %}
+                {% if st_key in ['enquiry'] %}{% set is_past = true %}{% endif %}
+            {% endif %}
+
+            <div class="col-6 col-md-4 col-lg-2">
+                <div class="p-2.5 rounded-3 text-center transition-all h-100 d-flex flex-column justify-content-center"
+                     style="background: {% if is_current %}#2d3748; border: 2px solid #f1c40f; box-shadow: 0 0 12px rgba(241,196,15,0.3);{% elif is_past %}#202632; border: 1px solid #38a169;{% else %}#16191f; border: 1px solid #2d3748; opacity: 0.65;{% endif %}">
+                    <div class="small fw-bold {% if is_current %}text-warning{% elif is_past %}text-success{% else %}text-secondary{% endif %} mb-1">
+                        <i class="bi {{ st_icon }} me-1"></i>
+                        {% if is_past %}<i class="bi bi-check2"></i>{% endif %}
+                    </div>
+                    <span class="d-block text-truncate small" style="font-size: 0.76rem; font-weight: 600; color: {% if is_current %}#FFFFFF{% elif is_past %}#E2E8F0{% else %}#A0AEC0{% endif %};">
+                        {{ st_label }}
+                    </span>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+
+        <!-- Workflow Action Toolbar (Dual SMS + Email Triggers) -->
+        <div class="d-flex flex-wrap gap-2.5 align-items-center pt-2 border-top border-secondary">
+            <!-- 0. Send Welcome / Portal Access Email -->
+            <form action="{{ url_for('b2b_admin.send_welcome_email', order_id=order.id) }}" method="POST" class="d-inline">
+                <button type="submit" class="btn btn-sm btn-outline-info fw-semibold shadow-sm" title="Sends welcome email informing client to log into https://sweetscribbles.pikachooz.com/b2b/portal with their mobile number">
+                    <i class="bi bi-envelope-heart me-1"></i>Send Welcome & Portal Email
+                </button>
+            </form>
+
+            <!-- 1. Send Quotation (Email PDF + SMS) -->
+            <form action="{{ url_for('b2b_admin.send_quotation', order_id=order.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Generate Quotation PDF and email to {{ order.client.email }} with SMS alert?');">
+                <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+                    <i class="bi bi-send-fill me-1"></i>Send Quotation (Email PDF + SMS)
+                </button>
+            </form>
+
+            <!-- 2. Confirm Advance Payment Modal -->
+            {% if not order.advance_paid %}
+            <button type="button" class="btn btn-sm btn-primary fw-bold shadow-sm" data-bs-toggle="modal" data-bs-target="#confirmAdvanceModal">
+                <i class="bi bi-cash-stack me-1"></i>Confirm Advance (₹{{ "{:,.0f}".format(order.advance_amount_required) }})
             </button>
-        </form>
-        {% else %}
-        <span class="badge bg-success p-2 px-3 fs-6">
-            ✓ 50% Advance Received (₹{{ "{:,.2f}".format(order.advance_amount_required) }})
-        </span>
-        {% endif %}
+            {% else %}
+            <span class="badge bg-success py-2 px-3 fs-6 d-inline-flex align-items-center">
+                <i class="bi bi-check-circle-fill me-1.5"></i>
+                ✓ {{ order.advance_percent_calc }}% Advance Received (₹{{ "{:,.2f}".format(order.advance_amount_required) }})
+            </span>
+            {% endif %}
 
-        <!-- 2. Trigger Design Proof Upload Modal -->
-        <button type="button" class="btn btn-outline-light" data-bs-toggle="modal" data-bs-target="#uploadProofModal">
-            <i class="bi bi-image me-1"></i>Upload / Replace Design Proof (SMS Trigger)
-        </button>
+            <!-- 3. Upload Design Proof Modal -->
+            <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#uploadProofModal">
+                <i class="bi bi-image me-1"></i>Upload Proof (SMS + Email)
+            </button>
 
-        <!-- 3. Trigger Lock Details Modal -->
-        {% if order.stage != 'delivered' %}
-        <button type="button" class="btn btn-outline-warning" data-bs-toggle="modal" data-bs-target="#lockDetailsModal">
-            <i class="bi bi-lock me-1"></i>Lock Count & Set ETA (SMS Trigger)
-        </button>
-        {% endif %}
+            <!-- 4. Lock Details & Set Production ETA Modal -->
+            {% if order.stage != 'delivered' %}
+            <button type="button" class="btn btn-sm btn-outline-warning" data-bs-toggle="modal" data-bs-target="#lockDetailsModal">
+                <i class="bi bi-lock me-1"></i>Lock Count & Set ETA (SMS + Email)
+            </button>
+            {% endif %}
 
-        <!-- 4. Mark Delivered -->
-        {% if order.stage != 'delivered' %}
-        <button type="button" class="btn btn-outline-success" data-bs-toggle="modal" data-bs-target="#markDeliveredModal">
-            <i class="bi bi-truck me-1"></i>Mark Delivered (SMS Trigger)
+            <!-- 5. Mark Delivered Modal -->
+            {% if order.stage != 'delivered' %}
+            <button type="button" class="btn btn-sm btn-outline-success" data-bs-toggle="modal" data-bs-target="#markDeliveredModal">
+                <i class="bi bi-truck me-1"></i>Mark Delivered (SMS + Email)
+            </button>
+            {% else %}
+            <span class="badge bg-success py-2 px-3 fs-6 d-inline-flex align-items-center">
+                <i class="bi bi-box-seam me-1.5"></i>
+                ✓ Delivered on {{ order.delivered_at.strftime('%d %b %Y') if order.delivered_at else 'Recent' }}
+            </span>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- ===================================================================== -->
+    <!-- COMMUNICATION AUDIT DESK: ALL SMS & EMAILS SENT SO FAR (COLLAPSIBLE)  -->
+    <!-- ===================================================================== -->
+    <div class="bg-black bg-opacity-30 border-top border-secondary px-4 py-2 text-white d-flex justify-content-between align-items-center flex-wrap gap-2">
+        <div class="d-flex align-items-center gap-2 flex-wrap">
+            <span class="badge bg-secondary text-white font-monospace" style="font-size: 0.72rem;">COMMUNICATION TRACKER</span>
+            <span class="small text-light fw-semibold">Outbound Client Communications History (SMS & Email)</span>
+            <span class="badge bg-dark border border-secondary text-warning" style="font-size: 0.75rem;">
+                <i class="bi bi-send me-1"></i>{{ order.communication_logs|length }} Messages Dispatched
+            </span>
+        </div>
+        <button class="btn btn-sm btn-outline-secondary text-light py-1 px-3 d-inline-flex align-items-center gap-1.5" 
+                type="button" 
+                data-bs-toggle="collapse" 
+                data-bs-target="#communicationTrackerCollapse" 
+                aria-expanded="false" 
+                aria-controls="communicationTrackerCollapse"
+                id="commTrackerToggleBtn">
+            <span id="commToggleText">View Communication History</span>
+            <i class="bi bi-chevron-down" id="commToggleIcon"></i>
         </button>
-        {% else %}
-        <span class="badge bg-success p-2 px-3 fs-6">
-            ✓ Delivered on {{ order.delivered_at.strftime('%d %b %Y') if order.delivered_at else '' }}
-        </span>
-        {% endif %}
+    </div>
+
+    <div class="collapse" id="communicationTrackerCollapse">
+        <div class="bg-black bg-opacity-25 p-3.5 px-4 text-white border-top border-secondary">
+            {% if order.communication_logs %}
+            <div class="table-responsive">
+                <table class="table table-dark table-sm table-hover align-middle mb-0" style="font-size: 0.8rem; background: transparent;">
+                    <thead>
+                        <tr class="text-secondary border-secondary">
+                            <th style="width: 90px;">Channel</th>
+                            <th style="width: 140px;">Event / Milestone</th>
+                            <th style="width: 200px;">Recipient</th>
+                            <th>Subject / Preview</th>
+                            <th style="width: 140px;">Attachment</th>
+                            <th style="width: 110px;">Status</th>
+                            <th style="width: 160px;">Date & Time</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for comm in order.communication_logs %}
+                        <tr class="border-secondary">
+                            <td>
+                                {% if comm.channel == 'email' %}
+                                <span class="badge" style="background: #6b46c1; color: #fff;">
+                                    <i class="bi bi-envelope-fill me-1"></i>EMAIL
+                                </span>
+                                {% else %}
+                                <span class="badge" style="background: #2b6cb0; color: #fff;">
+                                    <i class="bi bi-chat-text-fill me-1"></i>SMS
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <strong class="text-light text-capitalize">{{ comm.event_type.replace('_', ' ') }}</strong>
+                            </td>
+                            <td class="font-monospace text-secondary">
+                                {{ comm.recipient }}
+                            </td>
+                            <td>
+                                {% if comm.subject %}
+                                <div class="text-warning fw-semibold text-truncate" style="max-width: 320px;">{{ comm.subject }}</div>
+                                {% endif %}
+                                <div class="text-muted text-truncate" style="max-width: 420px; font-size: 0.74rem;">
+                                    {{ comm.message_preview or '—' }}
+                                </div>
+                            </td>
+                            <td>
+                                {% if comm.attachment_name %}
+                                <a href="{{ url_for('b2b_admin.download_quotation_pdf', order_id=order.id) }}" target="_blank" class="badge bg-danger-subtle text-danger border border-danger text-decoration-none">
+                                    <i class="bi bi-file-pdf me-1"></i>{{ comm.attachment_name }}
+                                </a>
+                                {% else %}
+                                <span class="text-secondary">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if comm.status == 'sent' %}
+                                <span class="badge bg-success-subtle text-success border border-success">
+                                    <i class="bi bi-check2 me-1"></i>Dispatched
+                                </span>
+                                {% elif comm.status == 'simulated' %}
+                                <span class="badge bg-info-subtle text-info border border-info">
+                                    <i class="bi bi-cpu me-1"></i>Logged/Mock
+                                </span>
+                                {% else %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger">
+                                    <i class="bi bi-x me-1"></i>{{ comm.status }}
+                                </span>
+                                {% endif %}
+                            </td>
+                            <td class="text-secondary font-monospace" style="font-size: 0.75rem;">
+                                {{ comm.created_at.strftime('%d %b %Y, %I:%M %p') }}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <div class="p-3 text-center text-muted rounded-3" style="background: rgba(255,255,255,0.03); border: 1px dashed rgba(255,255,255,0.15);">
+                <i class="bi bi-chat-left-dots text-secondary fs-5 d-block mb-1"></i>
+                <span class="small">No communications recorded for this order yet. Use the buttons above to dispatch a <strong>Welcome Portal Email</strong> or <strong>Quotation PDF</strong>.</span>
+            </div>
+            {% endif %}
+        </div>
     </div>
 </div>
 
+
+<!-- ========================================================================= -->
+<!-- 2. MAIN SECTION: QUOTATION BUILDER & CLIENT SPECIFICATION DESK            -->
+<!-- ========================================================================= -->
 <div class="row g-4">
-    <!-- Left Column: Quote & Pricing Details -->
+    <!-- Left Column: Interactive Quotation Builder -->
     <div class="col-lg-7">
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
-            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3">Quotation & Specification Editor</h5>
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3 flex-wrap gap-2">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-calculator me-1.5 text-warning"></i>B2B Quotation Builder
+                    </h5>
+                    <small class="text-muted">Select standard catalogue hampers or gift boxes, customize rates, and configure optional discounts.</small>
+                </div>
+                <span class="badge bg-light text-dark border">Reference: QT-{{ order.order_number }}</span>
+            </div>
             
-            <form action="{{ url_for('b2b_admin.update_quote', order_id=order.id) }}" method="POST">
+            <form id="quotationBuilderForm" action="{{ url_for('b2b_admin.update_quotation_builder', order_id=order.id) }}" method="POST">
+                <!-- Occasion & Target ETA -->
                 <div class="row g-3 mb-3">
                     <div class="col-md-6">
-                        <label class="form-label small fw-semibold text-secondary">Box Style</label>
-                        <select name="box_type" class="form-select">
-                            {% for b in available_boxes %}
-                            <option value="{{ b.name }}" {% if order.box_type == b.name %}selected{% endif %}>{{ b.name }} ({{ b.bites_count }})</option>
-                            {% else %}
-                            <option value="{{ order.box_type }}" selected>{{ order.box_type }}</option>
-                            {% endfor %}
-                        </select>
-                    </div>
-
-                    <div class="col-md-6">
                         <label class="form-label small fw-semibold text-secondary">Occasion / Gifting Purpose</label>
-                        <input type="text" name="custom_occasion" class="form-control" value="{{ order.custom_occasion or '' }}">
+                        <input type="text" name="custom_occasion" class="form-control form-control-sm" value="{{ order.custom_occasion or '' }}" placeholder="e.g. Diwali Corporate Gifting, Annual Gala">
                     </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold text-secondary">Box Quantity</label>
-                        <input type="number" name="box_count" class="form-control" value="{{ order.box_count }}" min="10" required>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold text-secondary">Quoted Rate / Box (₹)</label>
-                        <input type="number" name="quoted_price_per_box" class="form-control" value="{{ order.quoted_price_per_box }}" step="0.5" required>
-                    </div>
-
-                    <div class="col-md-4">
-                        <label class="form-label small fw-semibold text-secondary">Advance Required (%)</label>
-                        <input type="number" name="advance_percent" class="form-control" value="50" min="10" max="100">
+                    <div class="col-md-6">
+                        <label class="form-label small fw-semibold text-secondary">Target Dispatch ETA</label>
+                        <input type="text" name="eta_date" class="form-control form-control-sm" value="{{ order.eta_date or '' }}" placeholder="e.g. 5-7 business days post proof approval">
                     </div>
                 </div>
 
-                <div class="p-3 bg-light rounded-3 border mb-3">
-                    <div class="d-flex justify-content-between mb-1">
-                        <span class="small text-muted">Total Batch Price:</span>
-                        <strong class="text-dark fs-5">₹{{ "{:,.2f}".format(order.total_amount) }}</strong>
+                <!-- Itemized Products & Hampers Table -->
+                <label class="form-label small fw-bold text-dark mb-2">
+                    <i class="bi bi-box2-heart me-1 text-primary"></i>Selected Products, Hampers & Curations
+                </label>
+                
+                <div class="table-responsive mb-3">
+                    <table class="table table-bordered align-middle table-sm" id="itemsTable">
+                        <thead class="table-light">
+                            <tr class="small text-secondary">
+                                <th style="width: 38%;">Product / Hamper Style</th>
+                                <th style="width: 16%;">Qty (Units)</th>
+                                <th style="width: 22%;">Quoted Rate (₹)</th>
+                                <th style="width: 18%;">Line Total (₹)</th>
+                                <th style="width: 6%;" class="text-center"></th>
+                            </tr>
+                        </thead>
+                        <tbody id="itemsTableBody">
+                            {% if order.items and order.items|length > 0 %}
+                                {% for itm in order.items %}
+                                <tr class="item-row">
+                                    <td>
+                                        <select name="product_id[]" class="form-select form-select-sm product-selector mb-1">
+                                            <option value="">-- Select Product or Hamper --</option>
+                                            <optgroup label="Festive & Corporate Gift Boxes">
+                                                {% for opt in gift_box_options %}
+                                                {% set is_selected = false %}
+                                                {% if itm.product_id == opt.product_id %}
+                                                    {% if itm.unit_price == opt.price %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.edition and opt.edition.lower() in itm.item_name.lower() %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.name.lower() == itm.item_name.lower() %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.opt_id.endswith('__premium') and not ('assort' in itm.item_name.lower() or 'nuts' in itm.item_name.lower()) %}
+                                                        {% set is_selected = true %}
+                                                    {% endif %}
+                                                {% elif not itm.product_id and (opt.name.lower() in itm.item_name.lower() or itm.item_name.lower() in opt.name.lower()) %}
+                                                    {% set is_selected = true %}
+                                                {% endif %}
+                                                <option value="{{ opt.opt_id }}"
+                                                        data-product-id="{{ opt.product_id }}"
+                                                        data-name="{{ opt.name }}"
+                                                        data-category="{{ opt.category }}"
+                                                        data-price="{{ opt.price }}"
+                                                        data-desc="{{ opt.desc }}"
+                                                        {% if is_selected %}selected{% endif %}>
+                                                    {{ opt.display_label }}
+                                                </option>
+                                                {% endfor %}
+                                            </optgroup>
+                                            <optgroup label="Celebration Hampers & Curated Gift Sets">
+                                                {% for opt in hamper_options %}
+                                                {% set is_selected = false %}
+                                                {% if itm.product_id == opt.product_id %}
+                                                    {% if itm.unit_price == opt.price %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.edition and opt.edition.lower() in itm.item_name.lower() %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.name.lower() == itm.item_name.lower() %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.opt_id.endswith('__assorted_bites') and not ('nuts' in itm.item_name.lower()) %}
+                                                        {% set is_selected = true %}
+                                                    {% elif opt.opt_id.endswith('__standard') %}
+                                                        {% set is_selected = true %}
+                                                    {% endif %}
+                                                {% elif not itm.product_id and (opt.name.lower() in itm.item_name.lower() or itm.item_name.lower() in opt.name.lower()) %}
+                                                    {% set is_selected = true %}
+                                                {% endif %}
+                                                <option value="{{ opt.opt_id }}"
+                                                        data-product-id="{{ opt.product_id }}"
+                                                        data-name="{{ opt.name }}"
+                                                        data-category="{{ opt.category }}"
+                                                        data-price="{{ opt.price }}"
+                                                        data-desc="{{ opt.desc }}"
+                                                        {% if is_selected %}selected{% endif %}>
+                                                    {{ opt.display_label }}
+                                                </option>
+                                                {% endfor %}
+                                            </optgroup>
+                                        </select>
+                                        <input type="text" name="item_name[]" class="form-control form-control-sm item-name-input mb-1" value="{{ itm.item_name }}" placeholder="Custom Line Item Title" required>
+                                        <input type="hidden" name="item_category[]" class="item-category-input" value="{{ itm.item_category or 'Corporate Gifting' }}">
+                                        <textarea name="item_description[]" class="form-control form-control-sm item-desc-input" rows="1" placeholder="Item packaging & composition specs">{{ itm.description or '' }}</textarea>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="item_quantity[]" class="form-control form-control-sm item-qty-input text-center fw-bold" value="{{ itm.quantity }}" min="1" required>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">₹</span>
+                                            <input type="number" step="0.5" name="item_unit_price[]" class="form-control form-control-sm item-rate-input text-end fw-bold" value="{{ itm.unit_price }}" required>
+                                        </div>
+                                        <div class="standard-rate-hint small text-muted text-end mt-0.5" style="font-size: 0.68rem;">Catalogue: ₹{{ "{:,.0f}".format(itm.unit_price) }}</div>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark line-total-cell font-monospace">
+                                        ₹{{ "{:,.2f}".format(itm.total_price) }}
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-outline-danger btn-sm p-1 px-2 remove-item-btn" title="Remove line item">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                                {% endfor %}
+                            {% else %}
+                                <!-- Fallback single row from order fields -->
+                                <tr class="item-row">
+                                    <td>
+                                        <select name="product_id[]" class="form-select form-select-sm product-selector mb-1">
+                                            <option value="">-- Select Product or Hamper --</option>
+                                            <optgroup label="Festive & Corporate Gift Boxes">
+                                                {% for opt in gift_box_options %}
+                                                {% set is_selected = (opt.name == order.box_type or opt.name.lower() in (order.box_type or '').lower()) %}
+                                                <option value="{{ opt.opt_id }}"
+                                                        data-product-id="{{ opt.product_id }}"
+                                                        data-name="{{ opt.name }}"
+                                                        data-category="{{ opt.category }}"
+                                                        data-price="{{ opt.price }}"
+                                                        data-desc="{{ opt.desc }}"
+                                                        {% if is_selected %}selected{% endif %}>
+                                                    {{ opt.display_label }}
+                                                </option>
+                                                {% endfor %}
+                                            </optgroup>
+                                            <optgroup label="Celebration Hampers & Curated Gift Sets">
+                                                {% for opt in hamper_options %}
+                                                {% set is_selected = (opt.name == order.box_type or opt.name.lower() in (order.box_type or '').lower()) %}
+                                                <option value="{{ opt.opt_id }}"
+                                                        data-product-id="{{ opt.product_id }}"
+                                                        data-name="{{ opt.name }}"
+                                                        data-category="{{ opt.category }}"
+                                                        data-price="{{ opt.price }}"
+                                                        data-desc="{{ opt.desc }}"
+                                                        {% if is_selected %}selected{% endif %}>
+                                                    {{ opt.display_label }}
+                                                </option>
+                                                {% endfor %}
+                                            </optgroup>
+                                        </select>
+                                        <input type="text" name="item_name[]" class="form-control form-control-sm item-name-input mb-1" value="{{ order.box_type or 'Corporate Gift Hamper' }}" placeholder="Custom Line Item Title" required>
+                                        <input type="hidden" name="item_category[]" class="item-category-input" value="Corporate Gifting">
+                                        <textarea name="item_description[]" class="form-control form-control-sm item-desc-input" rows="1" placeholder="Item packaging & composition specs">{{ order.custom_message or 'Artisanal sweet & chocolate box with bespoke sleeve branding.' }}</textarea>
+                                    </td>
+                                    <td>
+                                        <input type="number" name="item_quantity[]" class="form-control form-control-sm item-qty-input text-center fw-bold" value="{{ order.box_count if order.box_count > 0 else 50 }}" min="1" required>
+                                    </td>
+                                    <td>
+                                        <div class="input-group input-group-sm">
+                                            <span class="input-group-text">₹</span>
+                                            <input type="number" step="0.5" name="item_unit_price[]" class="form-control form-control-sm item-rate-input text-end fw-bold" value="{{ order.quoted_price_per_box }}" required>
+                                        </div>
+                                        <div class="standard-rate-hint small text-muted text-end mt-0.5" style="font-size: 0.68rem;">Catalogue: ₹{{ "{:,.0f}".format(order.quoted_price_per_box) }}</div>
+                                    </td>
+                                    <td class="text-end fw-bold text-dark line-total-cell font-monospace">
+                                        ₹{{ "{:,.2f}".format(order.total_amount) }}
+                                    </td>
+                                    <td class="text-center">
+                                        <button type="button" class="btn btn-outline-danger btn-sm p-1 px-2 remove-item-btn" title="Remove line item">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                    </td>
+                                </tr>
+                            {% endif %}
+                        </tbody>
+                    </table>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-4">
+                    <button type="button" id="addItemBtn" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-semibold">
+                        <i class="bi bi-plus-circle me-1"></i>Add Another Product / Hamper
+                    </button>
+                    <span class="small text-muted" id="totalItemsSummary">1 Item Selected</span>
+                </div>
+
+                <!-- Discount & Advance Configuration Box -->
+                <div class="p-3.5 bg-light rounded-3 border mb-4">
+                    <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">
+                        <i class="bi bi-percent me-1 text-warning"></i>Commercial Pricing, Discount & Advance Terms
+                    </h6>
+                    
+                    <div class="row g-3">
+                        <!-- Optional Discount Row -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">
+                                Special Discount (Optional)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <select name="discount_type" id="discountTypeSelect" class="form-select form-select-sm" style="max-width: 90px;">
+                                    <option value="flat" {% if not order.discount_percent or order.discount_percent == 0 %}selected{% endif %}>Flat (₹)</option>
+                                    <option value="percent" {% if order.discount_percent and order.discount_percent > 0 %}selected{% endif %}>% Off</option>
+                                </select>
+                                <input type="number" step="0.1" name="discount_value" id="discountValueInput" class="form-control form-control-sm fw-bold"
+                                       value="{{ order.discount_percent if (order.discount_percent and order.discount_percent > 0) else (order.discount_amount or 0.0) }}"
+                                       placeholder="0.0">
+                            </div>
+                            <!-- Conditional rule feedback helper -->
+                            <div class="mt-1.5" id="discountPdfBadge">
+                                {% if order.discount_amount and order.discount_amount > 0 %}
+                                <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size: 0.72rem;">
+                                    <i class="bi bi-check-circle me-1"></i>Discount (-₹{{ "{:,.2f}".format(order.discount_amount) }}) will appear on final PDF
+                                </span>
+                                {% else %}
+                                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.72rem;">
+                                    <i class="bi bi-info-circle me-1"></i>No discount applied (will NOT appear on final PDF)
+                                </span>
+                                {% endif %}
+                            </div>
+                        </div>
+
+                        <!-- Configurable Advance Percentage (Not hardcoded to 50%) -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">
+                                Advance Requirement (%)
+                            </label>
+                            <div class="input-group input-group-sm">
+                                <input type="number" step="1" min="0" max="100" name="advance_percent" id="advancePercentInput" class="form-control form-control-sm fw-bold"
+                                       value="{{ order.advance_percent_calc }}" placeholder="50">
+                                <span class="input-group-text fw-bold">%</span>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.72rem;">
+                                Fully configurable (e.g. 25%, 30%, 50%, 100%).
+                            </small>
+                        </div>
                     </div>
-                    <div class="d-flex justify-content-between mb-0">
-                        <span class="small text-muted">50% Advance Amount:</span>
-                        <strong class="text-primary">₹{{ "{:,.2f}".format(order.advance_amount_required) }}</strong>
+
+                    <hr class="my-3 text-secondary">
+
+                    <!-- Live Financial Totals Card -->
+                    <div class="row g-2 align-items-center">
+                        <div class="col-6 col-md-2">
+                            <span class="small text-muted d-block">Sub Total:</span>
+                            <strong class="text-dark fs-6" id="calcSubtotalDisplay">₹{{ "{:,.2f}".format(order.subtotal_amount if order.subtotal_amount > 0 else order.total_amount) }}</strong>
+                        </div>
+                        <div class="col-6 col-md-2" id="calcDiscountCol" style="{% if not order.discount_amount or order.discount_amount <= 0 %}display: none;{% endif %}">
+                            <span class="small text-danger d-block">Applied Discount:</span>
+                            <strong class="text-danger fs-6" id="calcDiscountDisplay">- ₹{{ "{:,.2f}".format(order.discount_amount or 0.0) }}</strong>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <span class="small text-muted d-block">Taxable Value:</span>
+                            <strong class="text-dark fs-6" id="calcTaxableDisplay">₹{{ "{:,.2f}".format(order.taxable_amount) }}</strong>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <span class="small text-muted d-block">GST (5%):</span>
+                            <strong class="text-dark fs-6" id="calcTaxDisplay">₹{{ "{:,.2f}".format(order.total_tax_amount) }}</strong>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <span class="small text-dark fw-bold d-block">Total (Incl. GST):</span>
+                            <strong class="text-dark fs-5" id="calcTotalDisplay">₹{{ "{:,.2f}".format(order.total_amount) }}</strong>
+                        </div>
+                        <div class="col-6 col-md-2">
+                            <span class="small text-primary d-block" id="calcAdvanceLabel">{{ order.advance_percent_calc }}% Advance:</span>
+                            <strong class="text-primary fs-6" id="calcAdvanceDisplay">₹{{ "{:,.2f}".format(order.advance_amount_required) }}</strong>
+                        </div>
                     </div>
                 </div>
 
+                <!-- Internal Operational Notes -->
                 <div class="mb-3">
-                    <label class="form-label small fw-semibold text-secondary">Internal Operational Notes</label>
-                    <textarea name="internal_notes" class="form-control" rows="2" placeholder="Packaging preferences, courier instructions, payment terms...">{{ order.internal_notes or '' }}</textarea>
+                    <label class="form-label small fw-semibold text-secondary">Internal Operational Notes & Payment Instructions</label>
+                    <textarea name="internal_notes" class="form-control form-control-sm" rows="2" placeholder="Packaging preferences, courier instructions, payment terms, special ingredients...">{{ order.internal_notes or '' }}</textarea>
                 </div>
 
-                <button type="submit" class="btn btn-dark w-100 py-2.5 fw-bold">
-                    Save Quotation Updates
-                </button>
+                <!-- Form Action Buttons -->
+                <div class="d-flex flex-wrap gap-2 pt-2">
+                    <button type="submit" class="btn btn-dark fw-bold px-4 py-2 shadow-sm flex-grow-1">
+                        <i class="bi bi-save2 me-1.5"></i>Save Quotation Updates
+                    </button>
+                    <a href="{{ url_for('b2b_admin.download_quotation_pdf', order_id=order.id) }}" target="_blank" class="btn btn-outline-dark fw-semibold px-3 py-2">
+                        <i class="bi bi-file-earmark-pdf text-danger me-1"></i>Preview PDF
+                    </a>
+                </div>
             </form>
         </div>
 
@@ -161,9 +581,9 @@
         </div>
     </div>
 
-    <!-- Right Column: Brand Logo & Design Proof Studio -->
+    <!-- Right Column: Brand Logo, Design Mockup Studio, & Client Contact -->
     <div class="col-lg-5">
-        <!-- Client Uploaded Logo -->
+        <!-- Client Brand Logo -->
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
             <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Client Brand Logo</h6>
             {% if order.client_logo_url %}
@@ -173,6 +593,7 @@
             </div>
             {% else %}
             <div class="text-center py-4 bg-light rounded-3 border text-muted small">
+                <i class="bi bi-image text-secondary fs-4 d-block mb-1"></i>
                 No logo uploaded yet by client.
             </div>
             {% endif %}
@@ -208,11 +629,18 @@
 
         <!-- Corporate Contact Card -->
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white">
-            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Client Contact Info</h6>
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h6 class="fw-bold text-dark mb-0">Client Contact Info</h6>
+                <form action="{{ url_for('b2b_admin.send_welcome_email', order_id=order.id) }}" method="POST" class="d-inline">
+                    <button type="submit" class="btn btn-outline-info btn-sm p-1 px-2" style="font-size: 0.75rem;" title="Resend onboarding email with portal URL">
+                        <i class="bi bi-send me-1"></i>Welcome Email
+                    </button>
+                </form>
+            </div>
             <div class="small text-secondary d-flex flex-column gap-2">
                 <div><strong>Company:</strong> {{ order.client.company_name }}</div>
                 <div><strong>Contact:</strong> {{ order.client.contact_name }}</div>
-                <div><strong>Phone:</strong> {{ order.client.phone }}</div>
+                <div><strong>Phone:</strong> <a href="tel:{{ order.client.phone }}" class="text-dark">{{ order.client.phone }}</a></div>
                 <div><strong>Email:</strong> <a href="mailto:{{ order.client.email }}">{{ order.client.email }}</a></div>
                 <div><strong>GST Number:</strong> {{ order.client.gst_number or '—' }}</div>
                 <div><strong>Shipping Address:</strong> {{ order.client.shipping_address or '—' }}</div>
@@ -277,9 +705,48 @@
 </div>
 
 
-<!-- ========================================== -->
-<!-- 1. UPLOAD PROOF MODAL -->
-<!-- ========================================== -->
+<!-- ========================================================================= -->
+<!-- MODALS (CONFIRM ADVANCE, UPLOAD PROOF, LOCK DETAILS, MARK DELIVERED)       -->
+<!-- ========================================================================= -->
+
+<!-- 1. CONFIRM ADVANCE PAYMENT MODAL -->
+<div class="modal fade" id="confirmAdvanceModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg">
+            <div class="modal-header border-bottom px-4 py-3 bg-dark text-white" style="background: #1e130f !important;">
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-cash-coin me-1.5 text-warning"></i>Confirm Advance Payment Receipt
+                </h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('b2b_admin.mark_advance_paid', order_id=order.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        Confirming receipt locks the order slot and dispatches the <strong>Payment Receipt Email</strong> and <strong>DLT Order Confirmation SMS</strong> to {{ order.client.contact_name }}.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Advance Amount Received (₹)</label>
+                        <div class="input-group">
+                            <span class="input-group-text">₹</span>
+                            <input type="number" step="0.5" name="advance_amount" class="form-control fw-bold" value="{{ order.advance_amount_required }}" required>
+                        </div>
+                        <small class="text-muted" style="font-size: 0.74rem;">
+                            Quoted {{ order.advance_percent_calc }}% advance requirement: ₹{{ "{:,.2f}".format(order.advance_amount_required) }}.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">
+                        Confirm Advance & Send Alerts (SMS + Email)
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- 2. UPLOAD PROOF MODAL -->
 <div class="modal fade" id="uploadProofModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -290,7 +757,7 @@
             <form action="{{ url_for('b2b_admin.upload_proof', order_id=order.id) }}" method="POST" enctype="multipart/form-data">
                 <div class="modal-body p-4">
                     <p class="small text-muted mb-3">
-                        Uploading a proof sets the order to <strong>Design Review</strong> and automatically triggers the DLT SMS notification with the client portal approval link.
+                        Uploading a proof sets the order to <strong>Design Review</strong> and automatically triggers the <strong>DLT SMS</strong> and <strong>Review Email</strong> with the client portal approval link.
                     </p>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary">Select Mockup / Proof Image (PNG, JPG, PDF)</label>
@@ -299,16 +766,14 @@
                 </div>
                 <div class="modal-footer border-top px-4 py-3 bg-light">
                     <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">Upload & Dispatch SMS Alert</button>
+                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">Upload & Dispatch Alerts (SMS + Email)</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- 2. LOCK DETAILS & COMMENCE PRODUCTION MODAL -->
-<!-- ========================================== -->
+<!-- 3. LOCK DETAILS & COMMENCE PRODUCTION MODAL -->
 <div class="modal fade" id="lockDetailsModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -319,11 +784,11 @@
             <form action="{{ url_for('b2b_admin.lock_details', order_id=order.id) }}" method="POST">
                 <div class="modal-body p-4">
                     <p class="small text-muted mb-3">
-                        Locking sets stage to <strong>In Production</strong> and triggers the DLT SMS with the locked box count and expected delivery date (ETA).
+                        Locking sets stage to <strong>In Production</strong> and triggers both <strong>DLT SMS</strong> and <strong>Production Schedule Email</strong> with the locked box count and target delivery date (ETA).
                     </p>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary">Final Locked Box Quantity</label>
-                        <input type="number" name="box_count" class="form-control" value="{{ order.box_count }}" required>
+                        <input type="number" name="box_count" class="form-control fw-bold" value="{{ order.box_count }}" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small fw-semibold text-secondary">Expected Delivery Date (ETA)</label>
@@ -332,16 +797,14 @@
                 </div>
                 <div class="modal-footer border-top px-4 py-3 bg-light">
                     <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-gold rounded-pill px-4">Lock & Start Production</button>
+                    <button type="submit" class="btn btn-warning fw-bold rounded-pill px-4">Lock & Start Production</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
 
-<!-- ========================================== -->
-<!-- 3. MARK DELIVERED MODAL -->
-<!-- ========================================== -->
+<!-- 4. MARK DELIVERED MODAL -->
 <div class="modal fade" id="markDeliveredModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
@@ -352,10 +815,10 @@
             <form action="{{ url_for('b2b_admin.mark_delivered', order_id=order.id) }}" method="POST">
                 <div class="modal-body p-4">
                     <p class="small text-muted mb-3">
-                        Confirming delivery sets stage to <strong>Delivered</strong> and sends the final completion DLT SMS with the order archive link to the client.
+                        Confirming delivery sets stage to <strong>Delivered</strong> and dispatches the final <strong>DLT SMS</strong> and <strong>Delivery Confirmation Email</strong> to the client.
                     </p>
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-secondary">Courier / Handover Partner</label>
+                        <label class="form-label small fw-semibold text-secondary">Courier / Logistics Partner</label>
                         <input type="text" name="courier_name" class="form-control" value="Pikachooz Direct Delivery">
                     </div>
                     <div class="mb-3">
@@ -365,10 +828,243 @@
                 </div>
                 <div class="modal-footer border-top px-4 py-3 bg-light">
                     <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">Confirm Delivery & Send SMS</button>
+                    <button type="submit" class="btn btn-success fw-bold rounded-pill px-4">Confirm Delivery & Send Alerts</button>
                 </div>
             </form>
         </div>
     </div>
 </div>
+
+<!-- Client-side script for dynamic Quotation Builder calculations -->
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const tableBody = document.getElementById('itemsTableBody');
+    const addItemBtn = document.getElementById('addItemBtn');
+    const discountTypeSelect = document.getElementById('discountTypeSelect');
+    const discountValueInput = document.getElementById('discountValueInput');
+    const advancePercentInput = document.getElementById('advancePercentInput');
+    const discountPdfBadge = document.getElementById('discountPdfBadge');
+    
+    const calcSubtotalDisplay = document.getElementById('calcSubtotalDisplay');
+    const calcDiscountCol = document.getElementById('calcDiscountCol');
+    const calcDiscountDisplay = document.getElementById('calcDiscountDisplay');
+    const calcTotalDisplay = document.getElementById('calcTotalDisplay');
+    const calcAdvanceLabel = document.getElementById('calcAdvanceLabel');
+    const calcAdvanceDisplay = document.getElementById('calcAdvanceDisplay');
+    const totalItemsSummary = document.getElementById('totalItemsSummary');
+
+    // Catalogue rich edition options for line items
+    const productOptions = {{ product_options|tojson }};
+
+    function recalculateQuotation() {
+        let subtotal = 0;
+        let totalItems = 0;
+        const rows = tableBody.querySelectorAll('.item-row');
+
+        rows.forEach(row => {
+            const qtyInput = row.querySelector('.item-qty-input');
+            const rateInput = row.querySelector('.item-rate-input');
+            const lineCell = row.querySelector('.line-total-cell');
+
+            const qty = Math.max(1, parseInt(qtyInput.value) || 0);
+            const rate = Math.max(0, parseFloat(rateInput.value) || 0);
+            const lineTotal = qty * rate;
+
+            lineCell.textContent = '₹' + lineTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            subtotal += lineTotal;
+            totalItems += qty;
+        });
+
+        // Discount calculation
+        const discType = discountTypeSelect.value;
+        const discValRaw = Math.max(0, parseFloat(discountValueInput.value) || 0);
+        let discAmount = 0;
+
+        if (discType === 'percent') {
+            discAmount = (subtotal * discValRaw) / 100.0;
+        } else {
+            discAmount = Math.min(subtotal, discValRaw);
+        }
+
+        // Taxable & 5% GST Calculation
+        const taxable = Math.max(0, subtotal - discAmount);
+        const gstAmount = taxable * 0.05;
+        const grandTotal = taxable + gstAmount;
+
+        // Advance calculation
+        const advPct = Math.max(0, Math.min(100, parseFloat(advancePercentInput.value) || 50));
+        const advanceAmount = grandTotal * (advPct / 100.0);
+
+        // Update displays
+        calcSubtotalDisplay.textContent = '₹' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const calcTaxableDisplay = document.getElementById('calcTaxableDisplay');
+        if (calcTaxableDisplay) {
+            calcTaxableDisplay.textContent = '₹' + taxable.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        const calcTaxDisplay = document.getElementById('calcTaxDisplay');
+        if (calcTaxDisplay) {
+            calcTaxDisplay.textContent = '₹' + gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        }
+        calcTotalDisplay.textContent = '₹' + grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        calcAdvanceLabel.textContent = `${advPct}% Advance:`;
+        calcAdvanceDisplay.textContent = '₹' + advanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        totalItemsSummary.textContent = `${rows.length} Line Item${rows.length === 1 ? '' : 's'} (${totalItems} total units)`;
+
+        // STRICT CONDITIONAL DISCOUNT HELPER
+        if (discAmount > 0) {
+            calcDiscountCol.style.display = '';
+            calcDiscountDisplay.textContent = '- ₹' + discAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+            discountPdfBadge.innerHTML = `
+                <span class="badge bg-danger-subtle text-danger border border-danger" style="font-size: 0.72rem;">
+                    <i class="bi bi-check-circle me-1"></i>Discount (-₹${discAmount.toFixed(2)}) will appear on final PDF
+                </span>
+            `;
+        } else {
+            calcDiscountCol.style.display = 'none';
+            discountPdfBadge.innerHTML = `
+                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.72rem;">
+                    <i class="bi bi-info-circle me-1"></i>No discount applied (will NOT appear on final PDF)
+                </span>
+            `;
+        }
+    }
+
+    function wireRow(row) {
+        const select = row.querySelector('.product-selector');
+        const nameInput = row.querySelector('.item-name-input');
+        const catInput = row.querySelector('.item-category-input');
+        const descInput = row.querySelector('.item-desc-input');
+        const rateInput = row.querySelector('.item-rate-input');
+        const qtyInput = row.querySelector('.item-qty-input');
+        const rateHint = row.querySelector('.standard-rate-hint');
+        const removeBtn = row.querySelector('.remove-item-btn');
+
+        if (select) {
+            select.addEventListener('change', function() {
+                const opt = select.selectedOptions[0];
+                if (opt && opt.value) {
+                    const pName = opt.getAttribute('data-name');
+                    const pCat = opt.getAttribute('data-category');
+                    const pPrice = parseFloat(opt.getAttribute('data-price')) || 0;
+                    const pDesc = opt.getAttribute('data-desc');
+
+                    nameInput.value = pName;
+                    catInput.value = pCat;
+                    descInput.value = pDesc;
+                    rateInput.value = pPrice;
+                    if (rateHint) {
+                        rateHint.textContent = `Catalogue: ₹${pPrice.toLocaleString('en-IN')}`;
+                    }
+                    recalculateQuotation();
+                }
+            });
+        }
+
+        qtyInput.addEventListener('input', recalculateQuotation);
+        rateInput.addEventListener('input', recalculateQuotation);
+
+        if (removeBtn) {
+            removeBtn.addEventListener('click', function() {
+                const rows = tableBody.querySelectorAll('.item-row');
+                if (rows.length > 1) {
+                    row.remove();
+                    recalculateQuotation();
+                } else {
+                    alert('At least one line item is required in the quotation.');
+                }
+            });
+        }
+    }
+
+    // Attach to existing rows
+    tableBody.querySelectorAll('.item-row').forEach(wireRow);
+
+    // Add item button handler
+    addItemBtn.addEventListener('click', function() {
+        let giftOpts = '';
+        let hamperOpts = '';
+        productOptions.forEach(opt => {
+            const escapedName = (opt.name || '').replace(/"/g, '&quot;');
+            const escapedCat = (opt.category || '').replace(/"/g, '&quot;');
+            const escapedDesc = (opt.desc || '').replace(/"/g, '&quot;');
+            const escapedLabel = (opt.display_label || '').replace(/"/g, '&quot;');
+            const optHtml = `<option value="${opt.opt_id}" data-product-id="${opt.product_id}" data-name="${escapedName}" data-category="${escapedCat}" data-price="${opt.price}" data-desc="${escapedDesc}">${escapedLabel}</option>`;
+            
+            if (opt.category === 'Hampers & Gift Sets') {
+                hamperOpts += optHtml;
+            } else {
+                giftOpts += optHtml;
+            }
+        });
+
+        const optionsHtml = `
+            <option value="">-- Select Product or Hamper --</option>
+            <optgroup label="Festive & Corporate Gift Boxes">
+                ${giftOpts}
+            </optgroup>
+            <optgroup label="Celebration Hampers & Curated Gift Sets">
+                ${hamperOpts}
+            </optgroup>
+        `;
+
+        const newRow = document.createElement('tr');
+        newRow.className = 'item-row';
+        newRow.innerHTML = `
+            <td>
+                <select name="product_id[]" class="form-select form-select-sm product-selector mb-1">
+                    ${optionsHtml}
+                </select>
+                <input type="text" name="item_name[]" class="form-control form-control-sm item-name-input mb-1" placeholder="Custom Line Item Title" required>
+                <input type="hidden" name="item_category[]" class="item-category-input" value="Corporate Gifting">
+                <textarea name="item_description[]" class="form-control form-control-sm item-desc-input" rows="1" placeholder="Item packaging & composition specs"></textarea>
+            </td>
+            <td>
+                <input type="number" name="item_quantity[]" class="form-control form-control-sm item-qty-input text-center fw-bold" value="50" min="1" required>
+            </td>
+            <td>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text">₹</span>
+                    <input type="number" step="0.5" name="item_unit_price[]" class="form-control form-control-sm item-rate-input text-end fw-bold" value="0.0" required>
+                </div>
+                <div class="standard-rate-hint small text-muted text-end mt-0.5" style="font-size: 0.68rem;">Catalogue: ₹0</div>
+            </td>
+            <td class="text-end fw-bold text-dark line-total-cell font-monospace">
+                ₹0.00
+            </td>
+            <td class="text-center">
+                <button type="button" class="btn btn-outline-danger btn-sm p-1 px-2 remove-item-btn" title="Remove line item">
+                    <i class="bi bi-trash"></i>
+                </button>
+            </td>
+        `;
+
+        tableBody.appendChild(newRow);
+        wireRow(newRow);
+        recalculateQuotation();
+    });
+
+    discountTypeSelect.addEventListener('change', recalculateQuotation);
+    discountValueInput.addEventListener('input', recalculateQuotation);
+    advancePercentInput.addEventListener('input', recalculateQuotation);
+
+    // Communication tracker collapse toggle label/icon sync
+    const commCollapse = document.getElementById('communicationTrackerCollapse');
+    const commToggleText = document.getElementById('commToggleText');
+    const commToggleIcon = document.getElementById('commToggleIcon');
+    if (commCollapse && commToggleText && commToggleIcon) {
+        commCollapse.addEventListener('show.bs.collapse', function() {
+            commToggleText.textContent = 'Hide Communication History';
+            commToggleIcon.className = 'bi bi-chevron-up';
+        });
+        commCollapse.addEventListener('hide.bs.collapse', function() {
+            commToggleText.textContent = 'View Communication History';
+            commToggleIcon.className = 'bi bi-chevron-down';
+        });
+    }
+
+    // Initial recalculation
+    recalculateQuotation();
+});
+</script>
 {% endblock %}

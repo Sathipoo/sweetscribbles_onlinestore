@@ -6,6 +6,7 @@ from extensions import db
 from models.b2b import B2BClient, B2BOrder, B2BProduct, B2BProductImage, B2BProductShowcase, B2BTestimonial, B2BTestimonialImage
 from utils.otp_utils import generate_otp, send_b2b_enquiry_otp, send_msg91_otp, normalize_phone, format_phone_for_msg91
 from utils.gcp_storage import upload_file
+from utils.email_utils import send_welcome_onboarding_email
 
 b2b_bp = Blueprint('b2b', __name__)
 
@@ -170,6 +171,10 @@ def submit_enquiry():
     
     db.session.commit()
     
+    # Auto-dispatch welcome email with portal link
+    if client.email:
+        send_welcome_onboarding_email(client, order)
+
     # Authenticate Client in Session
     session['b2b_client_id'] = client.id
     session.pop('b2b_enquiry_otp', None)

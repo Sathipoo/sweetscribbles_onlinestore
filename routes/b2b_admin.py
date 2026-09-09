@@ -1,11 +1,21 @@
 import os
+import io
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, flash, current_app, send_file, jsonify
 from flask_login import login_required, current_user
 from extensions import db
-from models.b2b import B2BClient, B2BOrder, B2BProduct, B2BProductImage, B2BProductShowcase, B2BTestimonial, B2BTestimonialImage
+from models.b2b import (
+    B2BClient, B2BOrder, B2BProduct, B2BProductImage, B2BProductShowcase,
+    B2BTestimonial, B2BTestimonialImage, B2BOrderItem, B2BCommunicationLog
+)
 from utils.otp_utils import send_b2b_sms, normalize_phone
 from utils.gcp_storage import upload_file
+from utils.quotation_pdf import generate_quotation_pdf
+from utils.email_utils import (
+    send_welcome_onboarding_email, send_quotation_email,
+    send_advance_received_email, send_design_proof_email,
+    send_production_eta_email, send_order_delivered_email
+)
 
 b2b_admin_bp = Blueprint('b2b_admin', __name__)
 
@@ -18,6 +28,35 @@ def admin_required(f):
             return redirect(url_for('auth.login'))
         return f(*args, **kwargs)
     return decorated_function
+
+
+def dispatch_b2b_sms_and_log(order, event_type, flow_key, variables_dict):
+    """Dispatches DLT SMS and records in B2BCommunicationLog."""
+    if not order.client or not order.client.phone:
+        return False
+    
+    phone = order.client.phone
+    sent = send_b2b_sms(phone, flow_key, variables_dict)
+    
+    preview_parts = [f"{k}: {v}" for k, v in variables_dict.items()]
+    preview = f"DLT Flow [{flow_key}] &rarr; " + ", ".join(preview_parts)
+    
+    log = B2BCommunicationLog(
+        order_id=order.id,
+        client_id=order.client.id,
+        channel='sms',
+        event_type=event_type,
+        recipient=phone,
+        subject=f"DLT SMS: {flow_key}",
+        message_preview=preview,
+        status='sent' if sent else 'simulated'
+    )
+    db.session.add(log)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+    return sent
 
 
 # =========================================================================
@@ -114,8 +153,95 @@ def orders():
 @admin_required
 def order_detail(order_id):
     order = B2BOrder.query.get_or_404(order_id)
-    boxes = B2BProduct.query.filter_by(is_active=True).all()
-    return render_template('admin/b2b/order_detail.html', order=order, boxes=boxes)
+    boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+
+    # Generate rich edition options for Quotation Builder (Premium, Assorted, Dry Fruits/Nuts, Standard)
+    product_options = []
+    for b in boxes:
+        has_assorted = (b.price_assorted and b.price_assorted > 0 and b.price_assorted != b.price_premium)
+        comp_prem = (b.composition_premium or '').replace('\r\n', ', ').replace('\n', ', ').strip()
+        comp_assort = (b.composition_assorted or '').replace('\r\n', ', ').replace('\n', ', ').strip()
+
+        if b.id == 12: # Curated Drawer Gift Set — Sixfold
+            prem_label = 'Assorted Bliss Bites (6 Jars)'
+            assort_label = 'Just Nuts & Dried Fruits (6 Jars)'
+            product_options.append({
+                'opt_id': f"{b.id}__assorted_bites",
+                'product_id': b.id,
+                'edition': prem_label,
+                'name': f"{b.name} — {prem_label}",
+                'category': b.category,
+                'price': b.price_premium,
+                'desc': comp_prem if comp_prem else "Mini Signature, Core, Sesame Date, Peanut, Cashew Almond & Dark Choco Bliss Bites",
+                'display_label': f"{b.name} — {prem_label} (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
+            })
+            product_options.append({
+                'opt_id': f"{b.id}__just_nuts",
+                'product_id': b.id,
+                'edition': assort_label,
+                'name': f"{b.name} — {assort_label}",
+                'category': b.category,
+                'price': b.price_assorted,
+                'desc': comp_assort if comp_assort else "Premium Cashews, California Almonds, Roasted Pistachios, Walnut Kernels, Golden Raisins & Dried Figs",
+                'display_label': f"{b.name} — {assort_label} (₹{int(b.price_assorted) if b.price_assorted.is_integer() else b.price_assorted})"
+            })
+        elif has_assorted:
+            product_options.append({
+                'opt_id': f"{b.id}__premium",
+                'product_id': b.id,
+                'edition': 'Premium Edition',
+                'name': f"{b.name} — Premium Edition",
+                'category': b.category,
+                'price': b.price_premium,
+                'desc': comp_prem if comp_prem else f"Premium handcrafted curation ({b.bites_count} bites)",
+                'display_label': f"{b.name} — Premium Edition (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
+            })
+            product_options.append({
+                'opt_id': f"{b.id}__assorted",
+                'product_id': b.id,
+                'edition': 'Assorted Edition',
+                'name': f"{b.name} — Assorted Edition",
+                'category': b.category,
+                'price': b.price_assorted,
+                'desc': comp_assort if comp_assort else f"Assorted classic curation ({b.bites_count} bites)",
+                'display_label': f"{b.name} — Assorted Edition (₹{int(b.price_assorted) if b.price_assorted.is_integer() else b.price_assorted})"
+            })
+        else:
+            product_options.append({
+                'opt_id': f"{b.id}__standard",
+                'product_id': b.id,
+                'edition': 'Standard',
+                'name': b.name,
+                'category': b.category,
+                'price': b.price_premium,
+                'desc': comp_prem if comp_prem else (b.description or f"{b.category} curated hamper"),
+                'display_label': f"{b.name} (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
+            })
+
+    gift_box_options = [opt for opt in product_options if opt['category'] != 'Hampers & Gift Sets']
+    hamper_options = [opt for opt in product_options if opt['category'] == 'Hampers & Gift Sets']
+
+    # Ensure items exist for existing orders
+    if len(order.items) == 0 and (order.box_count > 0 or order.quoted_price_per_box > 0 or order.total_amount > 0):
+        matched_prod = next((p for p in boxes if p.name.lower() in (order.box_type or '').lower()), None)
+        qty = order.box_count if order.box_count > 0 else 50
+        rate = order.quoted_price_per_box if order.quoted_price_per_box > 0 else (order.total_amount / qty if qty else 0.0)
+        item = B2BOrderItem(
+            order_id=order.id,
+            product_id=matched_prod.id if matched_prod else None,
+            item_name=order.box_type or "Curated Corporate Hamper",
+            item_category=matched_prod.category if matched_prod else "Corporate Gifting",
+            description=matched_prod.description if matched_prod else (order.custom_message or "Luxury rigid box with custom festive sleeve branding"),
+            quantity=qty,
+            unit_price=rate,
+            total_price=round(qty * rate, 2)
+        )
+        db.session.add(item)
+        if not order.subtotal_amount:
+            order.subtotal_amount = item.total_price
+        db.session.commit()
+
+    return render_template('admin/b2b/order_detail.html', order=order, boxes=boxes, available_boxes=boxes, product_options=product_options, gift_box_options=gift_box_options, hamper_options=hamper_options)
 
 
 @b2b_admin_bp.route('/orders/<int:order_id>/stage', methods=['POST'])
@@ -146,29 +272,37 @@ def update_stage(order_id):
 
     db.session.commit()
 
-    # Trigger SMS notification if applicable
-    if order.client and order.client.phone:
+    # Trigger Omnichannel (SMS + Email) notification if applicable
+    if order.client:
         if new_stage == 'advance_paid':
-            send_b2b_sms(order.client.phone, 'confirmed', {
+            dispatch_b2b_sms_and_log(order, 'advance_paid', 'confirmed', {
                 'client_name': order.client.contact_name or order.client.company_name,
                 'order_number': order.order_number,
                 'box_count': str(order.box_count)
             })
+            if order.client.email:
+                send_advance_received_email(order)
         elif new_stage == 'design_review':
-            send_b2b_sms(order.client.phone, 'design_ready', {
+            dispatch_b2b_sms_and_log(order, 'design_ready', 'design_ready', {
                 'client_name': order.client.contact_name or order.client.company_name,
                 'order_number': order.order_number
             })
+            if order.client.email:
+                send_design_proof_email(order)
         elif new_stage == 'production':
-            send_b2b_sms(order.client.phone, 'production', {
+            dispatch_b2b_sms_and_log(order, 'production_eta', 'production', {
                 'client_name': order.client.contact_name or order.client.company_name,
                 'order_number': order.order_number
             })
+            if order.client.email:
+                send_production_eta_email(order)
         elif new_stage == 'delivered':
-            send_b2b_sms(order.client.phone, 'delivered', {
+            dispatch_b2b_sms_and_log(order, 'delivered', 'delivered', {
                 'client_name': order.client.contact_name or order.client.company_name,
                 'order_number': order.order_number
             })
+            if order.client.email:
+                send_order_delivered_email(order)
 
     flash(f"Order #{order.order_number} moved to '{order.get_stage_display()}'.", 'success')
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
@@ -182,75 +316,286 @@ def mark_advance_paid(order_id):
     order.advance_paid = True
     order.advance_paid_at = datetime.utcnow()
     
+    # Custom advance amount override if provided in modal/form
+    adv_input = request.form.get('advance_amount')
+    if adv_input:
+        try:
+            order.advance_amount_required = float(adv_input)
+        except (ValueError, TypeError):
+            pass
+
     old_stage = order.stage
+    adv_pct = order.advance_percent_calc
+    adv_str = f"₹{order.advance_amount_required:,.2f}"
+
     if order.stage in ('enquiry', 'quotation_sent'):
         order.stage = 'advance_paid'
         order.add_log(
-            action_title="50% Advance Confirmed & Order Locked",
+            action_title=f"{adv_pct}% Advance Confirmed & Order Locked",
             from_stage=old_stage,
             to_stage='advance_paid',
             actor=f"{current_user.name} (Admin)",
-            details=f"Payment received: ₹{order.advance_amount_required:,.2f}"
+            details=f"Payment received: {adv_str} ({adv_pct}% advance requirement met)"
         )
-        if order.client and order.client.phone:
-            send_b2b_sms(order.client.phone, 'confirmed', {
-                'client_name': order.client.contact_name or order.client.company_name,
-                'order_number': order.order_number,
-                'box_count': str(order.box_count)
-            })
     else:
         order.add_log(
             action_title="Advance Payment Marked as Paid",
             actor=f"{current_user.name} (Admin)",
-            details=f"Payment received: ₹{order.advance_amount_required:,.2f}"
+            details=f"Payment received: {adv_str}"
         )
 
     db.session.commit()
-    flash(f"Advance payment for #{order.order_number} confirmed!", 'success')
+
+    # Omnichannel Notifications (SMS + Email)
+    if order.client and order.client.phone:
+        dispatch_b2b_sms_and_log(order, 'advance_paid', 'confirmed', {
+            'client_name': order.client.contact_name or order.client.company_name,
+            'order_number': order.order_number,
+            'box_count': str(order.box_count)
+        })
+
+    if order.client and order.client.email:
+        send_advance_received_email(order, advance_amount=order.advance_amount_required)
+
+    flash(f"Advance payment ({adv_str}) for #{order.order_number} confirmed! Client notified via SMS & Email.", 'success')
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
+@b2b_admin_bp.route('/orders/<int:order_id>/quotation-builder', methods=['POST'])
 @b2b_admin_bp.route('/orders/<int:order_id>/update-quote', methods=['POST'])
 @admin_required
-def update_quote(order_id):
+def update_quotation_builder(order_id):
     order = B2BOrder.query.get_or_404(order_id)
-    
-    try:
-        order.quoted_price_per_box = float(request.form.get('quoted_price_per_box', order.quoted_price_per_box))
-    except (ValueError, TypeError):
-        pass
 
+    # 1. Advance Percentage (Dynamic, not hardcoded to 50%)
     try:
-        order.box_count = int(request.form.get('box_count', order.box_count))
+        adv_pct = float(request.form.get('advance_percent', order.advance_percent or 50.0))
     except (ValueError, TypeError):
-        pass
+        adv_pct = 50.0
+    order.advance_percent = max(0.0, min(100.0, adv_pct))
 
-    order.box_type = request.form.get('box_type', order.box_type)
-    order.payment_link = request.form.get('payment_link', order.payment_link)
+    # 2. Optional Discount Type & Value
+    discount_type = request.form.get('discount_type', 'flat') # 'flat' or 'percent'
+    try:
+        discount_input = float(request.form.get('discount_value', 0.0))
+    except (ValueError, TypeError):
+        discount_input = 0.0
+    discount_input = max(0.0, discount_input)
+
+    # 3. Occasion, Notes, ETA
+    order.custom_occasion = request.form.get('custom_occasion', order.custom_occasion)
+    order.custom_message = request.form.get('custom_message', order.custom_message)
+    order.internal_notes = request.form.get('internal_notes', order.internal_notes)
     order.eta_date = request.form.get('eta_date', order.eta_date)
-    
-    order.total_amount = order.box_count * order.quoted_price_per_box
-    order.advance_amount_required = order.total_amount * 0.50
+    order.payment_link = request.form.get('payment_link', order.payment_link)
 
+    # 4. Multi-Item Line Builder
+    item_names = request.form.getlist('item_name[]')
+    product_ids = request.form.getlist('product_id[]')
+    categories = request.form.getlist('item_category[]')
+    descriptions = request.form.getlist('item_description[]')
+    quantities = request.form.getlist('item_quantity[]')
+    unit_prices = request.form.getlist('item_unit_price[]')
+
+    # If single item from legacy form fields
+    if not item_names and request.form.get('box_type'):
+        item_names = [request.form.get('box_type')]
+        product_ids = ['']
+        categories = ['Corporate Gifting']
+        descriptions = [order.custom_message or '']
+        quantities = [request.form.get('box_count', '50')]
+        unit_prices = [request.form.get('quoted_price_per_box', '0.0')]
+
+    # Reset items
+    B2BOrderItem.query.filter_by(order_id=order.id).delete()
+
+    subtotal = 0.0
+    total_boxes = 0
+    primary_box_name = order.box_type
+
+    if item_names and len(item_names) > 0:
+        for i in range(len(item_names)):
+            name = item_names[i].strip()
+            if not name:
+                continue
+
+            p_id = None
+            if i < len(product_ids) and product_ids[i]:
+                raw_pid = str(product_ids[i]).split('__')[0].strip()
+                if raw_pid.isdigit():
+                    p_id = int(raw_pid)
+
+            cat = categories[i].strip() if i < len(categories) else 'Corporate Gifting'
+            desc = descriptions[i].strip() if i < len(descriptions) else ''
+
+            try:
+                qty = int(quantities[i]) if i < len(quantities) else 50
+            except (ValueError, TypeError):
+                qty = 50
+            qty = max(1, qty)
+
+            try:
+                rate = float(unit_prices[i]) if i < len(unit_prices) else 0.0
+            except (ValueError, TypeError):
+                rate = 0.0
+            rate = max(0.0, rate)
+
+            line_tot = round(qty * rate, 2)
+            subtotal += line_tot
+            total_boxes += qty
+
+            if i == 0:
+                primary_box_name = name
+
+            new_item = B2BOrderItem(
+                order_id=order.id,
+                product_id=p_id,
+                item_name=name,
+                item_category=cat,
+                description=desc,
+                quantity=qty,
+                unit_price=rate,
+                total_price=line_tot
+            )
+            db.session.add(new_item)
+
+    # Compute discount
+    if discount_type == 'percent':
+        order.discount_percent = discount_input
+        order.discount_amount = round(subtotal * (discount_input / 100.0), 2)
+    else:
+        order.discount_amount = min(subtotal, discount_input)
+        order.discount_percent = round((order.discount_amount / subtotal * 100.0), 1) if subtotal > 0 else 0.0
+
+    # Strict discount logic: if <= 0, reset to 0 so it DOES NOT appear on PDF
+    if order.discount_amount <= 0:
+        order.discount_amount = 0.0
+        order.discount_percent = 0.0
+
+    order.subtotal_amount = round(subtotal, 2)
+    taxable_val = max(0.0, round(subtotal - order.discount_amount, 2))
+    total_tax = round(taxable_val * 0.05, 2)
+    order.total_amount = round(taxable_val + total_tax, 2)
+    order.advance_amount_required = round(order.total_amount * (order.advance_percent / 100.0), 2)
+
+    order.box_type = primary_box_name
+    order.box_count = total_boxes
+    order.quoted_price_per_box = round(order.total_amount / total_boxes, 2) if total_boxes > 0 else 0.0
+
+    # Auto transition to quotation_sent if in enquiry
     if order.stage == 'enquiry':
         old_stage = order.stage
         order.stage = 'quotation_sent'
         order.add_log(
-            action_title="Quotation Shared with Client",
+            action_title="Quotation Configured in Builder",
             from_stage=old_stage,
             to_stage='quotation_sent',
             actor=f"{current_user.name} (Admin)",
-            details=f"Quoted: ₹{order.quoted_price_per_box} per box for {order.box_count} boxes (Total: ₹{order.total_amount:,.2f})"
+            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST (5%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
         )
     else:
         order.add_log(
-            action_title="Quotation Values Updated",
+            action_title="Quotation Values Updated via Builder",
             actor=f"{current_user.name} (Admin)",
-            details=f"Updated Total: ₹{order.total_amount:,.2f}"
+            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST (5%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
         )
 
     db.session.commit()
-    flash(f"Quotation for #{order.order_number} updated successfully.", 'success')
+    flash(f"Quotation for #{order.order_number} saved successfully! (Total: ₹{order.total_amount:,.2f})", 'success')
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/quotation-pdf')
+@admin_required
+def download_quotation_pdf(order_id):
+    """Streams or downloads the luxury branded Quotation PDF."""
+    order = B2BOrder.query.get_or_404(order_id)
+    pdf_bytes = generate_quotation_pdf(order)
+
+    filename = f"Quotation-{order.order_number}.pdf"
+    as_attachment = request.args.get('download', '0') == '1'
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/send-quotation', methods=['POST'])
+@admin_required
+def send_quotation(order_id):
+    """Generates Quotation PDF and dispatches dual Email (with PDF attached) + SMS."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if not order.client:
+        flash("No client associated with this order.", "danger")
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    pdf_bytes = generate_quotation_pdf(order)
+    filename = f"Quotation-{order.order_number}.pdf"
+
+    # 1. Send Email with PDF
+    email_sent, email_msg = False, "No client email"
+    if order.client.email:
+        email_sent, email_msg = send_quotation_email(order, pdf_bytes, filename=filename)
+
+    # 2. Send SMS notification
+    if order.client.phone:
+        dispatch_b2b_sms_and_log(
+            order,
+            event_type='quotation',
+            flow_key='quotation',
+            variables_dict={
+                'client_name': order.client.contact_name or order.client.company_name,
+                'order_number': order.order_number,
+                'total_amount': f"₹{order.total_amount:,.2f}"
+            }
+        )
+
+    # Update stage if in enquiry
+    if order.stage == 'enquiry':
+        old_stage = order.stage
+        order.stage = 'quotation_sent'
+        order.add_log(
+            action_title="Commercial Quotation Dispatched (Email + SMS)",
+            from_stage=old_stage,
+            to_stage='quotation_sent',
+            actor=f"{current_user.name} (Admin)",
+            details=f"Dispatched quotation PDF (₹{order.total_amount:,.2f}) to {order.client.email} & SMS to {order.client.phone}"
+        )
+    else:
+        order.add_log(
+            action_title="Commercial Quotation Re-Dispatched (Email + SMS)",
+            actor=f"{current_user.name} (Admin)",
+            details=f"Re-sent quotation PDF to {order.client.email} & SMS to {order.client.phone}"
+        )
+
+    db.session.commit()
+
+    if email_sent:
+        flash(f"Quotation PDF successfully emailed to {order.client.email} and SMS dispatched!", 'success')
+    else:
+        flash(f"Quotation SMS dispatched. Email delivery status: {email_msg}", 'warning')
+
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/send-welcome-email', methods=['POST'])
+@admin_required
+def send_welcome_email(order_id):
+    """Sends onboarding welcome email directing client to log into their portal with their phone number."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if not order.client:
+        flash("No client associated with this order.", "danger")
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    success, msg = send_welcome_onboarding_email(order.client, order)
+    if success:
+        flash(f"Welcome & Portal Access email dispatched to {order.client.email}!", "success")
+    else:
+        flash(f"Failed to send welcome email: {msg}", "danger")
+
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
@@ -279,7 +624,7 @@ def upload_proof(order_id):
         order.design_status = 'awaiting_approval'
         
         old_stage = order.stage
-        if order.stage == 'advance_paid':
+        if order.stage in ('advance_paid', 'enquiry', 'quotation_sent'):
             order.stage = 'design_review'
             order.add_log(
                 action_title="Design Proof Uploaded & Ready for Client Review",
@@ -289,10 +634,12 @@ def upload_proof(order_id):
                 details="Uploaded high-res sleeve mockup for corporate approval."
             )
             if order.client and order.client.phone:
-                send_b2b_sms(order.client.phone, 'design_ready', {
+                dispatch_b2b_sms_and_log(order, 'design_ready', 'design_ready', {
                     'client_name': order.client.contact_name or order.client.company_name,
                     'order_number': order.order_number
                 })
+            if order.client and order.client.email:
+                send_design_proof_email(order)
         else:
             order.add_log(
                 action_title="Design Proof Updated",
@@ -301,7 +648,7 @@ def upload_proof(order_id):
             )
 
         db.session.commit()
-        flash(f"Design proof uploaded for Order #{order.order_number}!", 'success')
+        flash(f"Design proof uploaded for Order #{order.order_number}! Client notified via SMS & Email.", 'success')
     else:
         flash("No design proof file or URL provided.", 'warning')
 
@@ -312,15 +659,32 @@ def upload_proof(order_id):
 @admin_required
 def lock_details(order_id):
     order = B2BOrder.query.get_or_404(order_id)
+    try:
+        order.box_count = int(request.form.get('box_count', order.box_count))
+    except (ValueError, TypeError):
+        pass
+    order.eta_date = request.form.get('eta_date', order.eta_date)
+
+    old_stage = order.stage
     order.stage = 'details_locked'
     order.add_log(
         action_title="Design & Final Quantity Locked for Production",
+        from_stage=old_stage,
         to_stage='details_locked',
         actor=f"{current_user.name} (Admin)",
-        details=f"Locked at {order.box_count} boxes. Moving to handcrafted sweet preparation."
+        details=f"Locked at {order.box_count} boxes. Target ETA: {order.eta_date or 'TBD'}."
     )
     db.session.commit()
-    flash(f"Order #{order.order_number} locked for production.", 'success')
+
+    if order.client and order.client.phone:
+        dispatch_b2b_sms_and_log(order, 'production_eta', 'production', {
+            'client_name': order.client.contact_name or order.client.company_name,
+            'order_number': order.order_number
+        })
+    if order.client and order.client.email:
+        send_production_eta_email(order)
+
+    flash(f"Order #{order.order_number} locked for production. Client notified via SMS & Email.", 'success')
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
@@ -348,12 +712,14 @@ def mark_delivered(order_id):
     db.session.commit()
 
     if order.client and order.client.phone:
-        send_b2b_sms(order.client.phone, 'delivered', {
+        dispatch_b2b_sms_and_log(order, 'delivered', 'delivered', {
             'client_name': order.client.contact_name or order.client.company_name,
             'order_number': order.order_number
         })
+    if order.client and order.client.email:
+        send_order_delivered_email(order)
 
-    flash(f"Order #{order.order_number} marked as Delivered!", 'success')
+    flash(f"Order #{order.order_number} marked as Delivered! Client notified via SMS & Email.", 'success')
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
@@ -449,7 +815,7 @@ def edit_order(order_id):
         pass
 
     order.total_amount = order.box_count * order.quoted_price_per_box
-    order.advance_amount_required = order.total_amount * 0.50
+    order.advance_amount_required = round(order.total_amount * ((order.advance_percent or 50.0) / 100.0), 2)
     order.custom_occasion = request.form.get('custom_occasion', order.custom_occasion)
     order.custom_message = request.form.get('custom_message', order.custom_message)
     order.eta_date = request.form.get('eta_date', order.eta_date)
@@ -479,14 +845,13 @@ def delete_order(order_id):
 
 
 # =========================================================================
-# 3. CLIENT DIRECTORY & CRM
+# 3. CORPORATE CLIENTS DIRECTORY
 # =========================================================================
 @b2b_admin_bp.route('/clients')
 @admin_required
 def clients():
     all_clients = B2BClient.query.order_by(B2BClient.created_at.desc()).all()
-    boxes = B2BProduct.query.filter_by(is_active=True).all()
-    return render_template('admin/b2b/clients.html', clients=all_clients, boxes=boxes)
+    return render_template('admin/b2b/clients.html', clients=all_clients)
 
 
 @b2b_admin_bp.route('/clients/<int:client_id>')
@@ -532,7 +897,12 @@ def onboard_client():
     )
     db.session.add(client)
     db.session.commit()
-    flash(f'Corporate client "{company_name}" onboarded successfully!', 'success')
+
+    # Automatically dispatch Welcome & Portal Access email
+    if client.email:
+        send_welcome_onboarding_email(client)
+
+    flash(f'Corporate client "{company_name}" onboarded successfully! Welcome email dispatched.', 'success')
     return redirect(url_for('b2b_admin.clients'))
 
 

@@ -28,3 +28,6 @@ static/uploads/*
 !static/uploads/.gitkeep
 !static/uploads/*.pdf
 
+# Scratch & temporary artifacts
+scratch/
+

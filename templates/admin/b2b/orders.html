@@ -126,7 +126,7 @@
                     <td>
                         <span class="fw-bold text-dark d-block">₹{{ "{:,.2f}".format(ord.total_amount) }}</span>
                         {% if ord.advance_paid %}
-                        <span class="badge bg-success" style="font-size: 0.68rem;">✓ 50% Advance Paid</span>
+                        <span class="badge bg-success" style="font-size: 0.68rem;">✓ {{ ord.advance_percent_calc }}% Advance Paid</span>
                         {% else %}
                         <span class="badge bg-light text-danger border border-danger" style="font-size: 0.68rem;">Adv: ₹{{ "{:,.0f}".format(ord.advance_amount_required) }} Pending</span>
                         {% endif %}
