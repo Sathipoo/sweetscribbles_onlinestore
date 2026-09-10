@@ -14,6 +14,8 @@ class B2BClient(db.Model):
     shipping_address = db.Column(db.Text, nullable=True)
     industry = db.Column(db.String(100), nullable=True)
     notes = db.Column(db.Text, nullable=True)
+    is_archived = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    archived_at = db.Column(db.DateTime, nullable=True)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     
     orders = db.relationship('B2BOrder', backref='client', lazy=True, order_by="desc(B2BOrder.created_at)", cascade="all, delete-orphan")

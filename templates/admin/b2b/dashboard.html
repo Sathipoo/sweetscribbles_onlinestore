@@ -11,9 +11,13 @@
     </div>
     
     <div class="d-flex gap-2">
+        <button type="button" class="btn btn-dark shadow-sm d-flex align-items-center gap-1.5 fw-semibold px-3" data-bs-toggle="modal" data-bs-target="#createOrderGeneralModal">
+            <i class="bi bi-plus-circle-fill text-warning"></i>
+            <span>+ Create Order</span>
+        </button>
         <button type="button" class="btn btn-gold shadow-sm d-flex align-items-center gap-2" data-bs-toggle="modal" data-bs-target="#onboardClientModal">
-            <i class="bi bi-plus-circle-fill"></i>
-            <span>Onboard Client (Sales Direct)</span>
+            <i class="bi bi-person-plus-fill"></i>
+            <span>Onboard Client</span>
         </button>
         <a href="{{ url_for('b2b_admin.orders') }}" class="btn btn-outline-dark d-flex align-items-center gap-1">
             <i class="bi bi-list-check"></i>
@@ -349,4 +353,320 @@
         </div>
     </div>
 </div>
+
+<!-- ========================================================================= -->
+<!-- MODAL: CREATE ORDER ON BEHALF OF CLIENT (DASHBOARD KANBAN VIEW) -->
+<!-- ========================================================================= -->
+<div class="modal fade" id="createOrderGeneralModal" tabindex="-1" aria-labelledby="createOrderGeneralModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom px-4 py-3 bg-dark text-white" style="background: #1e130f !important;">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-gold text-dark px-2 py-1 fw-bold">Admin Operations</span>
+                    <h5 class="modal-title fw-bold mb-0 text-white" id="createOrderGeneralModalLabel">
+                        Create Order / Quote on Behalf of Client
+                    </h5>
+                </div>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            
+            <form action="{{ url_for('b2b_admin.create_order') }}" method="POST" id="createOrderGeneralForm">
+                <div class="modal-body p-4">
+                    <!-- Step 1: Client Selection or Inline Onboarding -->
+                    <div class="mb-4">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small fw-bold text-dark mb-0">Select Corporate Client *</label>
+                            <button type="button" class="btn btn-link btn-sm text-decoration-none p-0" id="dashToggleInlineClientBtn" style="font-size: 0.8rem;">
+                                + Or Onboard New Client Inline
+                            </button>
+                        </div>
+                        
+                        <div id="dashExistingClientWrapper">
+                            <select name="client_id" id="dashGeneralClientSelect" class="form-select form-select-lg" required>
+                                <option value="" disabled selected>— Choose from Registered Corporate Accounts —</option>
+                                {% for c in all_clients %}
+                                <option value="{{ c.id }}">
+                                    {{ c.company_name }} ({{ c.contact_name }} · {{ c.phone }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted" style="font-size: 0.72rem;">Select an existing onboarded corporate account to initiate a new gifting batch.</small>
+                        </div>
+
+                        <!-- Inline New Client Box (Hidden by default) -->
+                        <div id="dashInlineNewClientBox" class="p-3 bg-light rounded-3 border mt-2 d-none">
+                            <div class="d-flex justify-content-between align-items-center mb-2 pb-1 border-bottom">
+                                <span class="fw-bold small text-dark"><i class="bi bi-person-plus-fill me-1 text-warning"></i>Quick Client Onboarding</span>
+                                <button type="button" class="btn btn-sm btn-outline-secondary py-0 px-1.5" id="dashCancelInlineClientBtn" style="font-size: 0.72rem;">Use Existing Client</button>
+                            </div>
+                            <div class="row g-2">
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">Company Name *</label>
+                                    <input type="text" name="new_company_name" id="dash_new_company_name" class="form-control form-control-sm" placeholder="e.g. Titan Company Ltd">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">Contact Person *</label>
+                                    <input type="text" name="new_contact_name" id="dash_new_contact_name" class="form-control form-control-sm" placeholder="e.g. Priya Sharma">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">Mobile Number (Login ID) *</label>
+                                    <input type="tel" name="new_phone" id="dash_new_phone" class="form-control form-control-sm font-monospace" placeholder="9876543210">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">Official Email Address *</label>
+                                    <input type="email" name="new_email" id="dash_new_email" class="form-control form-control-sm" placeholder="priya@titan.co.in">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">GST Number</label>
+                                    <input type="text" name="new_gst_number" class="form-control form-control-sm font-monospace" placeholder="29ABCDE1234F1Z5">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label small fw-semibold text-secondary">Industry / Domain</label>
+                                    <input type="text" name="new_industry" class="form-control form-control-sm" placeholder="e.g. Retail, Tech, Healthcare">
+                                </div>
+                                <div class="col-12">
+                                    <label class="form-label small fw-semibold text-secondary">Headquarter / Shipping Address</label>
+                                    <input type="text" name="new_shipping_address" class="form-control form-control-sm" placeholder="Tower B, Electronics City, Bengaluru">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Step 2: Hamper & Order Configuration -->
+                    <div class="row g-3 mb-3">
+                        <!-- Product / Edition Picker -->
+                        <div class="col-md-12">
+                            <label class="form-label small fw-bold text-dark">Select Hamper / Box Edition *</label>
+                            <select name="product_option_key" id="dashProductOptionSelect" class="form-select form-select-lg" required>
+                                <option value="" disabled selected>— Select Curated Hamper or Edition —</option>
+                                <optgroup label="Luxury Hampers & Gift Sets">
+                                    {% for opt in product_options if opt.category == 'Hampers & Gift Sets' %}
+                                    <option value="{{ opt.opt_id }}" data-price="{{ opt.price }}" data-name="{{ opt.name }}" data-desc="{{ opt.desc }}">
+                                        {{ opt.display_label }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                                <optgroup label="Signature Rigid Gift Boxes">
+                                    {% for opt in product_options if opt.category != 'Hampers & Gift Sets' %}
+                                    <option value="{{ opt.opt_id }}" data-price="{{ opt.price }}" data-name="{{ opt.name }}" data-desc="{{ opt.desc }}">
+                                        {{ opt.display_label }}
+                                    </option>
+                                    {% endfor %}
+                                </optgroup>
+                            </select>
+                            <div id="dashProductDescPreview" class="form-text small text-muted mt-1 fst-italic"></div>
+                        </div>
+
+                        <!-- Occasion / Campaign -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Occasion / Gifting Purpose *</label>
+                            <input type="text" name="custom_occasion" class="form-control" placeholder="e.g. Diwali Corporate Hampers, Annual Summit, Milestone" list="dashOccasionsList" required>
+                            <datalist id="dashOccasionsList">
+                                <option value="Diwali Corporate Hampers">
+                                <option value="New Year & Festive Gifting">
+                                <option value="Annual Leadership Summit">
+                                <option value="Executive Welcome Kit">
+                                <option value="Client Appreciation Gifting">
+                                <option value="Founders Day Celebration">
+                                <option value="Employee Milestone Recognition">
+                            </datalist>
+                        </div>
+
+                        <!-- Initial Pipeline Stage -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-bold text-dark">Initial Stage</label>
+                            <select name="stage" class="form-select">
+                                <option value="enquiry" selected>1. Enquiry Received (Drafting Quote)</option>
+                                <option value="quotation_sent">2. Quotation Ready to Send</option>
+                                <option value="advance_paid">3. Confirmed (Advance Already Received)</option>
+                            </select>
+                        </div>
+
+                        <!-- Box Quantity -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Estimated Box Count *</label>
+                            <div class="input-group">
+                                <input type="number" name="box_count" id="dashBoxCountInput" class="form-control font-monospace fw-bold" value="50" min="1" step="1" required>
+                                <span class="input-group-text bg-white text-muted">Boxes</span>
+                            </div>
+                            <div class="d-flex gap-1 mt-1">
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1.5 dash-qty-btn" data-qty="25" style="font-size: 0.7rem;">25</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1.5 dash-qty-btn" data-qty="50" style="font-size: 0.7rem;">50</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1.5 dash-qty-btn" data-qty="100" style="font-size: 0.7rem;">100</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1.5 dash-qty-btn" data-qty="250" style="font-size: 0.7rem;">250</button>
+                                <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1.5 dash-qty-btn" data-qty="500" style="font-size: 0.7rem;">500</button>
+                            </div>
+                        </div>
+
+                        <!-- Quoted Rate per Box -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Quoted Rate (₹/Box) *</label>
+                            <div class="input-group">
+                                <span class="input-group-text bg-light">₹</span>
+                                <input type="number" name="quoted_price_per_box" id="dashQuotedRateInput" class="form-control font-monospace fw-bold" placeholder="0.0" step="0.5" required>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">Catalog rate; fully editable.</small>
+                        </div>
+
+                        <!-- Advance Percentage -->
+                        <div class="col-md-4">
+                            <label class="form-label small fw-bold text-dark">Advance Required (%)</label>
+                            <div class="input-group">
+                                <input type="number" name="advance_percent" id="dashAdvancePercentInput" class="form-control font-monospace fw-bold" value="50" min="0" max="100" step="5">
+                                <span class="input-group-text bg-white">%</span>
+                            </div>
+                            <small class="text-muted" style="font-size: 0.7rem;">Configurable per deal terms.</small>
+                        </div>
+
+                        <!-- Target Dispatch / ETA Date -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Target Delivery Date / ETA (Optional)</label>
+                            <input type="date" name="eta_date" class="form-control">
+                        </div>
+
+                        <!-- Custom Message on Box / Sleeve -->
+                        <div class="col-md-6">
+                            <label class="form-label small fw-semibold text-secondary">Custom Sleeve / Greeting Message</label>
+                            <input type="text" name="custom_message" class="form-control" placeholder="e.g. Celebrating Milestones Together - With Best Wishes">
+                        </div>
+
+                        <!-- Internal Operational Notes -->
+                        <div class="col-12">
+                            <label class="form-label small fw-semibold text-secondary">Internal Operational & Branding Notes</label>
+                            <textarea name="notes" class="form-control" rows="2" placeholder="Custom foil logo sleeve, personalized greeting card, special packing or dispatch instructions..."></textarea>
+                        </div>
+                    </div>
+
+                    <!-- Live Financial Summary Card -->
+                    <div class="card border-0 rounded-3 p-3 mb-0" style="background: #faf7f2; border: 1px dashed #d4af37 !important;">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted">Estimated Subtotal (excl. tax):</span>
+                            <span class="fw-bold font-monospace text-dark" id="dashLiveSubtotal">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="small text-muted">GST (5% Food & Confectionery):</span>
+                            <span class="fw-bold font-monospace text-secondary" id="dashLiveGst">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center pt-2 border-top mb-2">
+                            <span class="fw-bold text-dark">Total Estimated Order Value:</span>
+                            <span class="fw-bold fs-5 font-monospace text-success" id="dashLiveTotal">₹0.00</span>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-center bg-white p-2 rounded border">
+                            <span class="small fw-semibold text-primary">
+                                Advance Amount (<span id="dashLiveAdvPercent">50</span>%):
+                            </span>
+                            <span class="fw-bold font-monospace text-primary" id="dashLiveAdvAmount">₹0.00</span>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-footer border-top px-4 py-3 bg-light d-flex justify-content-between">
+                    <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark fw-bold px-4 py-2 shadow-sm d-flex align-items-center gap-2">
+                        <span>Create Order & Open Quotation Builder</span>
+                        <i class="bi bi-arrow-right"></i>
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    const clientSelect = document.getElementById('dashGeneralClientSelect');
+    const toggleInlineBtn = document.getElementById('dashToggleInlineClientBtn');
+    const cancelInlineBtn = document.getElementById('dashCancelInlineClientBtn');
+    const existingClientWrapper = document.getElementById('dashExistingClientWrapper');
+    const inlineClientBox = document.getElementById('dashInlineNewClientBox');
+
+    const productSelect = document.getElementById('dashProductOptionSelect');
+    const descPreview = document.getElementById('dashProductDescPreview');
+    const rateInput = document.getElementById('dashQuotedRateInput');
+    const countInput = document.getElementById('dashBoxCountInput');
+    const advancePercentInput = document.getElementById('dashAdvancePercentInput');
+
+    const subtotalEl = document.getElementById('dashLiveSubtotal');
+    const gstEl = document.getElementById('dashLiveGst');
+    const totalEl = document.getElementById('dashLiveTotal');
+    const advPercentEl = document.getElementById('dashLiveAdvPercent');
+    const advAmountEl = document.getElementById('dashLiveAdvAmount');
+
+    // Toggle inline client creation
+    if (toggleInlineBtn && inlineClientBox) {
+        toggleInlineBtn.addEventListener('click', function() {
+            inlineClientBox.classList.remove('d-none');
+            existingClientWrapper.classList.add('d-none');
+            if (clientSelect) {
+                clientSelect.removeAttribute('required');
+                clientSelect.value = 'new';
+            }
+            document.getElementById('dash_new_company_name').setAttribute('required', 'required');
+            document.getElementById('dash_new_contact_name').setAttribute('required', 'required');
+            document.getElementById('dash_new_phone').setAttribute('required', 'required');
+            document.getElementById('dash_new_email').setAttribute('required', 'required');
+        });
+    }
+
+    if (cancelInlineBtn && inlineClientBox) {
+        cancelInlineBtn.addEventListener('click', function() {
+            inlineClientBox.classList.add('d-none');
+            existingClientWrapper.classList.remove('d-none');
+            if (clientSelect) {
+                clientSelect.setAttribute('required', 'required');
+                clientSelect.value = '';
+            }
+            document.getElementById('dash_new_company_name').removeAttribute('required');
+            document.getElementById('dash_new_contact_name').removeAttribute('required');
+            document.getElementById('dash_new_phone').removeAttribute('required');
+            document.getElementById('dash_new_email').removeAttribute('required');
+        });
+    }
+
+    function updateLiveSummary() {
+        const qty = parseFloat(countInput.value) || 0;
+        const rate = parseFloat(rateInput.value) || 0;
+        const advPercent = parseFloat(advancePercentInput.value) || 0;
+
+        const subtotal = qty * rate;
+        const gst = subtotal * 0.05;
+        const total = subtotal + gst;
+        const advAmount = total * (advPercent / 100);
+
+        if (subtotalEl) subtotalEl.textContent = '₹' + subtotal.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (gstEl) gstEl.textContent = '₹' + gst.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (totalEl) totalEl.textContent = '₹' + total.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+        if (advPercentEl) advPercentEl.textContent = advPercent.toString();
+        if (advAmountEl) advAmountEl.textContent = '₹' + advAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2});
+    }
+
+    if (productSelect) {
+        productSelect.addEventListener('change', function() {
+            const opt = productSelect.options[productSelect.selectedIndex];
+            if (opt) {
+                const price = opt.getAttribute('data-price');
+                const desc = opt.getAttribute('data-desc');
+                if (price) rateInput.value = price;
+                if (descPreview) descPreview.textContent = desc ? 'Composition: ' + desc : '';
+                updateLiveSummary();
+            }
+        });
+    }
+
+    if (countInput) countInput.addEventListener('input', updateLiveSummary);
+    if (rateInput) rateInput.addEventListener('input', updateLiveSummary);
+    if (advancePercentInput) advancePercentInput.addEventListener('input', updateLiveSummary);
+
+    // Quantity preset buttons
+    document.querySelectorAll('.dash-qty-btn').forEach(btn => {
+        btn.addEventListener('click', function() {
+            const qty = this.getAttribute('data-qty');
+            if (countInput) {
+                countInput.value = qty;
+                updateLiveSummary();
+            }
+        });
+    });
+});
+</script>
 {% endblock %}

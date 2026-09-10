@@ -19,9 +19,9 @@ def b2b_auth_required(f):
             flash('Please log in with your verified mobile number to access your B2B Client Portal.', 'warning')
             return redirect(url_for('b2b.login'))
         client = B2BClient.query.get(client_id)
-        if not client:
+        if not client or client.is_archived:
             session.pop('b2b_client_id', None)
-            flash('B2B Client profile not found. Please log in again.', 'warning')
+            flash('This corporate account has been archived. Please contact Sweet Scribbles to reactivate your account.', 'warning')
             return redirect(url_for('b2b.login'))
         return f(client, *args, **kwargs)
     return decorated_function
@@ -207,6 +207,9 @@ def send_login_otp():
     if not client:
         return {'success': False, 'message': 'No corporate client found with this phone number. Please submit an enquiry first.'}, 404
         
+    if client.is_archived:
+        return {'success': False, 'message': 'This corporate account has been archived. Please contact your Sweet Scribbles account manager to reactivate.'}, 403
+        
     current_ts = time.time()
     existing_otp = session.get('b2b_login_otp')
     if existing_otp and existing_otp.get('phone') == phone:
@@ -254,6 +257,9 @@ def verify_login_otp():
     client = B2BClient.query.filter_by(phone=phone).first()
     if not client:
         return {'success': False, 'message': 'Client profile not found.'}, 404
+        
+    if client.is_archived:
+        return {'success': False, 'message': 'This corporate account has been archived. Please contact Sweet Scribbles support to reactivate.'}, 403
         
     session['b2b_client_id'] = client.id
     session.pop('b2b_login_otp', None)

@@ -62,13 +62,86 @@ def dispatch_b2b_sms_and_log(order, event_type, flow_key, variables_dict):
 # =========================================================================
 # 1. B2B PIPELINE KANBAN DASHBOARD & ORDERS LIST
 # =========================================================================
+def get_b2b_product_options():
+    """Generate rich edition options for Quotation Builder and Order Creation Modals."""
+    boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
+    product_options = []
+    for b in boxes:
+        has_assorted = (b.price_assorted and b.price_assorted > 0 and b.price_assorted != b.price_premium)
+        comp_prem = (b.composition_premium or '').replace('\r\n', ', ').replace('\n', ', ').strip()
+        comp_assort = (b.composition_assorted or '').replace('\r\n', ', ').replace('\n', ', ').strip()
+
+        if b.id == 12: # Curated Drawer Gift Set — Sixfold
+            prem_label = 'Assorted Bliss Bites (6 Jars)'
+            assort_label = 'Just Nuts & Dried Fruits (6 Jars)'
+            product_options.append({
+                'opt_id': f"{b.id}__assorted_bites",
+                'product_id': b.id,
+                'edition': prem_label,
+                'name': f"{b.name} — {prem_label}",
+                'box_type': f"{b.name} ({prem_label})",
+                'category': b.category,
+                'price': b.price_premium,
+                'desc': comp_prem if comp_prem else "Mini Signature, Core, Sesame Date, Peanut, Cashew Almond & Dark Choco Bliss Bites",
+                'display_label': f"{b.name} — {prem_label} (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
+            })
+            product_options.append({
+                'opt_id': f"{b.id}__just_nuts",
+                'product_id': b.id,
+                'edition': assort_label,
+                'name': f"{b.name} — {assort_label}",
+                'box_type': f"{b.name} ({assort_label})",
+                'category': b.category,
+                'price': b.price_assorted,
+                'desc': comp_assort if comp_assort else "Premium Cashews, California Almonds, Roasted Pistachios, Walnut Kernels, Golden Raisins & Dried Figs",
+                'display_label': f"{b.name} — {assort_label} (₹{int(b.price_assorted) if b.price_assorted.is_integer() else b.price_assorted})"
+            })
+        elif has_assorted:
+            product_options.append({
+                'opt_id': f"{b.id}__premium",
+                'product_id': b.id,
+                'edition': 'Premium Edition',
+                'name': f"{b.name} — Premium Edition",
+                'box_type': f"{b.name} (Premium Edition)",
+                'category': b.category,
+                'price': b.price_premium,
+                'desc': comp_prem if comp_prem else f"Premium handcrafted curation ({b.bites_count} bites)",
+                'display_label': f"{b.name} — Premium Edition (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
+            })
+            product_options.append({
+                'opt_id': f"{b.id}__assorted",
+                'product_id': b.id,
+                'edition': 'Assorted Edition',
+                'name': f"{b.name} — Assorted Edition",
+                'box_type': f"{b.name} (Assorted Edition)",
+                'category': b.category,
+                'price': b.price_assorted,
+                'desc': comp_assort if comp_assort else f"Assorted classic curation ({b.bites_count} bites)",
+                'display_label': f"{b.name} — Assorted Edition (₹{int(b.price_assorted) if b.price_assorted.is_integer() else b.price_assorted})"
+            })
+        else:
+            product_options.append({
+                'opt_id': f"{b.id}__standard",
+                'product_id': b.id,
+                'edition': 'Standard',
+                'name': b.name,
+                'box_type': b.name,
+                'category': b.category,
+                'price': b.price_premium,
+                'desc': comp_prem if comp_prem else (b.description or f"{b.category} curated hamper"),
+                'display_label': f"{b.name} (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
+            })
+    return product_options
+
+
 @b2b_admin_bp.route('/')
 @b2b_admin_bp.route('/dashboard')
 @admin_required
 def dashboard():
     all_orders = B2BOrder.query.order_by(B2BOrder.updated_at.desc()).all()
-    all_clients = B2BClient.query.order_by(B2BClient.company_name.asc()).all()
+    all_clients = B2BClient.query.filter_by(is_archived=False).order_by(B2BClient.company_name.asc()).all()
     all_products = B2BProduct.query.filter_by(is_active=True).all()
+    product_options = get_b2b_product_options()
 
     pipeline_stages = ['enquiry', 'quotation_sent', 'advance_paid', 'design_review', 'details_locked', 'production', 'delivered', 'cancelled']
     pipeline = {s: [] for s in pipeline_stages}
@@ -88,6 +161,7 @@ def dashboard():
         all_orders=all_orders,
         all_clients=all_clients,
         all_products=all_products,
+        product_options=product_options,
         total_pipeline_value=total_pipeline_value,
         total_boxes_pipeline=total_boxes_pipeline,
         delivered_revenue=delivered_revenue,
@@ -133,7 +207,8 @@ def orders():
     }
 
     boxes = B2BProduct.query.filter_by(is_active=True).all()
-    all_clients = B2BClient.query.order_by(B2BClient.company_name.asc()).all()
+    all_clients = B2BClient.query.filter_by(is_archived=False).order_by(B2BClient.company_name.asc()).all()
+    product_options = get_b2b_product_options()
 
     return render_template(
         'admin/b2b/orders.html',
@@ -142,6 +217,7 @@ def orders():
         search_query=search_query,
         stage_counts=stage_counts,
         boxes=boxes,
+        product_options=product_options,
         clients=all_clients
     )
 
@@ -154,69 +230,7 @@ def orders():
 def order_detail(order_id):
     order = B2BOrder.query.get_or_404(order_id)
     boxes = B2BProduct.query.filter_by(is_active=True).order_by(B2BProduct.display_order.asc(), B2BProduct.id.asc()).all()
-
-    # Generate rich edition options for Quotation Builder (Premium, Assorted, Dry Fruits/Nuts, Standard)
-    product_options = []
-    for b in boxes:
-        has_assorted = (b.price_assorted and b.price_assorted > 0 and b.price_assorted != b.price_premium)
-        comp_prem = (b.composition_premium or '').replace('\r\n', ', ').replace('\n', ', ').strip()
-        comp_assort = (b.composition_assorted or '').replace('\r\n', ', ').replace('\n', ', ').strip()
-
-        if b.id == 12: # Curated Drawer Gift Set — Sixfold
-            prem_label = 'Assorted Bliss Bites (6 Jars)'
-            assort_label = 'Just Nuts & Dried Fruits (6 Jars)'
-            product_options.append({
-                'opt_id': f"{b.id}__assorted_bites",
-                'product_id': b.id,
-                'edition': prem_label,
-                'name': f"{b.name} — {prem_label}",
-                'category': b.category,
-                'price': b.price_premium,
-                'desc': comp_prem if comp_prem else "Mini Signature, Core, Sesame Date, Peanut, Cashew Almond & Dark Choco Bliss Bites",
-                'display_label': f"{b.name} — {prem_label} (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
-            })
-            product_options.append({
-                'opt_id': f"{b.id}__just_nuts",
-                'product_id': b.id,
-                'edition': assort_label,
-                'name': f"{b.name} — {assort_label}",
-                'category': b.category,
-                'price': b.price_assorted,
-                'desc': comp_assort if comp_assort else "Premium Cashews, California Almonds, Roasted Pistachios, Walnut Kernels, Golden Raisins & Dried Figs",
-                'display_label': f"{b.name} — {assort_label} (₹{int(b.price_assorted) if b.price_assorted.is_integer() else b.price_assorted})"
-            })
-        elif has_assorted:
-            product_options.append({
-                'opt_id': f"{b.id}__premium",
-                'product_id': b.id,
-                'edition': 'Premium Edition',
-                'name': f"{b.name} — Premium Edition",
-                'category': b.category,
-                'price': b.price_premium,
-                'desc': comp_prem if comp_prem else f"Premium handcrafted curation ({b.bites_count} bites)",
-                'display_label': f"{b.name} — Premium Edition (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
-            })
-            product_options.append({
-                'opt_id': f"{b.id}__assorted",
-                'product_id': b.id,
-                'edition': 'Assorted Edition',
-                'name': f"{b.name} — Assorted Edition",
-                'category': b.category,
-                'price': b.price_assorted,
-                'desc': comp_assort if comp_assort else f"Assorted classic curation ({b.bites_count} bites)",
-                'display_label': f"{b.name} — Assorted Edition (₹{int(b.price_assorted) if b.price_assorted.is_integer() else b.price_assorted})"
-            })
-        else:
-            product_options.append({
-                'opt_id': f"{b.id}__standard",
-                'product_id': b.id,
-                'edition': 'Standard',
-                'name': b.name,
-                'category': b.category,
-                'price': b.price_premium,
-                'desc': comp_prem if comp_prem else (b.description or f"{b.category} curated hamper"),
-                'display_label': f"{b.name} (₹{int(b.price_premium) if b.price_premium.is_integer() else b.price_premium})"
-            })
+    product_options = get_b2b_product_options()
 
     gift_box_options = [opt for opt in product_options if opt['category'] != 'Hampers & Gift Sets']
     hamper_options = [opt for opt in product_options if opt['category'] == 'Hampers & Gift Sets']
@@ -743,58 +757,160 @@ def dispatch_order(order_id):
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
+@b2b_admin_bp.route('/orders/create', methods=['POST'])
 @b2b_admin_bp.route('/orders/new', methods=['POST'])
 @admin_required
 def create_order():
     client_id = request.form.get('client_id')
-    box_type = request.form.get('box_type', 'Signature DIYA Box')
     
-    try:
-        box_count = int(request.form.get('box_count', 100))
-    except (ValueError, TypeError):
-        box_count = 100
-        
-    try:
-        price_per_box = float(request.form.get('quoted_price_per_box', 345.0))
-    except (ValueError, TypeError):
-        price_per_box = 345.0
-        
-    custom_occasion = request.form.get('custom_occasion', '').strip()
-    custom_message = request.form.get('custom_message', '').strip()
-    eta_date = request.form.get('eta_date', '').strip()
-    notes = request.form.get('internal_notes', '').strip()
+    # Check if this is an inline client creation or existing client
+    if not client_id or client_id == 'new':
+        company_name = request.form.get('new_company_name', '').strip()
+        contact_name = request.form.get('new_contact_name', '').strip()
+        raw_phone = request.form.get('new_phone', '').strip()
+        phone = normalize_phone(raw_phone)
+        email = request.form.get('new_email', '').strip()
+        gst_number = request.form.get('new_gst_number', '').strip()
+        shipping_address = request.form.get('new_shipping_address', '').strip()
+        industry = request.form.get('new_industry', '').strip()
 
-    client = B2BClient.query.get_or_404(client_id)
-    total_amount = box_count * price_per_box
-    advance_req = total_amount * 0.50
+        if not company_name or not contact_name or not phone or not email:
+            flash('To onboard and create an order, Company Name, Contact Name, Mobile Number, and Email are required.', 'danger')
+            return redirect(request.referrer or url_for('b2b_admin.orders'))
+
+        client = B2BClient.query.filter_by(phone=phone).first()
+        if not client:
+            client = B2BClient(
+                company_name=company_name,
+                contact_name=contact_name,
+                phone=phone,
+                email=email,
+                gst_number=gst_number,
+                shipping_address=shipping_address,
+                industry=industry
+            )
+            db.session.add(client)
+            db.session.commit()
+            if client.email:
+                send_welcome_onboarding_email(client)
+    else:
+        client = B2BClient.query.get_or_404(int(client_id))
+
+    # Parse product & edition selection
+    product_option_key = request.form.get('product_option_key', '').strip()
+    custom_occasion = request.form.get('custom_occasion', '').strip() or 'Corporate Celebration'
+    custom_message = request.form.get('custom_message', '').strip()
+    notes = request.form.get('internal_notes', '').strip() or request.form.get('notes', '').strip()
+    stage = request.form.get('stage', 'enquiry').strip()
+    eta_date = request.form.get('eta_date', '').strip()
+    
+    valid_stages = ['enquiry', 'quotation_sent', 'advance_paid', 'design_review', 'details_locked', 'production', 'delivered', 'cancelled']
+    if stage not in valid_stages:
+        stage = 'enquiry'
+
+    try:
+        box_count = int(request.form.get('box_count', 50))
+        if box_count <= 0:
+            box_count = 50
+    except (ValueError, TypeError):
+        box_count = 50
+
+    try:
+        advance_percent = float(request.form.get('advance_percent', 50.0))
+        if advance_percent < 0 or advance_percent > 100:
+            advance_percent = 50.0
+    except (ValueError, TypeError):
+        advance_percent = 50.0
+
+    # Look up product option or fallback
+    all_options = get_b2b_product_options()
+    selected_opt = next((opt for opt in all_options if opt['opt_id'] == product_option_key), None)
+
+    rate_input = request.form.get('quoted_price_per_box', '').strip()
+    if rate_input:
+        try:
+            unit_price = float(rate_input)
+        except (ValueError, TypeError):
+            unit_price = selected_opt['price'] if selected_opt else 345.0
+    else:
+        unit_price = selected_opt['price'] if selected_opt else 345.0
+
+    if selected_opt:
+        box_type = selected_opt['box_type']
+        item_name = selected_opt['name']
+        product_id = selected_opt['product_id']
+        category = selected_opt['category']
+        desc = selected_opt['desc']
+    else:
+        # Fallback to direct box_type input if specified
+        raw_box_type = request.form.get('box_type', '').strip()
+        matched_box = B2BProduct.query.filter_by(name=raw_box_type).first() if raw_box_type else None
+        if matched_box:
+            box_type = matched_box.name
+            item_name = matched_box.name
+            product_id = matched_box.id
+            category = matched_box.category
+            desc = matched_box.description or matched_box.composition_premium or 'Curated gift box'
+            if not rate_input:
+                unit_price = matched_box.price_premium
+        else:
+            box_type = raw_box_type or 'Curated Corporate Hamper'
+            item_name = box_type
+            product_id = None
+            category = 'Corporate Gift Box'
+            desc = notes or 'Handcrafted corporate celebration curation'
+
+    # Compute financials (Subtotal, 5% GST, Advance Amount)
+    subtotal = round(unit_price * box_count, 2)
+    total_amount = round(subtotal * 1.05, 2)
+    advance_amount_required = round(total_amount * (advance_percent / 100.0), 2)
 
     order = B2BOrder(
         order_number=B2BOrder.generate_order_number(),
         client_id=client.id,
         box_type=box_type,
         box_count=box_count,
-        quoted_price_per_box=price_per_box,
-        total_amount=total_amount,
-        advance_amount_required=advance_req,
         custom_occasion=custom_occasion,
         custom_message=custom_message,
+        quoted_price_per_box=unit_price,
+        subtotal_amount=subtotal,
+        discount_amount=0.0,
+        discount_percent=0.0,
+        advance_percent=advance_percent,
+        total_amount=total_amount,
+        advance_amount_required=advance_amount_required,
+        stage=stage,
         eta_date=eta_date,
-        internal_notes=notes,
-        stage='enquiry'
+        internal_notes=notes
     )
     db.session.add(order)
     db.session.flush()
 
+    # Create initial line item for Quotation Builder
+    line_item = B2BOrderItem(
+        order_id=order.id,
+        product_id=product_id,
+        item_name=item_name,
+        item_category=category,
+        description=desc,
+        quantity=box_count,
+        unit_price=unit_price,
+        total_price=subtotal
+    )
+    db.session.add(line_item)
+
+    actor_name = getattr(current_user, 'name', None) or 'Admin'
     order.add_log(
-        action_title="B2B Order Initiated",
+        action_title=f"Order Initiated on Behalf of Client ({order.get_stage_display()})",
+        to_stage=stage,
         from_stage=None,
-        to_stage='enquiry',
-        actor=f"{current_user.name} (Admin)",
-        details=f"Order created for {client.company_name} ({box_count} x {box_type})"
+        actor=f"{actor_name} (Admin)",
+        details=f"Created order for {client.company_name}: {box_count}x {box_type} @ ₹{unit_price:.2f}/box. Subtotal: ₹{subtotal:,.2f}, Total (incl. 5% GST): ₹{total_amount:,.2f}, Advance ({advance_percent:.1f}%): ₹{advance_amount_required:,.2f}."
     )
 
     db.session.commit()
-    flash(f"B2B Order #{order.order_number} created for {client.company_name}!", 'success')
+
+    flash(f'Successfully created Order #{order.order_number} on behalf of {client.company_name}! You can now customize or review the quotation.', 'success')
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
@@ -850,8 +966,48 @@ def delete_order(order_id):
 @b2b_admin_bp.route('/clients')
 @admin_required
 def clients():
-    all_clients = B2BClient.query.order_by(B2BClient.created_at.desc()).all()
-    return render_template('admin/b2b/clients.html', clients=all_clients)
+    current_status = request.args.get('status', 'active').strip().lower()
+    search_query = request.args.get('q', '').strip()
+
+    base_query = B2BClient.query
+
+    if search_query:
+        base_query = base_query.filter(
+            (B2BClient.company_name.ilike(f'%{search_query}%')) |
+            (B2BClient.contact_name.ilike(f'%{search_query}%')) |
+            (B2BClient.phone.ilike(f'%{search_query}%')) |
+            (B2BClient.email.ilike(f'%{search_query}%')) |
+            (B2BClient.gst_number.ilike(f'%{search_query}%'))
+        )
+
+    if current_status == 'archived':
+        clients_query = base_query.filter_by(is_archived=True)
+    elif current_status == 'all':
+        clients_query = base_query
+    else:
+        current_status = 'active'
+        clients_query = base_query.filter_by(is_archived=False)
+
+    all_clients = clients_query.order_by(B2BClient.created_at.desc()).all()
+
+    # Calculate status counts across all clients
+    all_db_clients = B2BClient.query.all()
+    active_count = sum(1 for c in all_db_clients if not c.is_archived)
+    archived_count = sum(1 for c in all_db_clients if c.is_archived)
+    total_count = len(all_db_clients)
+
+    available_boxes = B2BProduct.query.filter_by(is_active=True).all()
+
+    return render_template(
+        'admin/b2b/clients.html',
+        clients=all_clients,
+        current_status=current_status,
+        search_query=search_query,
+        active_count=active_count,
+        archived_count=archived_count,
+        total_count=total_count,
+        available_boxes=available_boxes
+    )
 
 
 @b2b_admin_bp.route('/clients/<int:client_id>')
@@ -859,7 +1015,8 @@ def clients():
 def client_detail(client_id):
     client = B2BClient.query.get_or_404(client_id)
     boxes = B2BProduct.query.filter_by(is_active=True).all()
-    return render_template('admin/b2b/client_detail.html', client=client, boxes=boxes)
+    product_options = get_b2b_product_options()
+    return render_template('admin/b2b/client_detail.html', client=client, boxes=boxes, product_options=product_options)
 
 
 @b2b_admin_bp.route('/clients/onboard', methods=['POST'])
@@ -902,6 +1059,68 @@ def onboard_client():
     if client.email:
         send_welcome_onboarding_email(client)
 
+    # Check if initial batch / order details were provided during onboarding
+    box_type = request.form.get('box_type', '').strip()
+    raw_count = request.form.get('box_count', '').strip()
+    raw_rate = request.form.get('quoted_price_per_box', '').strip()
+    try:
+        box_count = int(raw_count) if raw_count else 0
+    except ValueError:
+        box_count = 0
+    try:
+        quoted_price = float(raw_rate) if raw_rate else 0.0
+    except ValueError:
+        quoted_price = 0.0
+
+    if box_type or box_count > 0:
+        if box_count <= 0:
+            box_count = 50
+        matched_prod = B2BProduct.query.filter_by(name=box_type).first()
+        if not quoted_price and matched_prod:
+            quoted_price = matched_prod.price_premium
+        subtotal = round(box_count * quoted_price, 2)
+        total_amount = round(subtotal * 1.05, 2)
+        advance_amount = round(total_amount * 0.5, 2)
+        order = B2BOrder(
+            order_number=B2BOrder.generate_order_number(),
+            client_id=client.id,
+            box_type=box_type or (matched_prod.name if matched_prod else "Curated Corporate Hamper"),
+            box_count=box_count,
+            custom_occasion=request.form.get('custom_occasion', 'Corporate Celebration').strip(),
+            quoted_price_per_box=quoted_price,
+            subtotal_amount=subtotal,
+            advance_percent=50.0,
+            total_amount=total_amount,
+            advance_amount_required=advance_amount,
+            stage='enquiry',
+            internal_notes=notes
+        )
+        db.session.add(order)
+        db.session.flush()
+
+        line_item = B2BOrderItem(
+            order_id=order.id,
+            product_id=matched_prod.id if matched_prod else None,
+            item_name=box_type or (matched_prod.name if matched_prod else "Curated Corporate Hamper"),
+            item_category=matched_prod.category if matched_prod else "Corporate Gift Box",
+            description=matched_prod.description if matched_prod else (notes or "Corporate Gifting Box"),
+            quantity=box_count,
+            unit_price=quoted_price,
+            total_price=subtotal
+        )
+        db.session.add(line_item)
+        actor_name = getattr(current_user, 'name', None) or 'Admin'
+        order.add_log(
+            action_title="Client Onboarded & Initial Batch Created",
+            to_stage='enquiry',
+            from_stage='enquiry',
+            actor=f"{actor_name} (Admin)",
+            details=f"Onboarded client {client.company_name} with initial order: {box_count}x {order.box_type} @ ₹{quoted_price}."
+        )
+        db.session.commit()
+        flash(f'Corporate client "{company_name}" onboarded & order #{order.order_number} created! You can now build the quotation.', 'success')
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
     flash(f'Corporate client "{company_name}" onboarded successfully! Welcome email dispatched.', 'success')
     return redirect(url_for('b2b_admin.clients'))
 
@@ -926,14 +1145,51 @@ def edit_client(client_id):
     return redirect(url_for('b2b_admin.client_detail', client_id=client.id))
 
 
+@b2b_admin_bp.route('/clients/<int:client_id>/archive', methods=['POST'])
+@admin_required
+def archive_client(client_id):
+    client = B2BClient.query.get_or_404(client_id)
+    client.is_archived = True
+    client.archived_at = datetime.utcnow()
+    db.session.commit()
+    flash(f'Corporate client "{client.company_name}" has been archived. All order history and tax records remain preserved.', 'info')
+    
+    referrer = request.referrer or ''
+    if f'/clients/{client.id}' in referrer:
+        return redirect(url_for('b2b_admin.client_detail', client_id=client.id))
+    return redirect(url_for('b2b_admin.clients', status='archived'))
+
+
+@b2b_admin_bp.route('/clients/<int:client_id>/restore', methods=['POST'])
+@admin_required
+def restore_client(client_id):
+    client = B2BClient.query.get_or_404(client_id)
+    client.is_archived = False
+    client.archived_at = None
+    db.session.commit()
+    flash(f'Corporate client "{client.company_name}" has been restored to active status.', 'success')
+    
+    referrer = request.referrer or ''
+    if f'/clients/{client.id}' in referrer:
+        return redirect(url_for('b2b_admin.client_detail', client_id=client.id))
+    return redirect(url_for('b2b_admin.clients', status='active'))
+
+
 @b2b_admin_bp.route('/clients/<int:client_id>/delete', methods=['POST'])
 @admin_required
 def delete_client(client_id):
     client = B2BClient.query.get_or_404(client_id)
-    name = client.company_name
+    company_name = client.company_name
+    order_count = len(client.orders)
+    
     db.session.delete(client)
     db.session.commit()
-    flash(f'Client "{name}" and associated orders removed.', 'info')
+    
+    if order_count > 0:
+        flash(f'Corporate client "{company_name}" and its {order_count} associated order record(s) have been permanently deleted.', 'warning')
+    else:
+        flash(f'Corporate client "{company_name}" has been permanently deleted.', 'info')
+        
     return redirect(url_for('b2b_admin.clients'))
 
 
