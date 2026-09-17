@@ -12,13 +12,15 @@ SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "pooja.sathish@pikachooz.com")
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
+DEFAULT_CC_EMAIL = os.environ.get("DEFAULT_CC_EMAIL", "Vishnu.govind@pikachooz.com")
 SENDER_NAME = "Sweet Scribbles B2B Gifting"
 PORTAL_URL = "https://sweetscribbles.pikachooz.com/b2b/portal"
 
 
-def send_b2b_email(to_email, subject, html_content, text_content=None, attachments=None):
+def send_b2b_email(to_email, subject, html_content, text_content=None, attachments=None, cc_email=None):
     """
-    Sends an email via Gmail SMTP with optional file attachments.
+    Sends an email via Gmail SMTP with optional file attachments and CC recipients.
+    Defaults to CC'ing DEFAULT_CC_EMAIL (Vishnu.govind@pikachooz.com).
     Returns (success: bool, message: str)
     """
     if not to_email:
@@ -28,9 +30,22 @@ def send_b2b_email(to_email, subject, html_content, text_content=None, attachmen
         # Fallback text
         text_content = html_content.replace("<br>", "\n").replace("</p>", "\n\n")
 
+    # Resolve CC recipients (defaults to DEFAULT_CC_EMAIL)
+    if cc_email is None:
+        cc_email = DEFAULT_CC_EMAIL
+
+    cc_list = []
+    if cc_email:
+        if isinstance(cc_email, str):
+            cc_list = [e.strip() for e in cc_email.split(",") if e.strip()]
+        elif isinstance(cc_email, (list, tuple)):
+            cc_list = [str(e).strip() for e in cc_email if str(e).strip()]
+
     msg = MIMEMultipart("mixed")
     msg["From"] = f"{SENDER_NAME} <{SENDER_EMAIL}>"
     msg["To"] = to_email
+    if cc_list:
+        msg["Cc"] = ", ".join(cc_list)
     msg["Subject"] = subject
 
     # Alternative body for plain text vs HTML
@@ -49,10 +64,17 @@ def send_b2b_email(to_email, subject, html_content, text_content=None, attachmen
                 msg.attach(part)
 
     try:
+        # Build complete recipient envelope for SMTP (To + CCs)
+        to_list = [e.strip() for e in to_email.split(",") if e.strip()] if isinstance(to_email, str) else [str(to_email).strip()]
+        envelope_recipients = list(to_list)
+        for cc_addr in cc_list:
+            if cc_addr.lower() not in [r.lower() for r in envelope_recipients]:
+                envelope_recipients.append(cc_addr)
+
         server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
         server.starttls()
         server.login(SENDER_EMAIL, APP_PASSWORD)
-        server.sendmail(SENDER_EMAIL, [to_email], msg.as_string())
+        server.sendmail(SENDER_EMAIL, envelope_recipients, msg.as_string())
         server.quit()
         return True, "Email dispatched successfully"
     except Exception as e:
@@ -131,7 +153,7 @@ def _render_luxury_email_layout(title, preheader, body_html, cta_text=None, cta_
 # SPECIFIC B2B DISPATCHERS & LOGGERS
 # =====================================================================
 
-def send_welcome_onboarding_email(client, order=None):
+def send_welcome_onboarding_email(client, order=None, cc_email=None):
     """
     Dispatches onboarding welcome email informing client they can log into
     https://sweetscribbles.pikachooz.com/b2b/portal using their mobile number.
@@ -184,10 +206,13 @@ def send_welcome_onboarding_email(client, order=None):
             body_html=body_html,
             cta_text="Open Your B2B Portal",
             cta_url=PORTAL_URL
-        )
+        ),
+        cc_email=cc_email
     )
 
     # Log communication
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id if order else None,
         client_id=client.id,
@@ -195,7 +220,7 @@ def send_welcome_onboarding_email(client, order=None):
         event_type='welcome',
         recipient=to_email,
         subject=subject,
-        message_preview=f"Client onboarding welcome email with portal link ({PORTAL_URL})",
+        message_preview=f"Client onboarding welcome email with portal link ({PORTAL_URL}){cc_tag}",
         status='sent' if success else 'failed'
     )
     db.session.add(log)
@@ -207,7 +232,7 @@ def send_welcome_onboarding_email(client, order=None):
     return success, msg
 
 
-def send_quotation_email(order, pdf_bytes, filename=None):
+def send_quotation_email(order, pdf_bytes, filename=None, cc_email=None):
     """
     Sends formal commercial quotation with generated PDF attached.
     Dynamic advance percentage & conditional discount display.
@@ -296,10 +321,13 @@ def send_quotation_email(order, pdf_bytes, filename=None):
             cta_text="View Order on B2B Portal",
             cta_url=PORTAL_URL
         ),
-        attachments=[(filename, pdf_bytes)]
+        attachments=[(filename, pdf_bytes)],
+        cc_email=cc_email
     )
 
     # Log communication
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
         client_id=client.id,
@@ -307,7 +335,7 @@ def send_quotation_email(order, pdf_bytes, filename=None):
         event_type='quotation',
         recipient=to_email,
         subject=subject,
-        message_preview=f"Commercial Quotation {quote_ref} for {order.box_count} boxes ({total_val}) with PDF attached",
+        message_preview=f"Commercial Quotation {quote_ref} for {order.box_count} boxes ({total_val}) with PDF attached{cc_tag}",
         attachment_name=filename,
         status='sent' if success else 'failed'
     )
@@ -320,7 +348,7 @@ def send_quotation_email(order, pdf_bytes, filename=None):
     return success, msg
 
 
-def send_advance_received_email(order, advance_amount=None):
+def send_advance_received_email(order, advance_amount=None, cc_email=None):
     """
     Confirms advance payment receipt (dynamically formatted, NOT hardcoded to 50%).
     """
@@ -368,9 +396,12 @@ def send_advance_received_email(order, advance_amount=None):
             body_html=body_html,
             cta_text="Track Order on Portal",
             cta_url=PORTAL_URL
-        )
+        ),
+        cc_email=cc_email
     )
 
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
         client_id=client.id,
@@ -378,7 +409,7 @@ def send_advance_received_email(order, advance_amount=None):
         event_type='advance_paid',
         recipient=to_email,
         subject=subject,
-        message_preview=f"Advance confirmation receipt ({amount_str}, {adv_pct}%) for order #{order.order_number}",
+        message_preview=f"Advance confirmation receipt ({amount_str}, {adv_pct}%) for order #{order.order_number}{cc_tag}",
         status='sent' if success else 'failed'
     )
     db.session.add(log)
@@ -390,7 +421,7 @@ def send_advance_received_email(order, advance_amount=None):
     return success, msg
 
 
-def send_design_proof_email(order):
+def send_design_proof_email(order, cc_email=None):
     """
     Alerts client that digital sleeve proof mockup is ready for approval.
     """
@@ -429,9 +460,12 @@ def send_design_proof_email(order):
             body_html=body_html,
             cta_text="Review & Approve Proof",
             cta_url=PORTAL_URL
-        )
+        ),
+        cc_email=cc_email
     )
 
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
         client_id=client.id,
@@ -439,7 +473,7 @@ def send_design_proof_email(order):
         event_type='design_ready',
         recipient=to_email,
         subject=subject,
-        message_preview=f"Design proof approval request dispatched for order #{order.order_number}",
+        message_preview=f"Design proof approval request dispatched for order #{order.order_number}{cc_tag}",
         status='sent' if success else 'failed'
     )
     db.session.add(log)
@@ -451,7 +485,7 @@ def send_design_proof_email(order):
     return success, msg
 
 
-def send_production_eta_email(order):
+def send_production_eta_email(order, cc_email=None):
     """
     Notifies client that final box counts & specs are locked into production.
     """
@@ -494,9 +528,12 @@ def send_production_eta_email(order):
             body_html=body_html,
             cta_text="Check Order Status",
             cta_url=PORTAL_URL
-        )
+        ),
+        cc_email=cc_email
     )
 
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
         client_id=client.id,
@@ -504,7 +541,7 @@ def send_production_eta_email(order):
         event_type='production_eta',
         recipient=to_email,
         subject=subject,
-        message_preview=f"Production locked notice with ETA ({eta_text}) for order #{order.order_number}",
+        message_preview=f"Production locked notice with ETA ({eta_text}) for order #{order.order_number}{cc_tag}",
         status='sent' if success else 'failed'
     )
     db.session.add(log)
@@ -516,7 +553,7 @@ def send_production_eta_email(order):
     return success, msg
 
 
-def send_order_delivered_email(order):
+def send_order_delivered_email(order, cc_email=None):
     """
     Delivered milestone email with dispatch confirmation & appreciation.
     """
@@ -556,9 +593,12 @@ def send_order_delivered_email(order):
             body_html=body_html,
             cta_text="View Order on B2B Portal",
             cta_url=PORTAL_URL
-        )
+        ),
+        cc_email=cc_email
     )
 
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
         client_id=client.id,
@@ -566,7 +606,7 @@ def send_order_delivered_email(order):
         event_type='delivered',
         recipient=to_email,
         subject=subject,
-        message_preview=f"Delivery confirmation notice for order #{order.order_number}{tracking_str}",
+        message_preview=f"Delivery confirmation notice for order #{order.order_number}{tracking_str}{cc_tag}",
         status='sent' if success else 'failed'
     )
     db.session.add(log)
