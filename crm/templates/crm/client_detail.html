@@ -1,0 +1,154 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}{{ client.company_name }} - Corporate Client Profile - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('crm_clients.list_clients') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back to Clients
+        </a>
+        <div>
+            <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                {{ client.company_name }}
+            </h2>
+            <span class="text-muted small">
+                Primary Contact: <strong>{{ client.contact_name }}</strong> &bull; Client #{{ client.id }}
+            </span>
+        </div>
+    </div>
+
+    <div class="d-flex gap-2">
+        {% if client.phone %}
+        <a href="tel:{{ client.phone }}" class="btn btn-crm-call btn-sm rounded-pill px-3 py-2">
+            <i class="bi bi-telephone-fill me-1"></i>Call {{ client.phone }}
+        </a>
+        {% endif %}
+        <a href="{{ store_base_url }}/admin/b2b/orders" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 text-secondary">
+            <i class="bi bi-box-seam me-1"></i>View in Operations Deck
+        </a>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Client Profile & Quick Re-engagement -->
+    <div class="col-lg-4">
+        <div class="crm-card p-4 mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3" style="font-family: 'Playfair Display', serif;">
+                Client Profile
+            </h5>
+            <dl class="row small mb-0">
+                <dt class="col-sm-5 text-muted">Company:</dt>
+                <dd class="col-sm-7 text-dark fw-semibold">{{ client.company_name }}</dd>
+
+                <dt class="col-sm-5 text-muted">Contact Person:</dt>
+                <dd class="col-sm-7 text-dark">{{ client.contact_name }}</dd>
+
+                <dt class="col-sm-5 text-muted">Mobile Number:</dt>
+                <dd class="col-sm-7 text-secondary">{{ client.phone or '—' }}</dd>
+
+                <dt class="col-sm-5 text-muted">Billing Email:</dt>
+                <dd class="col-sm-7 text-secondary">{{ client.email or '—' }}</dd>
+
+                <dt class="col-sm-5 text-muted">GST Number:</dt>
+                <dd class="col-sm-7 text-secondary">{{ client.gst_number or 'Unregistered' }}</dd>
+
+                <dt class="col-sm-5 text-muted">Created Date:</dt>
+                <dd class="col-sm-7 text-muted">{{ client.created_at|datetime_fmt }}</dd>
+            </dl>
+        </div>
+
+        <!-- Communication History Card -->
+        <div class="crm-card p-4">
+            <h6 class="fw-bold text-dark mb-3">Dispatched Communications</h6>
+            {% if comm_logs %}
+            <div style="max-height: 280px; overflow-y: auto;">
+                {% for log in comm_logs %}
+                <div class="p-2.5 rounded-3 bg-light border mb-2 small">
+                    <div class="d-flex justify-content-between text-muted" style="font-size: 0.72rem;">
+                        <span class="text-uppercase text-info">{{ log.channel }} &bull; {{ log.event_type }}</span>
+                        <span>{{ log.created_at|datetime_fmt }}</span>
+                    </div>
+                    <div class="text-dark fw-semibold mt-1">{{ log.subject or 'Notice' }}</div>
+                    <div class="text-muted" style="font-size: 0.75rem;">{{ log.message_preview }}</div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No communication logs recorded yet.</p>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Order History & Storefront Engagements -->
+    <div class="col-lg-8">
+        <!-- Order History -->
+        <div class="crm-card p-4 mb-4">
+            <h5 class="fw-bold text-dark mb-3" style="font-family: 'Playfair Display', serif;">
+                Order History ({{ orders|length }})
+            </h5>
+            {% if orders %}
+            <div class="table-responsive">
+                <table class="table crm-table align-middle mb-0 small">
+                    <thead>
+                        <tr>
+                            <th>Order #</th>
+                            <th>Box Style</th>
+                            <th>Units</th>
+                            <th>Price / Box</th>
+                            <th>Total Amount</th>
+                            <th>Status</th>
+                            <th>Date</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for o in orders %}
+                        <tr>
+                            <td><strong class="text-dark font-monospace">#{{ o.order_number }}</strong></td>
+                            <td>{{ o.box_type }}</td>
+                            <td>{{ o.box_count }}</td>
+                            <td>{{ o.quoted_price_per_box|inr if o.quoted_price_per_box else '—' }}</td>
+                            <td><strong class="text-success">{{ ((o.quoted_price_per_box or 0) * (o.box_count or 0))|inr if o.quoted_price_per_box else '—' }}</strong></td>
+                            <td>
+                                <span class="badge {{ o.get_stage_badge_class() }} small">
+                                    {{ o.get_stage_display() }}
+                                </span>
+                            </td>
+                            <td class="text-muted">{{ o.created_at|datetime_fmt }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No previous orders for this client yet.</p>
+            {% endif %}
+        </div>
+
+        <!-- Recent Storefront Engagements -->
+        <div class="crm-card p-4">
+            <h5 class="fw-bold text-dark mb-3" style="font-family: 'Playfair Display', serif;">
+                Recent Storefront Engagement Activity
+            </h5>
+            {% if events %}
+            <div style="max-height: 280px; overflow-y: auto;">
+                {% for ev in events %}
+                <div class="timeline-event mb-2.5">
+                    <div class="timeline-icon text-info">
+                        <i class="bi bi-activity"></i>
+                    </div>
+                    <div class="small">
+                        <span class="text-dark fw-semibold">{{ ev.page_title or ev.page_url }}</span>
+                        <span class="badge bg-light border text-capitalize ms-1" style="font-size: 0.68rem;">{{ ev.event_type.replace('_', ' ') }}</span>
+                        <div class="text-muted" style="font-size: 0.72rem;">{{ ev.created_at|datetime_fmt }} &bull; {{ ev.page_url }}</div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No recent storefront clickstream recorded for this client.</p>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

@@ -19,7 +19,7 @@
                 </div>
 
                 <p class="text-center text-muted small mb-4">
-                    Enter your registered corporate contact number to access order tracking, design proofs, and quotation history.
+                    Enter your registered corporate contact number or official email to access your workspace, design proofs, and quotation history.
                 </p>
 
                 <!-- Status Alert -->
@@ -28,12 +28,14 @@
                 <!-- Step 1: Request Login OTP -->
                 <div id="b2bLoginStepPhone">
                     <div class="mb-4">
-                        <label class="form-label small fw-semibold text-secondary">Corporate Contact Number</label>
+                        <label class="form-label small fw-semibold text-secondary">Corporate Contact (Mobile or Email)</label>
                         <div class="input-group">
-                            <span class="input-group-text bg-light text-dark fw-bold border-end-0 rounded-start-3 px-3">🇮🇳 +91</span>
-                            <input type="tel" id="b2bPhoneInput" class="form-control rounded-end-3 py-2.5 fs-6" placeholder="98765 43210" maxlength="10" autocomplete="tel" inputmode="numeric" required>
+                            <span id="inputPrefix" class="input-group-text bg-light text-dark fw-semibold border-end-0 rounded-start-3 px-3">
+                                <i class="bi bi-person-badge"></i>
+                            </span>
+                            <input type="text" id="b2bIdentifierInput" class="form-control rounded-end-3 py-2.5 fs-6" placeholder="e.g. 9876543210 or name@company.com" autocomplete="username" required>
                         </div>
-                        <small class="text-muted d-block mt-1">We'll send a 4-digit login OTP via SMS</small>
+                        <small class="text-muted d-block mt-1">We'll dispatch a 4-digit verification OTP via SMS or Email</small>
                     </div>
 
                     <button type="button" id="btnSendB2bOtp" class="btn btn-premium w-100 py-3 fw-bold rounded-3 d-flex align-items-center justify-content-center gap-2">
@@ -55,8 +57,8 @@
                     </div>
 
                     <div class="d-flex justify-content-between align-items-center mb-2">
-                        <span class="small text-muted">Sent to <strong id="displayB2bPhone" class="text-dark"></strong></span>
-                        <button type="button" id="btnChangeB2bPhone" class="btn btn-link btn-sm p-0 text-decoration-none text-primary small">Change</button>
+                        <span class="small text-muted">Sent to <strong id="displayB2bTarget" class="text-dark"></strong></span>
+                        <button type="button" id="btnChangeB2bTarget" class="btn btn-link btn-sm p-0 text-decoration-none text-primary small">Change</button>
                     </div>
 
                     <div class="mb-4">
@@ -93,11 +95,11 @@ document.addEventListener('DOMContentLoaded', function() {
 
     const btnResend = document.getElementById('btnResendB2bOtp');
     const resendCountdown = document.getElementById('b2bResendCountdown');
-    const btnChangePhone = document.getElementById('btnChangeB2bPhone');
+    const btnChangeTarget = document.getElementById('btnChangeB2bTarget');
 
-    const phoneInput = document.getElementById('b2bPhoneInput');
+    const idInput = document.getElementById('b2bIdentifierInput');
     const otpInput = document.getElementById('b2bOtpInput');
-    const displayPhone = document.getElementById('displayB2bPhone');
+    const displayTarget = document.getElementById('displayB2bTarget');
 
     const stepPhone = document.getElementById('b2bLoginStepPhone');
     const stepVerify = document.getElementById('b2bLoginStepVerify');
@@ -107,6 +109,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const devOtpVal = document.getElementById('b2bDevOtpVal');
 
     let countdownTimer = null;
+    let savedIdentifier = '';
 
     function showAlert(msg, type='danger') {
         alertBox.className = `alert alert-${type} py-2 small mb-3 text-center rounded-3`;
@@ -137,69 +140,72 @@ document.addEventListener('DOMContentLoaded', function() {
         }, 1000);
     }
 
-    if (btnChangePhone) {
-        btnChangePhone.addEventListener('click', function() {
+    if (btnChangeTarget) {
+        btnChangeTarget.addEventListener('click', function() {
             stepVerify.classList.add('d-none');
             stepPhone.classList.remove('d-none');
             hideAlert();
-            phoneInput.focus();
+            idInput.focus();
         });
+    }
+
+    async function sendOtp() {
+        const rawId = idInput.value.trim();
+        if (!rawId) {
+            showAlert('Please enter your mobile number or corporate email.', 'danger');
+            return;
+        }
+
+        savedIdentifier = rawId;
+        btnSend.disabled = true;
+        btnSendText.textContent = "Sending Verification OTP...";
+        btnSendSpinner.classList.remove('d-none');
+        hideAlert();
+
+        try {
+            const response = await fetch("{{ url_for('b2b.send_login_otp') }}", {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ identifier: rawId })
+            });
+            const result = await response.json();
+
+            if (result.success) {
+                showAlert(result.message || 'OTP dispatched.', 'success');
+                displayTarget.textContent = result.target_display || rawId;
+                stepPhone.classList.add('d-none');
+                stepVerify.classList.remove('d-none');
+
+                if (result.dev_otp) {
+                    devOtpVal.textContent = result.dev_otp;
+                    devBanner.classList.remove('d-none');
+                } else {
+                    devBanner.classList.add('d-none');
+                }
+
+                startTimer(30);
+                setTimeout(() => { otpInput.focus(); }, 150);
+            } else {
+                showAlert(result.message || 'Failed to send OTP.', 'danger');
+            }
+        } catch (err) {
+            showAlert('Network error occurred. Please try again.', 'danger');
+        } finally {
+            btnSend.disabled = false;
+            btnSendText.textContent = "Get 4-Digit Login OTP";
+            btnSendSpinner.classList.add('d-none');
+        }
     }
 
     if (btnSend) {
-        btnSend.addEventListener('click', async function() {
-            const rawPhone = phoneInput.value.trim();
-            const cleanPhone = rawPhone.replace(/\D/g, '');
+        btnSend.addEventListener('click', sendOtp);
+    }
 
-            if (cleanPhone.length !== 10) {
-                showAlert('Please enter a valid 10-digit mobile number.', 'danger');
-                return;
-            }
-
-            btnSend.disabled = true;
-            btnSendText.textContent = "Sending Login OTP...";
-            btnSendSpinner.classList.remove('d-none');
-            hideAlert();
-
-            try {
-                const response = await fetch("{{ url_for('b2b.send_login_otp') }}", {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ phone: cleanPhone })
-                });
-                const result = await response.json();
-
-                if (result.success) {
-                    showAlert('OTP dispatched to your mobile number.', 'success');
-                    displayPhone.textContent = `+91 ${cleanPhone.slice(0, 5)} ${cleanPhone.slice(5)}`;
-                    stepPhone.classList.add('d-none');
-                    stepVerify.classList.remove('d-none');
-
-                    if (result.dev_otp) {
-                        devOtpVal.textContent = result.dev_otp;
-                        devBanner.classList.remove('d-none');
-                    } else {
-                        devBanner.classList.add('d-none');
-                    }
-
-                    startTimer(30);
-                    setTimeout(() => { otpInput.focus(); }, 150);
-                } else {
-                    showAlert(result.message || 'Failed to send OTP.', 'danger');
-                }
-            } catch (err) {
-                showAlert('Network error occurred. Please try again.', 'danger');
-            } finally {
-                btnSend.disabled = false;
-                btnSendText.textContent = "Get 4-Digit Login OTP";
-                btnSendSpinner.classList.add('d-none');
-            }
-        });
+    if (btnResend) {
+        btnResend.addEventListener('click', sendOtp);
     }
 
     async function triggerVerify() {
-        const rawPhone = phoneInput.value.trim();
-        const cleanPhone = rawPhone.replace(/\D/g, '');
         const otp = otpInput.value.trim();
 
         if (otp.length !== 4) {
@@ -217,7 +223,7 @@ document.addEventListener('DOMContentLoaded', function() {
             const response = await fetch("{{ url_for('b2b.verify_login_otp') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ phone: cleanPhone, otp: otp })
+                body: JSON.stringify({ identifier: savedIdentifier, otp: otp })
             });
             const result = await response.json();
 
@@ -252,4 +258,5 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 });
 </script>
+
 {% endblock %}

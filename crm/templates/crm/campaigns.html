@@ -1,0 +1,193 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Outreach &amp; Campaigns Studio - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+            Outreach &amp; Campaigns Studio
+        </h2>
+        <p class="text-muted small mb-0">
+            Dispatch personalized cold outreach to new corporate leads and festive promotional content to existing clients with unique tracking tokens.
+        </p>
+    </div>
+
+    <button type="button" class="btn btn-crm-gold rounded-pill px-4 py-2 fw-bold" data-bs-toggle="modal" data-bs-target="#newCampaignModal">
+        <i class="bi bi-plus-circle me-1"></i>Create Campaign
+    </button>
+</div>
+
+<!-- 4 Performance Cards -->
+<div class="row g-3 mb-4">
+    <div class="col-md-3 col-6">
+        <div class="crm-card p-3">
+            <span class="text-muted small d-block mb-1">TOTAL EMAILS DISPATCHED</span>
+            <h3 class="fw-bold text-primary mb-0">{{ total_dispatched }}</h3>
+            <small class="text-muted">Via Gmail SMTP [CC: Vishnu]</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="crm-card p-3">
+            <span class="text-success small fw-semibold d-block mb-1">LOGINS GENERATED</span>
+            <h3 class="fw-bold text-success mb-0">{{ total_logins_generated }}</h3>
+            <small class="text-muted">Unique corporate logins</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="crm-card p-3">
+            <span class="text-warning small fw-semibold d-block mb-1">OUTBOUND PROSPECTS</span>
+            <h3 class="fw-bold text-warning mb-0">{{ active_leads_count }}</h3>
+            <small class="text-muted">Targetable cold leads</small>
+        </div>
+    </div>
+    <div class="col-md-3 col-6">
+        <div class="crm-card p-3">
+            <span class="text-info small fw-semibold d-block mb-1">EXISTING CLIENTS</span>
+            <h3 class="fw-bold text-info mb-0">{{ existing_clients_count }}</h3>
+            <small class="text-muted">Festive retention audience</small>
+        </div>
+    </div>
+</div>
+
+<!-- Campaigns Table -->
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table crm-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Campaign Name</th>
+                    <th>Audience</th>
+                    <th>Channel</th>
+                    <th>Status</th>
+                    <th>Sent</th>
+                    <th>Logins Generated</th>
+                    <th>Created</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for c in campaigns %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('crm_campaigns.campaign_detail', campaign_id=c.id) }}" class="fw-bold text-dark text-decoration-none">
+                            {{ c.name }}
+                        </a>
+                        <div class="text-muted small">{{ c.subject }}</div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light border text-secondary small text-capitalize">
+                            {{ c.target_audience.replace('_', ' ') }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light border text-primary small text-uppercase">
+                            {{ c.channel }}
+                        </span>
+                    </td>
+                    <td>
+                        {% if c.status == 'sent' %}
+                            <span class="badge bg-success small">Dispatched</span>
+                        {% else %}
+                            <span class="badge bg-secondary small">Draft</span>
+                        {% endif %}
+                    </td>
+                    <td>
+                        <span class="text-dark fw-bold">{{ c.sent_count }}</span>
+                        <small class="text-muted">/ {{ c.total_recipients }}</small>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-warning border fw-bold px-2 py-1">
+                            {{ c.unique_logins_generated }} logins
+                        </span>
+                    </td>
+                    <td>
+                        <span class="small text-muted">{{ c.created_at|datetime_fmt }}</span>
+                    </td>
+                    <td class="text-end">
+                        <a href="{{ url_for('crm_campaigns.campaign_detail', campaign_id=c.id) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            {% if c.status == 'sent' %}Analytics{% else %}Dispatch Desk{% endif %}
+                        </a>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="8" class="text-center py-5 text-muted">
+                        No campaigns created yet. Click "Create Campaign" to begin outreach.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+
+<!-- Modal: New Campaign -->
+<div class="modal fade" id="newCampaignModal" tabindex="-1" aria-labelledby="newCampaignModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-white text-dark border-0 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="newCampaignModalLabel" style="font-family: 'Playfair Display', serif;">
+                    Compose Outbound or Promotional Campaign
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_campaigns.create_campaign') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Campaign Name *</label>
+                        <input type="text" name="name" class="form-control crm-input" placeholder="e.g. Diwali 2026 Executive Outreach" required>
+                    </div>
+
+                    <div class="row g-3 mb-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-medium">Target Audience *</label>
+                            <select name="target_audience" class="form-select crm-input">
+                                <option value="leads">1. Cold &amp; Outbound Leads (Prospects)</option>
+                                <option value="existing_clients">2. Existing Corporate Clients (Festive Retention)</option>
+                                <option value="both">3. Both Leads &amp; Existing Clients</option>
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-medium">Channel</label>
+                            <select name="channel" class="form-select crm-input">
+                                <option value="email">Gmail SMTP (Branded Luxury HTML + Vishnu CC)</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Email Subject Line *</label>
+                        <input type="text" name="subject" class="form-control crm-input" placeholder="e.g. Bespoke Celebration Sweets for {company_name} — Sweet Scribbles Gifting" value="Bespoke Celebration Sweets for {company_name} — Sweet Scribbles Gifting" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <label class="form-label small text-muted fw-medium mb-0">Message Content (HTML Allowed) *</label>
+                            <small class="text-warning" style="font-size: 0.75rem;">Placeholders: {contact_name}, {company_name}, {tracking_link}</small>
+                        </div>
+                        <textarea name="content_body" class="form-control crm-input small font-monospace" rows="6" required><p>We are delighted to present our new collection of handcrafted celebration bites and festive hampers for <b>{company_name}</b>.</p>
+<p>Each gift set features artisanal bites made from premium roasted nuts, seeds, and dates, paired with custom branded packaging carrying your corporate identity.</p>
+<p>You can explore the bespoke hamper options and review pricing tiers directly through your VIP corporate link below:</p></textarea>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Call to Action Button Label</label>
+                            <input type="text" name="cta_text" class="form-control crm-input" value="Explore Corporate Hampers">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Destination URL</label>
+                            <input type="text" name="cta_url" class="form-control crm-input" value="https://sweetscribbles.pikachooz.com/b2b/hampers">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4">Create Draft Campaign</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

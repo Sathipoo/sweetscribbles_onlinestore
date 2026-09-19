@@ -1,0 +1,132 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}{{ campaign.name }} - Campaign Detail - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('crm_campaigns.list_campaigns') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back to Campaigns
+        </a>
+        <div>
+            <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                {{ campaign.name }}
+            </h2>
+            <span class="text-muted small">
+                Status: <span class="badge {% if campaign.status == 'sent' %}bg-success{% else %}bg-secondary{% endif %}">{{ campaign.status.upper() }}</span> &bull; Audience: {{ campaign.target_audience.replace('_', ' ').title() }} &bull; CC: <code>{{ cc_email }}</code>
+            </span>
+        </div>
+    </div>
+
+    {% if campaign.status != 'sent' %}
+    <form action="{{ url_for('crm_campaigns.dispatch_campaign', campaign_id=campaign.id) }}" method="POST" onsubmit="return confirm('Dispatch this campaign now to all pending recipients? Emails will be sent via Gmail SMTP with CC to {{ cc_email }}.');">
+        <button type="submit" class="btn btn-crm-gold btn-sm rounded-pill px-4 py-2 fw-bold shadow">
+            <i class="bi bi-send-fill me-1"></i>Dispatch Campaign Now ({{ campaign.total_recipients }} Recipients)
+        </button>
+    </form>
+    {% else %}
+    <span class="badge bg-success px-3 py-2 rounded-pill fs-6">
+        <i class="bi bi-check-all me-1"></i>Campaign Completed
+    </span>
+    {% endif %}
+</div>
+
+<div class="row g-4 mb-4">
+    <!-- Message Preview Card -->
+    <div class="col-lg-5">
+        <div class="crm-card p-4">
+            <h5 class="fw-bold text-dark mb-3" style="font-family: 'Playfair Display', serif;">Email Content Preview</h5>
+            
+            <div class="mb-2">
+                <span class="text-muted small d-block">Subject:</span>
+                <strong class="text-dark small">{{ campaign.subject }}</strong>
+            </div>
+
+            <div class="p-3 bg-light rounded-3 border my-3 text-dark small" style="white-space: pre-wrap; font-family: sans-serif;">
+                {{ campaign.content_body|safe }}
+
+                <div class="text-center my-3">
+                    <span class="badge badge-gold px-3 py-2 rounded-pill text-dark fw-bold">
+                        {{ campaign.cta_text }}
+                    </span>
+                    <div class="text-muted mt-1" style="font-size: 0.7rem;">Links to: {{ campaign.cta_url }}?trk=rcp_...</div>
+                </div>
+            </div>
+
+            <div class="small text-muted">
+                <i class="bi bi-shield-check text-success me-1"></i>Mandatory CC: <strong>{{ cc_email }}</strong>
+            </div>
+        </div>
+    </div>
+
+    <!-- Recipient Roster & Delivery Status -->
+    <div class="col-lg-7">
+        <div class="crm-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                    Recipient Tracking Roster ({{ recipients|length }})
+                </h5>
+                <span class="badge bg-light text-warning border fw-bold small">
+                    {{ campaign.unique_logins_generated }} logins generated
+                </span>
+            </div>
+
+            <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+                <table class="table crm-table align-middle mb-0 small">
+                    <thead>
+                        <tr>
+                            <th>Recipient</th>
+                            <th>Target Entity</th>
+                            <th>Status</th>
+                            <th>Dispatched At</th>
+                            <th>Logged In At</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for rcp in recipients %}
+                        <tr>
+                            <td>
+                                <strong class="text-dark">{{ rcp.recipient_email }}</strong>
+                                {% if rcp.recipient_phone %}
+                                    <div class="text-muted" style="font-size: 0.75rem;">{{ rcp.recipient_phone }}</div>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rcp.lead %}
+                                    <a href="{{ url_for('crm_leads.lead_detail', lead_id=rcp.lead.id) }}" class="text-warning text-decoration-none">
+                                        {{ rcp.lead.company_name }} (Lead)
+                                    </a>
+                                {% elif rcp.client %}
+                                    <span class="text-info">{{ rcp.client.company_name }} (Client)</span>
+                                {% else %}
+                                    <span class="text-muted">—</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                {% if rcp.status == 'logged_in' %}
+                                    <span class="badge bg-danger">Logged In 🔥</span>
+                                {% elif rcp.status == 'clicked' %}
+                                    <span class="badge bg-warning text-dark">Clicked</span>
+                                {% elif rcp.status == 'sent' %}
+                                    <span class="badge bg-success">Sent</span>
+                                {% elif rcp.status == 'failed' %}
+                                    <span class="badge bg-danger">Failed</span>
+                                {% else %}
+                                    <span class="badge bg-secondary">Pending</span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <span class="text-muted">{{ rcp.sent_at|datetime_fmt if rcp.sent_at else '—' }}</span>
+                            </td>
+                            <td>
+                                <span class="text-warning fw-bold">{{ rcp.logged_in_at|datetime_fmt if rcp.logged_in_at else '—' }}</span>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

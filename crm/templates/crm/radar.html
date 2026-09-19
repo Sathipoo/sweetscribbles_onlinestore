@@ -1,0 +1,207 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Live Engagement Radar - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="row g-4 mb-4">
+    <!-- Header Title & Live Status -->
+    <div class="col-12 d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+                Live Engagement Radar
+            </h2>
+            <p class="text-muted small mb-0">
+                Real-time prospect clickstream intelligence, budget slider interactions, and hot lead conversion alerts.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <span id="liveRadarPulse" class="badge badge-hot-pulse px-3 py-2 rounded-pill small">
+                <i class="bi bi-broadcast me-1.5"></i>LIVE STREAM ACTIVE
+            </span>
+            <a href="{{ url_for('crm_dashboard.radar') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-secondary">
+                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </a>
+        </div>
+    </div>
+
+    <!-- 5 Core KPI Metric Cards -->
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="crm-card p-3 h-100">
+            <span class="text-muted small d-block mb-1">TOTAL LEADS</span>
+            <h3 class="fw-bold text-dark mb-0">{{ total_leads }}</h3>
+            <small class="text-muted">In sales pipeline</small>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-4 col-6">
+        <div class="crm-card p-3 h-100 border-danger" style="background: rgba(239, 68, 68, 0.05);">
+            <div class="d-flex justify-content-between align-items-center mb-1">
+                <span class="text-danger fw-bold small">HOT PROSPECTS</span>
+                <span class="badge badge-hot-pulse px-2 py-0.5 rounded-pill" style="font-size: 0.65rem;">URGENT</span>
+            </div>
+            <h3 class="fw-bold text-danger mb-0">{{ hot_leads_count }}</h3>
+            <small class="text-muted">Score &ge; 60 or recent OTP login</small>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-md-4 col-6">
+        <div class="crm-card p-3 h-100">
+            <span class="text-warning small fw-semibold d-block mb-1">PORTAL ACTIVE</span>
+            <h3 class="fw-bold text-warning mb-0">{{ portal_engaged_count }}</h3>
+            <small class="text-muted">Logged into workspace</small>
+        </div>
+    </div>
+
+    <div class="col-xl-2 col-md-6 col-6">
+        <div class="crm-card p-3 h-100">
+            <span class="text-info small fw-semibold d-block mb-1">STOREFRONT CLICKS (24h)</span>
+            <h3 class="fw-bold text-info mb-0">{{ events_24h_count }}</h3>
+            <small class="text-muted">Telemetry events</small>
+        </div>
+    </div>
+
+    <div class="col-xl-3 col-md-6 col-12">
+        <div class="crm-card p-3 h-100">
+            <span class="text-success small fw-semibold d-block mb-1">LOGINS TODAY</span>
+            <h3 class="fw-bold text-success mb-0">{{ logins_today_count }}</h3>
+            <small class="text-muted">Verified OTP sessions</small>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Hot Leads High-Priority Call Queue -->
+    <div class="col-lg-7">
+        <div class="crm-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        🔥 Hot Prospects Priority Desk
+                    </h5>
+                    <small class="text-muted">Prospects exhibiting high buying signals (logins, budget calculations, quote requests)</small>
+                </div>
+                <a href="{{ url_for('crm_leads.list_leads', hot='1') }}" class="btn btn-sm btn-outline-warning rounded-pill px-3">
+                    View All Hot Leads
+                </a>
+            </div>
+
+            {% if hot_leads %}
+                <div class="table-responsive">
+                    <table class="table crm-table align-middle mb-0">
+                        <thead>
+                            <tr>
+                                <th>Prospect &amp; Company</th>
+                                <th>Score</th>
+                                <th>Logins</th>
+                                <th>Last Active</th>
+                                <th class="text-end">Immediate Action</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for lead in hot_leads %}
+                            <tr>
+                                <td>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <div>
+                                            <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="text-dark fw-bold text-decoration-none">
+                                                {{ lead.contact_name }}
+                                            </a>
+                                            <div class="text-muted small">{{ lead.company_name }}</div>
+                                            {% if lead.city %}
+                                                <small class="text-secondary opacity-75">{{ lead.city }}</small>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="badge {{ lead.priority_badge_class }} px-2.5 py-1 rounded-pill fw-bold">
+                                        {{ lead.priority_score }} pts
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="badge bg-light border text-dark fw-bold px-2 py-1">
+                                        {{ lead.login_count }} logins
+                                    </span>
+                                </td>
+                                <td>
+                                    <span class="small text-muted">{{ lead.last_active_at|time_ago }}</span>
+                                </td>
+                                <td class="text-end">
+                                    <div class="d-flex justify-content-end gap-2">
+                                        {% if lead.phone %}
+                                        <a href="tel:{{ lead.phone }}" class="btn btn-crm-call btn-sm px-3 py-1.5 rounded-pill" title="Call Contact Now">
+                                            <i class="bi bi-telephone-fill me-1"></i>{{ lead.phone }}
+                                        </a>
+                                        {% endif %}
+                                        <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-2.5" title="View Dossier">
+                                            <i class="bi bi-chevron-right"></i>
+                                        </a>
+                                    </div>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            {% else %}
+                <div class="text-center py-5 text-muted">
+                    <i class="bi bi-search fs-1 d-block mb-2 text-secondary"></i>
+                    <p class="mb-0">No hot leads flagged yet. Create an outreach campaign to generate prospect interest.</p>
+                </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Real-Time Clickstream Activity Ticker -->
+    <div class="col-lg-5">
+        <div class="crm-card p-4 h-100">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        ⚡ Storefront Clickstream Stream
+                    </h5>
+                    <small class="text-muted">Live event stream from corporate catalogue</small>
+                </div>
+                <span class="badge bg-light border text-secondary small px-2 py-1">Auto-sync</span>
+            </div>
+
+            <div id="crmLiveActivityStream" class="pe-1" style="max-height: 520px; overflow-y: auto;">
+                {% if activity_stream %}
+                    {% for ev in activity_stream %}
+                    <div class="timeline-event mb-3">
+                        <div class="timeline-icon text-{{ ev.badge_type }}">
+                            <i class="bi {{ ev.icon }}"></i>
+                        </div>
+                        <div class="d-flex justify-content-between align-items-start gap-2">
+                            <div>
+                                {% if ev.lead_id %}
+                                    <a href="{{ url_for('crm_leads.lead_detail', lead_id=ev.lead_id) }}" class="text-warning text-decoration-none fw-semibold small">
+                                        {{ ev.contact_name }} {% if ev.company_name %}({{ ev.company_name }}){% endif %}
+                                    </a>
+                                {% else %}
+                                    <span class="text-dark small fw-semibold">{{ ev.contact_name }}</span>
+                                {% endif %}
+                                <p class="text-dark small mb-1">{{ ev.description }}</p>
+                                <span class="text-muted opacity-75" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock me-1"></i>{{ ev.created_at|time_ago }} &bull; {{ ev.page_url }}
+                                </span>
+                            </div>
+                            {% if ev.score is not none %}
+                            <span class="badge bg-light text-dark border small">
+                                {{ ev.score }} pts
+                            </span>
+                            {% endif %}
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                    <div class="text-center py-5 text-muted">
+                        <i class="bi bi-activity fs-1 d-block mb-2 text-secondary"></i>
+                        <p class="mb-0">Awaiting visitor clickstream events on B2B catalogue...</p>
+                    </div>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

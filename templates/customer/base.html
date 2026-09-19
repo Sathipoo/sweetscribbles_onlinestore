@@ -276,6 +276,11 @@
         }
     </script>
     
+    {% if request.path.startswith('/b2b') %}
+    <!-- B2B Engagement Clickstream Telemetry -->
+    <script src="{{ url_for('static', filename='js/b2b_telemetry.js') }}"></script>
+    {% endif %}
+
     {% block extra_js %}{% endblock %}
 </body>
 </html>

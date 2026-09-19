@@ -174,6 +174,64 @@
         "templates/admin/b2b/testimonials.html",
         "scripts/test_b2b_upgrades.py"
       ]
+    },
+    {
+      "id": "BEH-011",
+      "timestamp": "2026-09-19T15:35:00+05:30",
+      "category": "B2B Sales Intelligence & CRM",
+      "title": "Dedicated B2B Growth CRM, Clickstream Telemetry & Dual OTP Authentication",
+      "problem_addressed": "Sales operators had no visibility into prospect engagement on B2B pages (number of visits, budget slider interactions, page clicks). Concurrently, early-stage cold/warm prospecting needed to be cleanly isolated from the main storefront's B2B operations deck, while retaining the ability to re-engage existing corporate clients with festive promotions, and run on Cloud Run within a single container without multi-port or infrastructure changes.",
+      "solution_implemented": "1. Option 3 Hybrid Architecture: Built a self-contained Flask CRM in crm/ with local dev runner on port 5002 (run_crm.py) and mounted at /crm via Werkzeug DispatcherMiddleware in app.py for zero-cost single container deployment on Cloud Run.\n2. Storefront Clickstream Telemetry: Injected static/js/b2b_telemetry.js capturing pageviews, hamper inspections, budget slider adjustments (with calculated estimates), and CTA clicks, feeding POST /b2b/api/telemetry.\n3. Dual Mobile/Email OTP Auth: Enhanced /b2b/login to support 10-digit Indian numbers or corporate emails, checking B2BClient and B2BLead, and sending SMS via MSG91 or Email OTP with mandatory CC to Vishnu.govind@pikachooz.com.\n4. Hot Lead Intent Scoring & Live Radar: Dynamic scoring (+12 pageview, +17 product, +32 budget slider, +57 CTA, +50 login) flagging Hot Leads (score >= 60) on a real-time radar with 1-click calling buttons.\n5. Outbound & Retention Campaigns: Studio to dispatch outreach emails with personalized tracking tokens to leads or existing corporate clients, updating delivery and unique logins.\n6. 1-Click Conversion: Instantly converts B2BLead to B2BClient, immediately appearing in the B2B Operations Deck (/admin/b2b/clients).",
+      "files_affected": [
+        "models/b2b_crm.py",
+        "crm/app.py",
+        "crm/config.py",
+        "crm/routes/auth.py",
+        "crm/routes/dashboard.py",
+        "crm/routes/leads.py",
+        "crm/routes/campaigns.py",
+        "crm/routes/clients.py",
+        "crm/templates/crm_base.html",
+        "crm/templates/crm/login.html",
+        "crm/templates/crm/radar.html",
+        "crm/templates/crm/leads.html",
+        "crm/templates/crm/lead_detail.html",
+        "crm/templates/crm/campaigns.html",
+        "crm/templates/crm/campaign_detail.html",
+        "crm/templates/crm/clients_hub.html",
+        "crm/templates/crm/client_detail.html",
+        "crm/static/css/crm.css",
+        "crm/static/js/crm.js",
+        "run_crm.py",
+        "routes/b2b.py",
+        "templates/b2b/login.html",
+        "templates/customer/base.html",
+        "static/js/b2b_telemetry.js",
+        "utils/email_utils.py",
+        "app.py",
+        "scripts/test_crm_and_telemetry.py"
+      ]
+    },
+    {
+      "id": "BEH-012",
+      "timestamp": "2026-09-19T16:35:00+05:30",
+      "category": "CRM Bugfix & Design System",
+      "title": "B2BClient & B2BCommunicationLog AttributeError Resolution & Executive White Mode Design System",
+      "problem_addressed": "1. Navigating to /clients in the CRM threw a 500 error: AttributeError: 'B2BClient' object has no attribute 'updated_at', because B2BClient model records created_at rather than updated_at.\n2. Navigating to /clients/<id> threw a 500 error: AttributeError: type object 'B2BCommunicationLog' has no attribute 'sent_at', because B2BCommunicationLog stores timestamps in created_at.\n3. The initial CRM was themed in high-contrast dark mode, whereas the user requested a crisp, clean, executive white/light mode for clarity and consistency across enterprise screens.",
+      "solution_implemented": "1. In crm/routes/clients.py line 42, resolved the attribute mismatch by referencing client.created_at as fallback when no recent clickstream telemetry event exists.\n2. In crm/routes/clients.py line 60 and crm/templates/crm/client_detail.html line 70, updated B2BCommunicationLog ordering and display to use created_at instead of sent_at.\n3. Overhauled crm/static/css/crm.css with an executive white theme: #f8fafc slate background, #ffffff surface cards with subtle shadows, #0f172a dark text, clean #e2e8f0 borders, and warm golden accents (#b48324).\n4. Re-skinned all CRM templates from dark-mode Bootstrap utility classes to clean light-mode surfaces, badges, inputs, and modals.",
+      "files_affected": [
+        "crm/routes/clients.py",
+        "crm/static/css/crm.css",
+        "crm/templates/crm_base.html",
+        "crm/templates/crm/login.html",
+        "crm/templates/crm/radar.html",
+        "crm/templates/crm/leads.html",
+        "crm/templates/crm/lead_detail.html",
+        "crm/templates/crm/campaigns.html",
+        "crm/templates/crm/campaign_detail.html",
+        "crm/templates/crm/clients_hub.html",
+        "crm/templates/crm/client_detail.html"
+      ]
     }
   ]
 }

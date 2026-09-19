@@ -616,3 +616,72 @@ def send_order_delivered_email(order, cc_email=None):
         db.session.rollback()
 
     return success, msg
+
+
+def send_b2b_login_otp_email(to_email, otp, contact_name="Valued Partner", cc_email=None):
+    """
+    Sends a 4-digit verification OTP to the user's official email for B2B Portal access.
+    Automatically CC's Vishnu.govind@pikachooz.com via send_b2b_email.
+    """
+    subject = f"Your Sweet Scribbles Login OTP: {otp}"
+    preheader = f"Use verification code {otp} to sign into your Sweet Scribbles Corporate Workspace."
+
+    body_html = f"""
+    <h2 style="color: #1A202C; margin-top: 0; font-size: 20px; font-weight: 700;">
+        Sweet Scribbles Corporate Login
+    </h2>
+    <p style="color: #4A5568; font-size: 15px;">
+        Dear {contact_name},<br><br>
+        Here is your single-use verification code to log into your Sweet Scribbles Corporate Gifting Portal:
+    </p>
+    <div style="text-align: center; margin: 30px 0;">
+        <div style="display: inline-block; background-color: #1A202C; color: #FFFFFF; font-size: 32px; font-weight: 800; letter-spacing: 12px; padding: 16px 36px; border-radius: 8px; border: 2px solid #D4AF37;">
+            {otp}
+        </div>
+        <p style="color: #718096; font-size: 12px; margin-top: 10px;">Valid for 10 minutes. Please do not share this code.</p>
+    </div>
+    <p style="color: #4A5568; font-size: 14px;">
+        If you did not request this code, please ignore this email or contact our support desk.
+    </p>
+    """
+
+    return send_b2b_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=_render_luxury_email_layout(
+            title="Your Corporate Login Code",
+            preheader=preheader,
+            body_html=body_html,
+            cta_text="Open Corporate Portal",
+            cta_url=PORTAL_URL
+        ),
+        cc_email=cc_email
+    )
+
+
+def send_crm_campaign_email(to_email, subject, recipient_name, content_html, cta_text="Explore Corporate Hampers", cta_url="https://sweetscribbles.pikachooz.com/b2b", cc_email=None):
+    """
+    Sends an outbound campaign or promotional email to a prospect lead or existing client.
+    Includes branded luxury template, CTA with tracking token, and automatic CC to Vishnu.govind@pikachooz.com.
+    """
+    body_html = f"""
+    <p style="color: #4A5568; font-size: 15px; margin-top: 0;">
+        Dear {recipient_name or 'Corporate Partner'},
+    </p>
+    <div style="color: #2D3748; font-size: 15px; line-height: 1.7;">
+        {content_html}
+    </div>
+    """
+
+    return send_b2b_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=_render_luxury_email_layout(
+            title=subject,
+            preheader=subject,
+            body_html=body_html,
+            cta_text=cta_text,
+            cta_url=cta_url
+        ),
+        cc_email=cc_email
+    )

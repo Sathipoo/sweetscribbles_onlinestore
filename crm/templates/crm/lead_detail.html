@@ -1,0 +1,251 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}{{ lead.company_name }} - Lead Dossier - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('crm_leads.list_leads') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back to Pipeline
+        </a>
+        <div>
+            <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                {{ lead.company_name }}
+            </h2>
+            <span class="text-muted small">
+                Contact: <strong>{{ lead.contact_name }}</strong> {% if lead.designation %}&bull; {{ lead.designation }}{% endif %}
+            </span>
+        </div>
+    </div>
+
+    <!-- Conversion & Calling Actions -->
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        {% if lead.phone %}
+        <a href="tel:{{ lead.phone }}" class="btn btn-crm-call btn-sm rounded-pill px-3 py-2">
+            <i class="bi bi-telephone-fill me-1"></i>Call {{ lead.phone }}
+        </a>
+        {% endif %}
+
+        {% if lead.email %}
+        <a href="mailto:{{ lead.email }}" class="btn btn-outline-info btn-sm rounded-pill px-3 py-2">
+            <i class="bi bi-envelope-fill me-1"></i>Email {{ lead.email }}
+        </a>
+        {% endif %}
+
+        {% if not lead.converted_client_id %}
+        <form action="{{ url_for('crm_leads.convert_to_client', lead_id=lead.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Convert this prospect to an active corporate client? They will immediately appear in the B2B Operations Deck.');">
+            <button type="submit" class="btn btn-crm-gold btn-sm rounded-pill px-3 py-2 fw-bold shadow-sm">
+                <i class="bi bi-person-check-fill me-1"></i>Convert to Corporate Client
+            </button>
+        </form>
+        {% else %}
+        <a href="{{ store_base_url }}/admin/b2b/clients" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3 py-2 fw-bold">
+            <i class="bi bi-check-circle-fill me-1"></i>Active in Operations Deck (Client #{{ lead.converted_client_id }})
+        </a>
+        {% endif %}
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Column: Dossier Overview & Tracking Link -->
+    <div class="col-lg-4">
+        <!-- Lead Metadata Card -->
+        <div class="crm-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-start mb-3">
+                <div>
+                    <span class="badge {{ lead.priority_badge_class }} px-3 py-1 rounded-pill fw-bold" style="font-size: 0.8rem;">
+                        {{ lead.priority_label }} ({{ lead.priority_score }} pts)
+                    </span>
+                </div>
+                <span class="badge bg-light border text-secondary small">
+                    {{ lead.stage_display }}
+                </span>
+            </div>
+
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Prospect Details</h6>
+            
+            <dl class="row small mb-0">
+                <dt class="col-sm-5 text-muted">Company:</dt>
+                <dd class="col-sm-7 text-dark fw-semibold">{{ lead.company_name }}</dd>
+
+                <dt class="col-sm-5 text-muted">Contact:</dt>
+                <dd class="col-sm-7 text-dark">{{ lead.contact_name }}</dd>
+
+                <dt class="col-sm-5 text-muted">Designation:</dt>
+                <dd class="col-sm-7 text-secondary">{{ lead.designation or 'Not specified' }}</dd>
+
+                <dt class="col-sm-5 text-muted">Mobile:</dt>
+                <dd class="col-sm-7 text-secondary">{{ lead.phone or 'Not provided' }}</dd>
+
+                <dt class="col-sm-5 text-muted">Official Email:</dt>
+                <dd class="col-sm-7 text-secondary">{{ lead.email or 'Not provided' }}</dd>
+
+                <dt class="col-sm-5 text-muted">City:</dt>
+                <dd class="col-sm-7 text-secondary">{{ lead.city or '—' }}</dd>
+
+                <dt class="col-sm-5 text-muted">Lead Source:</dt>
+                <dd class="col-sm-7 text-secondary">{{ lead.lead_source }}</dd>
+
+                <dt class="col-sm-5 text-muted">Created:</dt>
+                <dd class="col-sm-7 text-muted">{{ lead.created_at|datetime_fmt }}</dd>
+            </dl>
+
+            <!-- Update Stage Form -->
+            <form action="{{ url_for('crm_leads.update_stage', lead_id=lead.id) }}" method="POST" class="mt-4 pt-3 border-top">
+                <label class="form-label small text-muted">Update Pipeline Stage</label>
+                <div class="input-group input-group-sm mb-2">
+                    <select name="stage" class="form-select crm-input">
+                        {% for st, label, badge in stages %}
+                            <option value="{{ st }}" {% if lead.stage == st %}selected{% endif %}>{{ label }}</option>
+                        {% endfor %}
+                    </select>
+                    <button type="submit" class="btn btn-outline-warning">Update</button>
+                </div>
+            </form>
+        </div>
+
+        <!-- Tracking Link Card -->
+        <div class="crm-card p-4 mb-4" style="background: #fffbeb; border-color: #fde68a;">
+            <h6 class="fw-bold text-warning mb-2">
+                <i class="bi bi-link-45deg me-1"></i>Personalized Outreach Link
+            </h6>
+            <p class="text-muted small mb-2">
+                Share this link in your cold email or WhatsApp pitch. Any clicks and portal logins will automatically bind to this lead and elevate their score:
+            </p>
+            <div class="input-group input-group-sm mb-2">
+                <input type="text" class="form-control crm-input font-monospace small" value="{{ tracking_link }}" readonly>
+                <button type="button" class="btn btn-outline-warning btn-copy-link" data-url="{{ tracking_link }}">
+                    <i class="bi bi-clipboard me-1"></i>Copy
+                </button>
+            </div>
+            <small class="text-muted" style="font-size: 0.72rem;">Token: <code>{{ lead.tracking_token }}</code></small>
+        </div>
+
+        <!-- Sales Notes Form -->
+        <div class="crm-card p-4">
+            <h6 class="fw-bold text-dark mb-3">Sales Call Logs &amp; Notes</h6>
+            <form action="{{ url_for('crm_leads.add_note', lead_id=lead.id) }}" method="POST">
+                <div class="mb-2">
+                    <textarea name="note" class="form-control form-control-sm crm-input" rows="3" placeholder="Enter notes from phone call, budget preferences, or sampling requests..." required></textarea>
+                </div>
+                <button type="submit" class="btn btn-outline-secondary btn-sm w-100">
+                    <i class="bi bi-journal-plus me-1"></i>Log Note
+                </button>
+            </form>
+
+            {% if lead.notes %}
+            <div class="mt-3 p-2.5 rounded-3 bg-light border small text-dark" style="white-space: pre-line; max-height: 220px; overflow-y: auto;">
+                {{ lead.notes }}
+            </div>
+            {% endif %}
+        </div>
+    </div>
+
+    <!-- Right Column: Engagement Intelligence & Clickstream Telemetry -->
+    <div class="col-lg-8">
+        <!-- 3 Visit Summary Cards -->
+        <div class="row g-3 mb-4">
+            <div class="col-md-4">
+                <div class="crm-card p-3 text-center">
+                    <span class="text-muted small d-block mb-1">TOTAL PORTAL LOGINS</span>
+                    <h3 class="fw-bold text-warning mb-0">{{ lead.login_count }}</h3>
+                    <small class="text-muted">{% if lead.login_count > 0 %}Active Corporate User{% else %}No logins yet{% endif %}</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="crm-card p-3 text-center">
+                    <span class="text-muted small d-block mb-1">FIRST LOGIN TIMESTAMP</span>
+                    <h6 class="fw-bold text-dark mb-0 mt-2">{{ lead.first_login_at|datetime_fmt }}</h6>
+                    <small class="text-muted">Account activation</small>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <div class="crm-card p-3 text-center">
+                    <span class="text-muted small d-block mb-1">MOST RECENT ACTIVITY</span>
+                    <h6 class="fw-bold text-info mb-0 mt-2">{{ lead.last_active_at|datetime_fmt }}</h6>
+                    <small class="text-muted">{{ lead.last_active_at|time_ago }}</small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Top Products of Interest -->
+        {% if top_products %}
+        <div class="crm-card p-4 mb-4">
+            <h6 class="fw-bold text-dark mb-3" style="font-family: 'Playfair Display', serif;">
+                🎁 Primary Products of Interest (Based on Click Frequency)
+            </h6>
+            <div class="d-flex flex-wrap gap-2">
+                {% for prod_name, click_count in top_products %}
+                <span class="badge bg-light border p-2.5 fs-6 text-dark d-flex align-items-center gap-2">
+                    <span>{{ prod_name }}</span>
+                    <span class="badge badge-gold rounded-pill">{{ click_count }} views</span>
+                </span>
+                {% endfor %}
+            </div>
+        </div>
+        {% endif %}
+
+        <!-- Clickstream Telemetry Event Log -->
+        <div class="crm-card p-4">
+            <div class="d-flex justify-content-between align-items-center mb-3">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        Clickstream Timeline &amp; Storefront Footprint
+                    </h5>
+                    <small class="text-muted">Chronological log of what hampers and budget ranges this prospect explored</small>
+                </div>
+                <span class="badge bg-light border text-secondary small">{{ events|length }} events recorded</span>
+            </div>
+
+            {% if events %}
+            <div class="pe-2" style="max-height: 520px; overflow-y: auto;">
+                {% for ev in events %}
+                <div class="timeline-event mb-3">
+                    <div class="timeline-icon text-warning">
+                        {% if ev.event_type == 'login' %}
+                            <i class="bi bi-box-arrow-in-right text-danger"></i>
+                        {% elif ev.event_type == 'slider_change' %}
+                            <i class="bi bi-sliders text-warning"></i>
+                        {% elif ev.event_type == 'cta_click' %}
+                            <i class="bi bi-lightning-fill text-danger"></i>
+                        {% elif ev.event_type == 'product_view' %}
+                            <i class="bi bi-gift text-primary"></i>
+                        {% else %}
+                            <i class="bi bi-eye text-secondary"></i>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-start gap-2">
+                        <div>
+                            <span class="badge bg-light text-uppercase border small text-dark" style="font-size: 0.68rem;">
+                                {{ ev.event_type.replace('_', ' ') }}
+                            </span>
+                            <span class="text-dark fw-semibold small ms-2">
+                                {{ ev.page_title or ev.page_url }}
+                            </span>
+
+                            {% if ev.event_metadata %}
+                            <div class="mt-1 small text-dark font-monospace bg-light p-2 rounded-2 border" style="font-size: 0.78rem;">
+                                {{ ev.event_metadata }}
+                            </div>
+                            {% endif %}
+
+                            <div class="text-muted mt-1" style="font-size: 0.72rem;">
+                                <i class="bi bi-clock me-1"></i>{{ ev.created_at|datetime_fmt }} &bull; IP: {{ ev.ip_address or 'Protected' }}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-cursor fs-1 d-block mb-2 text-secondary"></i>
+                <p class="mb-0">No storefront clickstream events recorded for this prospect yet.</p>
+                <small>Send them the tracking link above to start capturing their interactions!</small>
+            </div>
+            {% endif %}
+        </div>
+    </div>
+</div>
+{% endblock %}

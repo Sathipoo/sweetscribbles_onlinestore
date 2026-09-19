@@ -19,6 +19,7 @@ def create_app(config_class=Config):
     from routes.b2b import b2b_bp
     from routes.b2b_admin import b2b_admin_bp
     from models.user import User
+    import models.b2b_crm
 
     @login_manager.user_loader
     def load_user(user_id):
@@ -97,10 +98,23 @@ def create_app(config_class=Config):
 
     return app
 
+# Initialize Storefront Application
 app = create_app()
+
+# Mount Dedicated B2B Growth CRM at /crm via WSGI DispatcherMiddleware
+# Runs inside the single Cloud Run container without extra costs or infrastructure changes
+from werkzeug.middleware.dispatcher import DispatcherMiddleware
+from crm.app import create_crm_app
+from crm.config import CRMConfig
+
+crm_app = create_crm_app(CRMConfig)
+app.wsgi_app = DispatcherMiddleware(app.wsgi_app, {
+    '/crm': crm_app
+})
 
 if __name__ == '__main__':
     with app.app_context():
-        # db.create_all() # Will handle migrations/creation manually or on startup
+        # db.create_all() # Handled manually or on startup
         pass
     app.run(debug=True, port=5001)
+

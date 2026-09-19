@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{% block title %}Sweet Scribbles B2B Growth CRM{% endblock %}</title>
+    <!-- Google Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Playfair+Display:ital,wght@0,600;0,700;1,600&display=swap" rel="stylesheet">
+    <!-- Bootstrap 5 CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <!-- CRM Executive CSS -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/crm.css') }}">
+</head>
+<body class="crm-body">
+
+    <!-- Executive Top Navbar -->
+    <header class="crm-navbar sticky-top py-2 px-3 px-lg-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <!-- Brand & Tagline -->
+            <div class="d-flex align-items-center gap-3">
+                <a href="{{ url_for('crm_dashboard.radar') }}" class="text-decoration-none d-flex align-items-center gap-2">
+                    <span class="fs-4 fw-bold text-dark font-monospace" style="letter-spacing: 1px;">SWEET SCRIBBLES</span>
+                    <span class="badge badge-gold px-2 py-1 rounded-pill small">B2B CRM</span>
+                </a>
+            </div>
+
+            <!-- Primary Navigation Links -->
+            <nav class="d-flex align-items-center gap-1">
+                <a href="{{ url_for('crm_dashboard.radar') }}" class="crm-nav-link text-decoration-none {% if request.endpoint == 'crm_dashboard.radar' %}active{% endif %}">
+                    <i class="bi bi-radar me-1.5 text-warning"></i>Live Radar
+                </a>
+                <a href="{{ url_for('crm_leads.list_leads') }}" class="crm-nav-link text-decoration-none {% if 'crm_leads' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-kanban me-1.5 text-info"></i>Leads Pipeline
+                </a>
+                <a href="{{ url_for('crm_campaigns.list_campaigns') }}" class="crm-nav-link text-decoration-none {% if 'crm_campaigns' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-send-check me-1.5 text-primary"></i>Outreach &amp; Campaigns
+                </a>
+                <a href="{{ url_for('crm_clients.list_clients') }}" class="crm-nav-link text-decoration-none {% if 'crm_clients' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-building-check me-1.5 text-success"></i>Existing Clients Hub
+                </a>
+            </nav>
+
+            <!-- Quick Utility Links -->
+            <div class="d-flex align-items-center gap-2">
+                <a href="{{ config.STORE_BASE_URL }}/admin/b2b/clients" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-secondary fw-medium" title="Open Operational Fulfillment Deck">
+                    <i class="bi bi-box-seam me-1"></i>B2B Operations Deck
+                </a>
+                <a href="{{ config.STORE_BASE_URL }}/b2b" target="_blank" class="btn btn-sm btn-outline-secondary rounded-pill px-3 text-secondary fw-medium" title="Preview Public B2B Storefront">
+                    <i class="bi bi-shop me-1"></i>Storefront
+                </a>
+                <a href="{{ url_for('crm_auth.logout') }}" class="btn btn-sm btn-outline-danger rounded-pill px-3" title="Sign Out">
+                    <i class="bi bi-power"></i>
+                </a>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="container-fluid px-3 px-lg-4 py-4">
+        <!-- Flash Notifications -->
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show rounded-3 py-2.5 mb-4 shadow-sm" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        {% block content %}{% endblock %}
+    </main>
+
+    <!-- Bootstrap 5 JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- CRM Client Script -->
+    <script src="{{ url_for('static', filename='js/crm.js') }}"></script>
+    {% block extra_js %}{% endblock %}
+</body>
+</html>

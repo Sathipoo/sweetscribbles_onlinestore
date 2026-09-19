@@ -1,0 +1,268 @@
+/* Sweet Scribbles B2B Growth CRM - Executive White / Light Luxury Theme */
+:root {
+    --crm-bg: #f8fafc;
+    --crm-surface: #ffffff;
+    --crm-surface-hover: #f1f5f9;
+    --crm-border: #e2e8f0;
+    --crm-border-subtle: #edf2f7;
+    --crm-gold: #b48324;
+    --crm-gold-hover: #996e1a;
+    --crm-gold-light: #fffbeb;
+    --crm-gold-glow: rgba(180, 131, 36, 0.2);
+    --crm-text: #0f172a;
+    --crm-text-muted: #64748b;
+    --crm-danger: #dc2626;
+    --crm-danger-light: #fef2f2;
+    --crm-danger-glow: rgba(220, 38, 38, 0.25);
+    --crm-success: #16a34a;
+    --crm-success-light: #f0fdf4;
+    --crm-warning: #d97706;
+    --crm-warning-light: #fffbeb;
+    --crm-info: #0284c7;
+    --crm-info-light: #f0f9ff;
+}
+
+body.crm-body {
+    background-color: var(--crm-bg);
+    color: var(--crm-text);
+    font-family: -apple-system, BlinkMacSystemFont, "Outfit", "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+    min-height: 100vh;
+    letter-spacing: -0.01em;
+}
+
+/* Card Surfaces */
+.crm-card {
+    background-color: var(--crm-surface);
+    border: 1px solid var(--crm-border);
+    border-radius: 12px;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05), 0 4px 16px rgba(0, 0, 0, 0.02);
+    transition: transform 0.15s ease, border-color 0.15s ease, box-shadow 0.15s ease;
+}
+
+.crm-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06);
+}
+
+/* Executive Top Navbar */
+.crm-navbar {
+    background-color: #ffffff;
+    border-bottom: 1px solid var(--crm-border);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.03);
+}
+
+.crm-nav-link {
+    color: #475569;
+    font-weight: 500;
+    padding: 0.5rem 0.9rem;
+    border-radius: 8px;
+    transition: all 0.2s ease;
+}
+
+.crm-nav-link:hover {
+    color: var(--crm-text);
+    background: #f1f5f9;
+}
+
+.crm-nav-link.active {
+    color: var(--crm-gold);
+    font-weight: 600;
+    background: var(--crm-gold-light);
+    border: 1px solid rgba(180, 131, 36, 0.25);
+}
+
+/* Hot Prospect Pulsing Badge */
+.badge-hot-pulse {
+    background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+    color: #ffffff !important;
+    font-weight: 800;
+    box-shadow: 0 0 12px var(--crm-danger-glow);
+    animation: hotPulse 1.8s infinite;
+    letter-spacing: 0.5px;
+}
+
+@keyframes hotPulse {
+    0% {
+        box-shadow: 0 0 4px rgba(220, 38, 38, 0.3);
+    }
+    50% {
+        box-shadow: 0 0 16px rgba(220, 38, 38, 0.7);
+    }
+    100% {
+        box-shadow: 0 0 4px rgba(220, 38, 38, 0.3);
+    }
+}
+
+.badge-gold {
+    background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+    color: #ffffff;
+    font-weight: 700;
+}
+
+/* Buttons */
+.btn-crm-gold {
+    background: linear-gradient(135deg, #d4af37 0%, #b8860b 100%);
+    color: #ffffff !important;
+    font-weight: 600;
+    border: none;
+    border-radius: 8px;
+    box-shadow: 0 2px 6px rgba(184, 134, 11, 0.25);
+    transition: all 0.2s ease;
+}
+
+.btn-crm-gold:hover {
+    background: linear-gradient(135deg, #e5c158 0%, #c4992a 100%);
+    color: #ffffff !important;
+    box-shadow: 0 4px 14px rgba(184, 134, 11, 0.4);
+    transform: translateY(-1px);
+}
+
+.btn-crm-call {
+    background: #16a34a;
+    color: #ffffff !important;
+    font-weight: 600;
+    border-radius: 8px;
+    border: none;
+    box-shadow: 0 2px 6px rgba(22, 163, 74, 0.2);
+    transition: all 0.2s ease;
+}
+
+.btn-crm-call:hover {
+    background: #15803d;
+    color: #ffffff !important;
+    box-shadow: 0 4px 12px rgba(22, 163, 74, 0.35);
+    transform: translateY(-1px);
+}
+
+/* Kanban Board Columns */
+.kanban-board {
+    display: flex;
+    gap: 16px;
+    overflow-x: auto;
+    padding-bottom: 20px;
+}
+
+.kanban-col {
+    flex: 0 0 320px;
+    background-color: #f1f5f9;
+    border: 1px solid var(--crm-border);
+    border-radius: 12px;
+    padding: 14px;
+    max-height: calc(100vh - 220px);
+    display: flex;
+    flex-direction: column;
+}
+
+.kanban-cards {
+    overflow-y: auto;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    padding-right: 4px;
+}
+
+.kanban-card {
+    background-color: #ffffff;
+    border: 1px solid var(--crm-border);
+    border-radius: 10px;
+    padding: 14px;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
+    transition: all 0.15s ease;
+}
+
+.kanban-card:hover {
+    border-color: var(--crm-gold);
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.07);
+}
+
+/* Clickstream Timeline Item */
+.timeline-event {
+    position: relative;
+    padding-left: 32px;
+    padding-bottom: 20px;
+    border-left: 2px solid var(--crm-border);
+}
+
+.timeline-event:last-child {
+    border-left-color: transparent;
+    padding-bottom: 0;
+}
+
+.timeline-icon {
+    position: absolute;
+    left: -13px;
+    top: 0;
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background-color: #ffffff;
+    border: 2px solid var(--crm-gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 11px;
+    box-shadow: 0 2px 5px rgba(0, 0, 0, 0.05);
+}
+
+/* Table styling */
+.crm-table {
+    color: var(--crm-text);
+    background-color: #ffffff;
+}
+
+.crm-table thead th {
+    background-color: #f8fafc;
+    color: #475569;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    border-bottom: 1px solid var(--crm-border);
+    padding: 12px 16px;
+}
+
+.crm-table tbody td {
+    padding: 14px 16px;
+    border-bottom: 1px solid #f1f5f9;
+}
+
+.crm-table tbody tr {
+    transition: background-color 0.15s ease;
+}
+
+.crm-table tbody tr:hover {
+    background-color: #f8fafc;
+}
+
+/* Form & Input Elements */
+.crm-input {
+    background-color: #ffffff !important;
+    color: var(--crm-text) !important;
+    border: 1px solid #cbd5e1 !important;
+    border-radius: 8px;
+}
+
+.crm-input:focus {
+    border-color: var(--crm-gold) !important;
+    box-shadow: 0 0 0 3px rgba(180, 131, 36, 0.15) !important;
+}
+
+.crm-modal .modal-content {
+    background-color: #ffffff;
+    border: 1px solid var(--crm-border);
+    border-radius: 14px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1);
+}
+
+.crm-modal .modal-header {
+    border-bottom: 1px solid var(--crm-border);
+    background-color: #f8fafc;
+}
+
+.crm-modal .modal-footer {
+    border-top: 1px solid var(--crm-border);
+    background-color: #f8fafc;
+}

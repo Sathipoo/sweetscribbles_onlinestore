@@ -1,0 +1,54 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sales Desk Login - Sweet Scribbles CRM</title>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;700&display=swap" rel="stylesheet">
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/crm.css') }}">
+</head>
+<body class="crm-body d-flex align-items-center justify-content-center min-vh-100">
+    <div class="container" style="max-width: 440px;">
+        <div class="crm-card p-4 p-md-5 text-center">
+            <div class="mb-3">
+                <span class="fs-3 fw-bold text-dark font-monospace" style="letter-spacing: 2px;">SWEET SCRIBBLES</span>
+                <div class="mt-1">
+                    <span class="badge badge-gold px-3 py-1 rounded-pill small">B2B Growth CRM &amp; Sales Desk</span>
+                </div>
+            </div>
+
+            <p class="text-muted small mb-4">
+                Enter your sales operations authorization key to access live engagement radar and lead intelligence.
+            </p>
+
+            {% if error %}
+                <div class="alert alert-danger py-2 small mb-3 rounded-3 text-start">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>{{ error }}
+                </div>
+            {% endif %}
+
+            <form method="POST" action="{{ url_for('crm_auth.login', next=request.args.get('next')) }}">
+                <div class="mb-3 text-start">
+                    <label class="form-label small text-muted fw-medium">Sales Representative / Operator Name</label>
+                    <input type="text" name="sales_rep_name" class="form-control crm-input rounded-3 py-2.5" placeholder="e.g. Vishnu / Pooja" value="Sales Operations">
+                </div>
+
+                <div class="mb-4 text-start">
+                    <label class="form-label small text-muted fw-medium">CRM Authorization Key</label>
+                    <input type="password" name="access_key" class="form-control crm-input rounded-3 py-2.5" placeholder="••••••••" autofocus required>
+                </div>
+
+                <button type="submit" class="btn btn-crm-gold w-100 py-3 fw-bold rounded-3">
+                    Unlock Sales Intelligence Radar
+                </button>
+            </form>
+
+            <div class="mt-4 pt-3 border-top opacity-75">
+                <small class="text-muted">Direct B2B Storefront: <a href="{{ config.STORE_BASE_URL }}/b2b" class="text-warning text-decoration-none">Open Catalogue</a></small>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

@@ -1,0 +1,291 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Leads Pipeline &amp; Prospect Desk - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+            Prospect Pipeline &amp; Leads Desk
+        </h2>
+        <p class="text-muted small mb-0">
+            Track potential corporate accounts across lifecycle stages from initial cold list to active client conversion.
+        </p>
+    </div>
+
+    <div class="d-flex flex-wrap align-items-center gap-2">
+        <!-- View Mode Switcher -->
+        <div class="btn-group" role="group">
+            <a href="{{ url_for('crm_leads.list_leads', view='kanban', stage=current_stage, q=search, hot='1' if hot_only else '0') }}" class="btn btn-sm {% if view_mode == 'kanban' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
+                <i class="bi bi-kanban me-1"></i>Kanban
+            </a>
+            <a href="{{ url_for('crm_leads.list_leads', view='list', stage=current_stage, q=search, hot='1' if hot_only else '0') }}" class="btn btn-sm {% if view_mode == 'list' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
+                <i class="bi bi-list-ul me-1"></i>Table List
+            </a>
+        </div>
+
+        <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#importLeadsModal">
+            <i class="bi bi-file-earmark-arrow-up me-1"></i>Import Bulk CSV
+        </button>
+        <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addLeadModal">
+            <i class="bi bi-person-plus-fill me-1"></i>Add Prospect
+        </button>
+    </div>
+</div>
+
+<!-- Search & Filters Toolbar -->
+<div class="crm-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('crm_leads.list_leads') }}" class="row g-2 align-items-center">
+        <input type="hidden" name="view" value="{{ view_mode }}">
+        <div class="col-md-5">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ search }}" class="form-control crm-input" placeholder="Search company, contact, phone, or email...">
+            </div>
+        </div>
+
+        <div class="col-md-3">
+            <select name="stage" class="form-select form-select-sm crm-input">
+                <option value="">All Stages</option>
+                {% for st, label, badge in stages %}
+                    <option value="{{ st }}" {% if current_stage == st %}selected{% endif %}>{{ label }}</option>
+                {% endfor %}
+            </select>
+        </div>
+
+        <div class="col-md-2">
+            <div class="form-check form-switch pt-1">
+                <input class="form-check-input" type="checkbox" name="hot" value="1" id="hotCheck" {% if hot_only %}checked{% endif %} onchange="this.form.submit()">
+                <label class="form-check-label small text-dark fw-medium" for="hotCheck">🔥 Hot Only</label>
+            </div>
+        </div>
+
+        <div class="col-md-2 d-flex gap-2 justify-content-end">
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Filter</button>
+            {% if search or current_stage or hot_only %}
+                <a href="{{ url_for('crm_leads.list_leads', view=view_mode) }}" class="btn btn-sm btn-outline-danger" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+{% if view_mode == 'kanban' %}
+<!-- Kanban View -->
+<div class="kanban-board">
+    {% for st_key, st_label, st_badge in stages %}
+    <div class="kanban-col">
+        <div class="d-flex justify-content-between align-items-center mb-3 pb-2 border-bottom">
+            <span class="fw-bold text-dark small">{{ st_label }}</span>
+            <span class="badge bg-light border text-{{ st_badge }} small">
+                {{ kanban[st_key]|length }}
+            </span>
+        </div>
+
+        <div class="kanban-cards">
+            {% for lead in kanban[st_key] %}
+            <div class="kanban-card" onclick="window.location.href='{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}'">
+                <div class="d-flex justify-content-between align-items-start mb-2">
+                    <span class="fw-bold text-dark fs-6 mb-0">{{ lead.company_name }}</span>
+                    <span class="badge {{ lead.priority_badge_class }} small" style="font-size: 0.7rem;">
+                        {{ lead.priority_score }} pts
+                    </span>
+                </div>
+
+                <div class="text-dark small mb-1">
+                    <i class="bi bi-person me-1 text-muted"></i>{{ lead.contact_name }}
+                    {% if lead.designation %}
+                        <span class="text-muted">({{ lead.designation }})</span>
+                    {% endif %}
+                </div>
+
+                {% if lead.city %}
+                <div class="text-muted small mb-2">
+                    <i class="bi bi-geo-alt me-1"></i>{{ lead.city }}
+                </div>
+                {% endif %}
+
+                <div class="d-flex justify-content-between align-items-center pt-2 border-top small mt-2">
+                    <span class="badge bg-light text-warning border" style="font-size: 0.68rem;">
+                        <i class="bi bi-box-arrow-in-right me-1"></i>{{ lead.login_count }} logins
+                    </span>
+                    <span class="text-muted" style="font-size: 0.72rem;">
+                        {{ lead.last_active_at|time_ago }}
+                    </span>
+                </div>
+            </div>
+            {% else %}
+            <div class="text-center py-4 text-muted opacity-50 small">
+                No leads in this stage
+            </div>
+            {% endfor %}
+        </div>
+    </div>
+    {% endfor %}
+</div>
+
+{% else %}
+<!-- Table List View -->
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table crm-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Company &amp; Contact</th>
+                    <th>Stage</th>
+                    <th>Intent Score</th>
+                    <th>Logins</th>
+                    <th>Last Active</th>
+                    <th>Direct Contact</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for lead in leads %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="fw-bold text-dark text-decoration-none">
+                            {{ lead.company_name }}
+                        </a>
+                        <div class="text-muted small">
+                            {{ lead.contact_name }} {% if lead.designation %}&bull; {{ lead.designation }}{% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light border text-primary small">
+                            {{ lead.stage_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge {{ lead.priority_badge_class }} px-2.5 py-1 rounded-pill fw-bold">
+                            {{ lead.priority_score }} pts
+                        </span>
+                    </td>
+                    <td>
+                        <span class="text-warning fw-bold small">{{ lead.login_count }}</span>
+                    </td>
+                    <td>
+                        <span class="small text-muted">{{ lead.last_active_at|time_ago }}</span>
+                    </td>
+                    <td>
+                        <div class="small">
+                            {% if lead.phone %}
+                                <div><a href="tel:{{ lead.phone }}" class="text-success text-decoration-none"><i class="bi bi-telephone me-1"></i>{{ lead.phone }}</a></div>
+                            {% endif %}
+                            {% if lead.email %}
+                                <div><a href="mailto:{{ lead.email }}" class="text-muted text-decoration-none"><i class="bi bi-envelope me-1"></i>{{ lead.email }}</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            {% if lead.phone %}
+                                <a href="tel:{{ lead.phone }}" class="btn btn-crm-call btn-sm px-2.5 py-1 rounded-pill" title="Call Contact">
+                                    <i class="bi bi-telephone-fill"></i>
+                                </a>
+                            {% endif %}
+                            <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                Dossier
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="7" class="text-center py-5 text-muted">
+                        No corporate leads found matching criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endif %}
+
+<!-- Modal: Add Lead -->
+<div class="modal fade" id="addLeadModal" tabindex="-1" aria-labelledby="addLeadModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content bg-white text-dark border-0 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="addLeadModalLabel" style="font-family: 'Playfair Display', serif;">Add Corporate Prospect</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_leads.add_lead') }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Company / Brand Name *</label>
+                        <input type="text" name="company_name" class="form-control crm-input" placeholder="e.g. Wipro Technologies" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Contact Person Name *</label>
+                        <input type="text" name="contact_name" class="form-control crm-input" placeholder="e.g. Ananya Sharma" required>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Mobile Number</label>
+                            <input type="tel" name="phone" class="form-control crm-input" placeholder="9876543210" maxlength="10">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Official Email</label>
+                            <input type="email" name="email" class="form-control crm-input" placeholder="ananya@wipro.com">
+                        </div>
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Designation</label>
+                            <input type="text" name="designation" class="form-control crm-input" placeholder="Head of HR / Procurement">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">City</label>
+                            <input type="text" name="city" class="form-control crm-input" placeholder="Bangalore">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Initial Notes / Requirement</label>
+                        <textarea name="notes" class="form-control crm-input" rows="2" placeholder="e.g. Inquiring for 300 Diwali hampers budget around ₹1200/box"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4">Save Prospect</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Import Leads Bulk -->
+<div class="modal fade" id="importLeadsModal" tabindex="-1" aria-labelledby="importLeadsModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content bg-white text-dark border-0 shadow-lg">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold" id="importLeadsModalLabel" style="font-family: 'Playfair Display', serif;">Bulk Import Prospects</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_leads.import_leads') }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body">
+                    <p class="text-muted small mb-3">
+                        Upload a CSV file or paste tabular data with columns: <strong>Company Name, Contact Person, Phone, Email, Designation, City</strong>
+                    </p>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Option A: Upload CSV File</label>
+                        <input type="file" name="csv_file" class="form-control crm-input" accept=".csv">
+                    </div>
+
+                    <div class="text-center text-muted small my-2">&mdash; OR &mdash;</div>
+
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Option B: Paste Comma-Separated or Excel Rows</label>
+                        <textarea name="raw_data" class="form-control crm-input font-monospace small" rows="6" placeholder="Infosys, Rajesh Kumar, 9876543210, rajesh@infosys.com, VP HR, Bangalore&#10;TCS, Sneha Rao, 9876543211, sneha@tcs.com, Procurement Manager, Mumbai"></textarea>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4">Import Prospects</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endblock %}

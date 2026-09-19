@@ -1,0 +1,118 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Existing Corporate Clients Hub - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+            Existing Corporate Clients Desk
+        </h2>
+        <p class="text-muted small mb-0">
+            Retain and re-engage converted corporate accounts with seasonal gifting promotions, repeat orders, and festive campaigns.
+        </p>
+    </div>
+
+    <div class="d-flex gap-2">
+        <a href="{{ url_for('crm_campaigns.list_campaigns') }}" class="btn btn-crm-gold btn-sm rounded-pill px-3 py-2 fw-bold">
+            <i class="bi bi-megaphone-fill me-1"></i>Launch Client Promotional Campaign
+        </a>
+        <a href="{{ store_base_url }}/admin/b2b/clients" target="_blank" class="btn btn-outline-secondary btn-sm rounded-pill px-3 py-2 text-secondary">
+            <i class="bi bi-box-arrow-up-right me-1"></i>Open B2B Operations Deck
+        </a>
+    </div>
+</div>
+
+<!-- Search Toolbar -->
+<div class="crm-card p-3 mb-4">
+    <form method="GET" action="{{ url_for('crm_clients.list_clients') }}" class="row g-2 align-items-center">
+        <div class="col-md-8">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ search }}" class="form-control crm-input" placeholder="Search company, contact person, phone, or email...">
+            </div>
+        </div>
+        <div class="col-md-4 d-flex gap-2 justify-content-end">
+            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Filter Clients</button>
+            {% if search %}
+                <a href="{{ url_for('crm_clients.list_clients') }}" class="btn btn-sm btn-outline-danger"><i class="bi bi-x-lg"></i></a>
+            {% endif %}
+        </div>
+    </form>
+</div>
+
+<!-- Corporate Clients Table -->
+<div class="crm-card p-0 overflow-hidden">
+    <div class="table-responsive">
+        <table class="table crm-table align-middle mb-0">
+            <thead>
+                <tr>
+                    <th>Company &amp; Contact</th>
+                    <th>Total Orders</th>
+                    <th>Lifetime Order Value</th>
+                    <th>Direct Contact</th>
+                    <th>Last Active</th>
+                    <th class="text-end">Actions</th>
+                </tr>
+            </thead>
+            <tbody>
+                {% for item in clients %}
+                {% set client = item.client %}
+                <tr>
+                    <td>
+                        <a href="{{ url_for('crm_clients.client_detail', client_id=client.id) }}" class="fw-bold text-dark text-decoration-none fs-6">
+                            {{ client.company_name }}
+                        </a>
+                        <div class="text-muted small">
+                            {{ client.contact_name }}
+                            {% if client.source_lead %}
+                                <span class="badge bg-light border text-warning ms-1">Converted Lead</span>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="badge bg-light border text-primary fw-bold px-2 py-1">
+                            {{ item.order_count }} orders
+                        </span>
+                    </td>
+                    <td>
+                        <span class="text-success fw-bold">{{ item.total_spend|inr }}</span>
+                    </td>
+                    <td>
+                        <div class="small">
+                            {% if client.phone %}
+                                <div><a href="tel:{{ client.phone }}" class="text-success text-decoration-none"><i class="bi bi-telephone me-1"></i>{{ client.phone }}</a></div>
+                            {% endif %}
+                            {% if client.email %}
+                                <div><a href="mailto:{{ client.email }}" class="text-muted text-decoration-none"><i class="bi bi-envelope me-1"></i>{{ client.email }}</a></div>
+                            {% endif %}
+                        </div>
+                    </td>
+                    <td>
+                        <span class="small text-muted">{{ item.last_active|time_ago }}</span>
+                    </td>
+                    <td class="text-end">
+                        <div class="d-flex justify-content-end gap-2">
+                            {% if client.phone %}
+                                <a href="tel:{{ client.phone }}" class="btn btn-crm-call btn-sm px-2.5 py-1 rounded-pill" title="Call Client">
+                                    <i class="bi bi-telephone-fill"></i>
+                                </a>
+                            {% endif %}
+                            <a href="{{ url_for('crm_clients.client_detail', client_id=client.id) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                                History &amp; Orders
+                            </a>
+                        </div>
+                    </td>
+                </tr>
+                {% else %}
+                <tr>
+                    <td colspan="6" class="text-center py-5 text-muted">
+                        No corporate clients found matching criteria.
+                    </td>
+                </tr>
+                {% endfor %}
+            </tbody>
+        </table>
+    </div>
+</div>
+{% endblock %}
