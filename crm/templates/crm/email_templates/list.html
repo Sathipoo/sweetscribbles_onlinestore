@@ -149,9 +149,10 @@
 <script>
 async function openPreviewModal(templateId, templateName) {
     document.getElementById('previewModalTitle').textContent = templateName;
-    document.getElementById('previewModalEditLink').href = `/crm/email-templates/${templateId}/edit`;
+    const editBase = "{{ url_for('crm_templates.edit_template', template_id=0) }}".replace('/0/edit', '');
+    document.getElementById('previewModalEditLink').href = `${editBase}/${templateId}/edit`;
 
-    const res = await fetch('/crm/email-templates/api/list');
+    const res = await fetch("{{ url_for('crm_templates.api_list_templates') }}");
     const data = await res.json();
     if (data.success) {
         const tpl = data.templates.find(t => t.id === templateId);
@@ -162,7 +163,7 @@ async function openPreviewModal(templateId, templateName) {
                 .replace('{city}', 'Bangalore');
 
             // Fetch fully styled rendered layout
-            const previewRes = await fetch('/crm/email-templates/api/render-preview', {
+            const previewRes = await fetch("{{ url_for('crm_templates.api_render_preview') }}", {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

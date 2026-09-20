@@ -28,8 +28,11 @@
             </button>
         </div>
 
-        <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold shadow-sm" id="btnSaveTemplate" onclick="saveTemplateToServer()">
+        <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-3 fw-bold shadow-sm" id="btnSaveTemplate" onclick="saveTemplateToServer(false)">
             <i class="bi bi-floppy-fill me-1"></i>Save Template
+        </button>
+        <button type="button" class="btn btn-outline-dark btn-sm rounded-pill px-3 fw-semibold shadow-sm" id="btnSaveCloseTemplate" onclick="saveTemplateToServer(true)">
+            <i class="bi bi-box-arrow-left me-1"></i>Save &amp; Close
         </button>
     </div>
 </div>
@@ -49,7 +52,7 @@
             <div class="row g-3 mb-3">
                 <div class="col-md-7">
                     <label class="form-label small text-muted fw-bold">Template Internal Name *</label>
-                    <input type="text" id="tplName" class="form-control crm-input" value="{% if template %}{{ template.name }}{% else %}Diwali &amp; Festive Corporate Hamper Pitch 2026{% endif %}" placeholder="e.g. Diwali Corporate Pitch 2026">
+                    <input type="text" id="tplName" class="form-control crm-input" value="{% if template %}{{ template.name|e }}{% else %}Diwali &amp; Festive Corporate Hamper Pitch 2026{% endif %}" placeholder="e.g. Diwali Corporate Pitch 2026">
                 </div>
                 <div class="col-md-5">
                     <label class="form-label small text-muted fw-bold">Category</label>
@@ -65,14 +68,14 @@
 
             <div class="mb-3">
                 <label class="form-label small text-muted fw-bold">Default CC Recipients (comma-separated)</label>
-                <input type="text" id="tplDefaultCc" class="form-control crm-input font-monospace small" value="{% if template %}{{ template.default_cc }}{% else %}{{ default_cc }}{% endif %}" placeholder="Vishnu.govind@pikachooz.com, sales@pikachooz.com">
+                <input type="text" id="tplDefaultCc" class="form-control crm-input font-monospace small" value="{% if template and template.default_cc %}{{ template.default_cc|e }}{% else %}{{ default_cc|e }}{% endif %}" placeholder="Vishnu.govind@pikachooz.com, sales@pikachooz.com">
                 <small class="text-muted" style="font-size: 0.72rem;">These CC addresses will be automatically selected when sending this template in bulk.</small>
             </div>
 
             <!-- Subject Line & Tokens -->
             <div class="mb-3">
                 <label class="form-label small text-muted fw-bold">Subject Line *</label>
-                <input type="text" id="tplSubject" class="form-control crm-input fw-semibold" value="{% if template %}{{ template.subject }}{% else %}Exclusive 2026 Festive Corporate Hampers &amp; Tasting Box for {company_name}{% endif %}" oninput="rebuildPreview()">
+                <input type="text" id="tplSubject" class="form-control crm-input fw-semibold" value="{% if template %}{{ template.subject|e }}{% else %}Exclusive 2026 Festive Corporate Hampers &amp; Tasting Box for {company_name}{% endif %}" oninput="rebuildPreview()">
             </div>
 
             <!-- Parameter Chips -->
@@ -91,12 +94,12 @@
         <!-- Mode Nav: Visual Block Builder vs Raw HTML -->
         <ul class="nav nav-pills mb-3" id="builderTabNav" role="tablist">
             <li class="nav-item">
-                <button class="nav-link active rounded-pill px-3 py-1.5 btn-sm" id="visualTabBtn" data-bs-toggle="pill" data-bs-target="#visualTab" type="button">
+                <button class="nav-link {% if initial_mode != 'code' %}active{% endif %} rounded-pill px-3 py-1.5 btn-sm" id="visualTabBtn" data-bs-toggle="pill" data-bs-target="#visualTab" type="button">
                     <i class="bi bi-grid-1x2-fill me-1"></i>Modular Blocks Designer
                 </button>
             </li>
             <li class="nav-item ms-2">
-                <button class="nav-link rounded-pill px-3 py-1.5 btn-sm" id="codeTabBtn" data-bs-toggle="pill" data-bs-target="#codeTab" type="button" onclick="syncBlocksToHtml()">
+                <button class="nav-link {% if initial_mode == 'code' %}active{% endif %} rounded-pill px-3 py-1.5 btn-sm" id="codeTabBtn" data-bs-toggle="pill" data-bs-target="#codeTab" type="button">
                     <i class="bi bi-code-slash me-1"></i>Raw HTML Code
                 </button>
             </li>
@@ -104,7 +107,7 @@
 
         <div class="tab-content" id="builderTabContent">
             <!-- Visual Blocks Tab -->
-            <div class="tab-pane fade show active" id="visualTab" role="tabpanel">
+            <div class="tab-pane fade {% if initial_mode != 'code' %}show active{% endif %}" id="visualTab" role="tabpanel">
                 <div class="accordion" id="blocksAccordion">
                     <!-- Block 1: Banner & Color Theme -->
                     <div class="accordion-item crm-card border mb-3 overflow-hidden">
@@ -118,7 +121,7 @@
                                 <div class="row g-2 mb-3">
                                     <div class="col-8">
                                         <label class="form-label small text-muted">Sub-banner Tagline</label>
-                                        <input type="text" id="blkBannerTag" class="form-control form-control-sm crm-input" value="{{ starter_blocks.banner_tag or 'Diwali & Festive Gifting 2026' }}" oninput="rebuildPreview()">
+                                        <input type="text" id="blkBannerTag" class="form-control form-control-sm crm-input" value="{{ starter_blocks.banner_tag|default('Diwali & Festive Gifting 2026')|e }}" oninput="rebuildPreview()">
                                     </div>
                                     <div class="col-4">
                                         <label class="form-label small text-muted">Accent Color</label>
@@ -132,7 +135,7 @@
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label small text-muted">Header Title Headline</label>
-                                    <input type="text" id="blkHeadline" class="form-control form-control-sm crm-input" value="{{ starter_blocks.headline or 'Exclusive Festive Hampers for {company_name}' }}" oninput="rebuildPreview()">
+                                    <input type="text" id="blkHeadline" class="form-control form-control-sm crm-input" value="{{ starter_blocks.headline|default('Exclusive Festive Hampers for {company_name}')|e }}" oninput="rebuildPreview()">
                                 </div>
                             </div>
                         </div>
@@ -149,7 +152,7 @@
                             <div class="accordion-body p-3">
                                 <div class="mb-2">
                                     <label class="form-label small text-muted">Salutation</label>
-                                    <input type="text" id="blkSalutation" class="form-control form-control-sm crm-input" value="{{ starter_blocks.salutation or 'Dear {contact_name},' }}" oninput="rebuildPreview()">
+                                    <input type="text" id="blkSalutation" class="form-control form-control-sm crm-input" value="{{ starter_blocks.salutation|default('Dear {contact_name},')|e }}" oninput="rebuildPreview()">
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label small text-muted">Core Message Paragraphs</label>
@@ -170,15 +173,15 @@
                             <div class="accordion-body p-3">
                                 <div class="mb-2">
                                     <label class="form-label small text-muted">Highlight #1</label>
-                                    <input type="text" id="blkHighlight1" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_1 or '✨ 100% Customized Logo Sleeves & Ribbon' }}" oninput="rebuildPreview()">
+                                    <input type="text" id="blkHighlight1" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_1|default('✨ 100% Customized Logo Sleeves & Ribbon')|e }}" oninput="rebuildPreview()">
                                 </div>
                                 <div class="mb-2">
                                     <label class="form-label small text-muted">Highlight #2</label>
-                                    <input type="text" id="blkHighlight2" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_2 or '🚚 Pan-India Doorstep Delivery to {city}' }}" oninput="rebuildPreview()">
+                                    <input type="text" id="blkHighlight2" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_2|default('🚚 Pan-India Doorstep Delivery to {city}')|e }}" oninput="rebuildPreview()">
                                 </div>
                                 <div class="mb-0">
                                     <label class="form-label small text-muted">Highlight #3</label>
-                                    <input type="text" id="blkHighlight3" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_3 or '🍫 Artisanal Belgian Truffles & Premium Nuts' }}" oninput="rebuildPreview()">
+                                    <input type="text" id="blkHighlight3" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_3|default('🍫 Artisanal Belgian Truffles & Premium Nuts')|e }}" oninput="rebuildPreview()">
                                 </div>
                             </div>
                         </div>
@@ -196,11 +199,11 @@
                                 <div class="row g-2">
                                     <div class="col-7">
                                         <label class="form-label small text-muted">Button Label Text</label>
-                                        <input type="text" id="blkCtaText" class="form-control form-control-sm crm-input" value="{{ starter_blocks.cta_text or 'Explore Corporate Gifting Showcase' }}" oninput="rebuildPreview()">
+                                        <input type="text" id="blkCtaText" class="form-control form-control-sm crm-input" value="{{ starter_blocks.cta_text|default('Explore Corporate Gifting Showcase')|e }}" oninput="rebuildPreview()">
                                     </div>
                                     <div class="col-5">
                                         <label class="form-label small text-muted">Button Destination URL</label>
-                                        <input type="text" id="blkCtaUrl" class="form-control form-control-sm crm-input font-monospace" value="{{ starter_blocks.cta_url or '{outreach_link}' }}" oninput="rebuildPreview()">
+                                        <input type="text" id="blkCtaUrl" class="form-control form-control-sm crm-input font-monospace" value="{{ starter_blocks.cta_url|default('{outreach_link}')|e }}" oninput="rebuildPreview()">
                                     </div>
                                 </div>
                             </div>
@@ -219,11 +222,11 @@
                                 <div class="row g-2">
                                     <div class="col-6">
                                         <label class="form-label small text-muted">Sender Name</label>
-                                        <input type="text" id="blkSignoffName" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_name or 'Vishnu Govind' }}" oninput="rebuildPreview()">
+                                        <input type="text" id="blkSignoffName" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_name|default('Vishnu Govind')|e }}" oninput="rebuildPreview()">
                                     </div>
                                     <div class="col-6">
                                         <label class="form-label small text-muted">Sender Title</label>
-                                        <input type="text" id="blkSignoffTitle" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_title or 'Corporate Gifting Director, Sweet Scribbles' }}" oninput="rebuildPreview()">
+                                        <input type="text" id="blkSignoffTitle" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_title|default('Corporate Gifting Director, Sweet Scribbles')|e }}" oninput="rebuildPreview()">
                                     </div>
                                 </div>
                             </div>
@@ -233,11 +236,16 @@
             </div>
 
             <!-- Raw HTML Tab -->
-            <div class="tab-pane fade" id="codeTab" role="tabpanel">
+            <div class="tab-pane fade {% if initial_mode == 'code' %}show active{% endif %}" id="codeTab" role="tabpanel">
                 <div class="crm-card p-3">
-                    <label class="form-label small text-muted fw-bold mb-1">Direct HTML Content</label>
-                    <textarea id="rawHtmlInput" class="form-control crm-input font-monospace small" rows="18" oninput="rebuildPreviewFromRawHtml()"></textarea>
-                    <small class="text-muted mt-2 d-block">You can edit the compiled HTML directly or switch back to the Visual Blocks tab.</small>
+                    <div class="d-flex justify-content-between align-items-center mb-2">
+                        <label class="form-label small text-muted fw-bold mb-0">Direct HTML Source Code</label>
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0.5 px-2.5 rounded-pill" onclick="confirmSyncVisualToHtml()" style="font-size: 0.75rem;">
+                            <i class="bi bi-arrow-repeat me-1"></i>Regenerate from Visual Blocks
+                        </button>
+                    </div>
+                    <textarea id="rawHtmlInput" class="form-control crm-input font-monospace small" rows="18" oninput="rebuildPreviewFromRawHtml()">{% if template and template.content_html %}{{ template.content_html }}{% endif %}</textarea>
+                    <small class="text-muted mt-2 d-block">You can edit the HTML code directly or switch back to the Visual Blocks tab.</small>
                 </div>
             </div>
         </div>
@@ -258,7 +266,7 @@
 
             <div class="preview-envelope p-2 mb-2 bg-light border rounded-3 small">
                 <div><strong>To:</strong> Ananya Sharma &lt;ananya@wipro.com&gt;</div>
-                <div><strong>CC:</strong> <span id="previewCcDisplay">Vishnu.govind@pikachooz.com</span></div>
+                <div><strong>CC:</strong> <span id="previewCcDisplay">{% if template and template.default_cc %}{{ template.default_cc }}{% else %}{{ default_cc }}{% endif %}</span></div>
                 <div><strong>Subject:</strong> <span id="previewSubjectDisplay" class="fw-bold">...</span></div>
             </div>
 
@@ -271,7 +279,10 @@
 </div>
 
 <script>
+let currentEditorMode = '{{ initial_mode or "visual" }}';
 let lastActiveInput = document.getElementById('tplSubject');
+let currentTemplateId = {% if template %}{{ template.id }}{% else %}null{% endif %};
+let previewDebounce = null;
 
 document.addEventListener('DOMContentLoaded', () => {
     // Track active inputs for parameter chips
@@ -293,18 +304,56 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     });
 
-    rebuildPreview();
+    const visualTabBtn = document.getElementById('visualTabBtn');
+    const codeTabBtn = document.getElementById('codeTabBtn');
+
+    if (visualTabBtn && codeTabBtn) {
+        visualTabBtn.addEventListener('shown.bs.tab', () => {
+            currentEditorMode = 'visual';
+            rebuildPreview();
+        });
+
+        codeTabBtn.addEventListener('shown.bs.tab', () => {
+            currentEditorMode = 'code';
+            const rawEl = document.getElementById('rawHtmlInput');
+            if (!rawEl.value.trim()) {
+                syncBlocksToHtml();
+            }
+            rebuildPreviewFromRawHtml();
+        });
+    }
+
+    if (currentEditorMode === 'code') {
+        const rawEl = document.getElementById('rawHtmlInput');
+        if (!rawEl.value.trim()) {
+            syncBlocksToHtml();
+        }
+        rebuildPreviewFromRawHtml();
+    } else {
+        const rawEl = document.getElementById('rawHtmlInput');
+        if (!rawEl.value.trim()) {
+            syncBlocksToHtml();
+        }
+        rebuildPreview();
+    }
 });
 
 function insertParamToActiveField(param) {
-    if (!lastActiveInput) lastActiveInput = document.getElementById('blkBodyText');
+    if (!lastActiveInput) {
+        lastActiveInput = currentEditorMode === 'code' ? document.getElementById('rawHtmlInput') : document.getElementById('blkBodyText');
+    }
     const start = lastActiveInput.selectionStart || 0;
     const end = lastActiveInput.selectionEnd || 0;
     const val = lastActiveInput.value || '';
     lastActiveInput.value = val.substring(0, start) + param + val.substring(end);
     lastActiveInput.focus();
     lastActiveInput.selectionStart = lastActiveInput.selectionEnd = start + param.length;
-    rebuildPreview();
+    
+    if (currentEditorMode === 'code' || lastActiveInput.id === 'rawHtmlInput') {
+        rebuildPreviewFromRawHtml();
+    } else {
+        rebuildPreview();
+    }
 }
 
 function setPreviewDevice(device) {
@@ -359,16 +408,16 @@ function compileBlocksToHtml(blocks) {
 
     return `
     <div style="text-align: center; margin-bottom: 24px;">
-        <span style="display: inline-block; background-color: ${blocks.theme_color}; color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; padding: 4px 14px; border-radius: 50px;">
-            ${blocks.banner_tag}
+        <span style="display: inline-block; background-color: ${blocks.theme_color || '#b48324'}; color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; padding: 4px 14px; border-radius: 50px;">
+            ${blocks.banner_tag || ''}
         </span>
         <h2 style="color: #0f172a; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; margin: 12px 0 0 0;">
-            ${blocks.headline}
+            ${blocks.headline || ''}
         </h2>
     </div>
 
     <div style="color: #1e293b; font-size: 15px; margin-bottom: 12px; font-weight: 600;">
-        ${blocks.salutation}
+        ${blocks.salutation || ''}
     </div>
 
     ${paragraphs}
@@ -377,8 +426,8 @@ function compileBlocksToHtml(blocks) {
 
     <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px;">
         Warm regards,<br>
-        <strong style="color: #0f172a; font-size: 14px;">${blocks.signoff_name}</strong><br>
-        ${blocks.signoff_title}
+        <strong style="color: #0f172a; font-size: 14px;">${blocks.signoff_name || ''}</strong><br>
+        ${blocks.signoff_title || ''}
     </div>`;
 }
 
@@ -388,14 +437,49 @@ function syncBlocksToHtml() {
     document.getElementById('rawHtmlInput').value = html;
 }
 
-let previewDebounce = null;
+function confirmSyncVisualToHtml() {
+    if (confirm("Regenerate HTML from Modular Visual Blocks? Any manual HTML edits in this tab will be replaced.")) {
+        syncBlocksToHtml();
+        rebuildPreviewFromRawHtml();
+    }
+}
 
-async function rebuildPreview() {
+async function renderPreviewOnIframe(subject, contentHtml, ctaText, ctaUrl) {
+    try {
+        const res = await fetch("{{ url_for('crm_templates.api_render_preview') }}", {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                subject: subject,
+                content_html: contentHtml,
+                cta_text: ctaText,
+                cta_url: ctaUrl,
+                sample_contact: 'Ananya Sharma',
+                sample_company: 'Wipro Technologies',
+                sample_city: 'Bangalore',
+                sample_designation: 'Head of HR',
+                sample_link: 'https://sweetscribbles.pikachooz.com/b2b?trk=preview-sample'
+            })
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            document.getElementById('previewIframe').srcdoc = data.html;
+        }
+    } catch (err) {
+        console.error('Render preview error:', err);
+    }
+}
+
+function rebuildPreview() {
     clearTimeout(previewDebounce);
-    previewDebounce = setTimeout(async () => {
+    previewDebounce = setTimeout(() => {
         const blocks = getBlocksData();
         const compiledHtml = compileBlocksToHtml(blocks);
-        document.getElementById('rawHtmlInput').value = compiledHtml;
+        
+        if (currentEditorMode === 'visual') {
+            document.getElementById('rawHtmlInput').value = compiledHtml;
+        }
 
         const subject = document.getElementById('tplSubject').value;
         const defaultCc = document.getElementById('tplDefaultCc').value;
@@ -407,69 +491,32 @@ async function rebuildPreview() {
 
         document.getElementById('previewCcDisplay').textContent = defaultCc || 'None';
 
-        try {
-            const res = await fetch('/crm/email-templates/api/render-preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: subject,
-                    content_html: compiledHtml,
-                    cta_text: blocks.cta_text,
-                    cta_url: blocks.cta_url,
-                    sample_contact: 'Ananya Sharma',
-                    sample_company: 'Wipro Technologies',
-                    sample_city: 'Bangalore',
-                    sample_designation: 'Head of HR',
-                    sample_link: 'https://sweetscribbles.pikachooz.com/b2b?trk=preview-sample'
-                })
-            });
-
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('previewIframe').srcdoc = data.html;
-            }
-        } catch (err) {
-            console.error(err);
-        }
+        renderPreviewOnIframe(subject, compiledHtml, blocks.cta_text, blocks.cta_url);
     }, 200);
 }
 
 function rebuildPreviewFromRawHtml() {
     clearTimeout(previewDebounce);
-    previewDebounce = setTimeout(async () => {
+    previewDebounce = setTimeout(() => {
         const html = document.getElementById('rawHtmlInput').value;
         const subject = document.getElementById('tplSubject').value;
         const blocks = getBlocksData();
+        const defaultCc = document.getElementById('tplDefaultCc').value;
 
-        try {
-            const res = await fetch('/crm/email-templates/api/render-preview', {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    subject: subject,
-                    content_html: html,
-                    cta_text: blocks.cta_text,
-                    cta_url: blocks.cta_url,
-                    sample_contact: 'Ananya Sharma',
-                    sample_company: 'Wipro Technologies',
-                    sample_city: 'Bangalore',
-                    sample_designation: 'Head of HR',
-                    sample_link: 'https://sweetscribbles.pikachooz.com/b2b?trk=preview-sample'
-                })
-            });
+        document.getElementById('previewSubjectDisplay').textContent = subject
+            .replaceAll('{company_name}', 'Wipro Technologies')
+            .replaceAll('{contact_name}', 'Ananya Sharma')
+            .replaceAll('{city}', 'Bangalore');
 
-            const data = await res.json();
-            if (data.success) {
-                document.getElementById('previewIframe').srcdoc = data.html;
-            }
-        } catch (err) {
-            console.error(err);
-        }
+        document.getElementById('previewCcDisplay').textContent = defaultCc || 'None';
+
+        renderPreviewOnIframe(subject, html, blocks.cta_text, blocks.cta_url);
     }, 200);
 }
 
-async function saveTemplateToServer() {
-    const btn = document.getElementById('btnSaveTemplate');
+async function saveTemplateToServer(redirectToList = false) {
+    const btnSave = document.getElementById('btnSaveTemplate');
+    const btnSaveClose = document.getElementById('btnSaveCloseTemplate');
     const alertBox = document.getElementById('saveStatusAlert');
     const name = document.getElementById('tplName').value.trim();
     const subject = document.getElementById('tplSubject').value.trim();
@@ -481,20 +528,30 @@ async function saveTemplateToServer() {
         return;
     }
 
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+    const activeBtn = redirectToList ? btnSaveClose : btnSave;
+    const originalText = activeBtn ? activeBtn.innerHTML : 'Saving...';
+    if (btnSave) btnSave.disabled = true;
+    if (btnSaveClose) btnSaveClose.disabled = true;
+    if (activeBtn) activeBtn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
 
     const blocks = getBlocksData();
-    const contentHtml = document.getElementById('rawHtmlInput').value || compileBlocksToHtml(blocks);
+    let contentHtml = '';
+    if (currentEditorMode === 'visual') {
+        contentHtml = compileBlocksToHtml(blocks);
+        document.getElementById('rawHtmlInput').value = contentHtml;
+    } else {
+        contentHtml = document.getElementById('rawHtmlInput').value;
+    }
 
     const payload = {
-        id: {% if template %}{{ template.id }}{% else %}null{% endif %},
+        id: currentTemplateId,
         name: name,
         subject: subject,
         category: category,
         default_cc: defaultCc,
         content_html: contentHtml,
-        blocks_json: blocks
+        blocks_json: blocks,
+        editor_mode: currentEditorMode
     };
 
     try {
@@ -509,26 +566,47 @@ async function saveTemplateToServer() {
 
         const data = await res.json();
         if (data.success) {
-            alertBox.className = 'alert alert-success py-2 px-3 small rounded-3';
-            alertBox.innerHTML = `<strong>Success:</strong> ${data.message}`;
+            currentTemplateId = data.template_id;
+            alertBox.className = 'alert alert-success py-2.5 px-3 small rounded-3 d-flex align-items-center justify-content-between shadow-sm';
+            const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
+            alertBox.innerHTML = `<div><i class="bi bi-check-circle-fill text-success me-2"></i><strong>Saved Successfully:</strong> ${data.message} <span class="text-muted ms-2">(Last saved at ${nowStr})</span></div><button type="button" class="btn-close btn-sm" onclick="document.getElementById('saveStatusAlert').classList.add('d-none')"></button>`;
             alertBox.classList.remove('d-none');
-            btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Saved';
-            setTimeout(() => {
-                window.location.href = "{{ url_for('crm_templates.list_templates') }}";
-            }, 1200);
+            
+            if (btnSave) {
+                btnSave.disabled = false;
+                btnSave.innerHTML = '<i class="bi bi-check-circle-fill text-success me-1"></i>Saved';
+                setTimeout(() => {
+                    btnSave.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Save Template';
+                }, 2500);
+            }
+
+            if (btnSaveClose) {
+                btnSaveClose.disabled = false;
+                btnSaveClose.innerHTML = '<i class="bi bi-box-arrow-left me-1"></i>Save &amp; Close';
+            }
+
+            if (redirectToList) {
+                setTimeout(() => {
+                    window.location.href = "{{ url_for('crm_templates.list_templates') }}";
+                }, 400);
+            } else if (data.edit_url && !window.location.pathname.includes('/edit')) {
+                window.history.replaceState({}, '', data.edit_url);
+            }
         } else {
             alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3';
             alertBox.innerHTML = `<strong>Error:</strong> ${data.error || 'Failed to save template'}`;
             alertBox.classList.remove('d-none');
-            btn.disabled = false;
-            btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Save Template';
+            if (btnSave) btnSave.disabled = false;
+            if (btnSaveClose) btnSaveClose.disabled = false;
+            if (activeBtn) activeBtn.innerHTML = originalText;
         }
     } catch (err) {
         alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3';
         alertBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
         alertBox.classList.remove('d-none');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Save Template';
+        if (btnSave) btnSave.disabled = false;
+        if (btnSaveClose) btnSaveClose.disabled = false;
+        if (activeBtn) activeBtn.innerHTML = originalText;
     }
 }
 </script>

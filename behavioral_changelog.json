@@ -246,6 +246,19 @@
         "static/js/b2b_telemetry.js",
         "templates/b2b/login.html"
       ]
+    },
+    {
+      "id": "BEH-014",
+      "timestamp": "2026-09-20T17:58:00+05:30",
+      "category": "CRM Email Template Studio & Persistence",
+      "title": "Email Template Studio Edit Mode Fix & Dual Visual/Code Mode Persistence",
+      "problem_addressed": "1. In /crm/email-templates/<id>/edit, rebuildPreview() unconditionally ran on DOMContentLoaded, compiling empty/partial visual block inputs and overwriting rawHtmlInput.value with blank content before the user interacted.\n2. rawHtmlInput textarea lacked Jinja interpolation (template.content_html was never pre-filled).\n3. Switching to the Raw HTML Code tab fired onclick='syncBlocksToHtml()', destroying custom HTML edits.\n4. Saving relied on a debounced value and lacked editor mode tracking, causing stale visual block data or overwriting custom HTML.\n5. Legacy Query.get() deprecation in save_template, aggressive 1.2s auto-redirect on save, and hardcoded routes in modal preview.",
+      "solution_implemented": "1. Updated edit_template to auto-detect initial mode ('visual' if valid modular blocks exist, else 'code') and pre-fill rawHtmlInput with existing template.content_html safely escaped.\n2. Non-destructive tab switching: removed automatic sync on codeTabBtn click; added an explicit 'Regenerate from Visual Blocks' button with confirmation dialog.\n3. Robust saveTemplateToServer with editor_mode ('visual' vs 'code'): in visual mode it compiles fresh blocks immediately (no debounce lag); in code mode it preserves raw HTML without corrupting blocks_json.\n4. Dual save buttons: 'Save Template' (saves and keeps user in studio with timestamped toast) and 'Save & Close' (saves and returns to template list).\n5. Updated backend save_template to use db.session.get, handle mode-specific block serialization, and return edit_url for smooth history state updates.",
+      "files_affected": [
+        "crm/routes/email_templates.py",
+        "crm/templates/crm/email_templates/builder.html",
+        "crm/templates/crm/email_templates/list.html"
+      ]
     }
   ]
 }

@@ -78,6 +78,7 @@ def new_template():
         template=None,
         starter_blocks=starter_blocks,
         default_cc=DEFAULT_CC_EMAIL,
+        initial_mode='visual',
         is_new=True
     )
 
@@ -86,20 +87,34 @@ def new_template():
 def edit_template(template_id):
     """
     Opens the visual email builder with an existing template loaded.
+    Detects whether template was authored with modular blocks or raw HTML.
     """
-    tpl = CRMEmailTemplate.query.get_or_404(template_id)
+    tpl = db.session.get(CRMEmailTemplate, template_id)
+    if not tpl:
+        flash('Email template not found.', 'danger')
+        return redirect(url_for('crm_templates.list_templates'))
+
     blocks = {}
+    has_valid_blocks = False
     if tpl.blocks_json:
         try:
-            blocks = json.loads(tpl.blocks_json)
+            loaded = json.loads(tpl.blocks_json)
+            if isinstance(loaded, dict):
+                blocks = loaded
+                # Template has meaningful modular blocks if body_text or headline is populated
+                if blocks.get('body_text') or blocks.get('headline') or blocks.get('salutation'):
+                    has_valid_blocks = True
         except Exception:
             blocks = {}
+
+    initial_mode = 'visual' if has_valid_blocks else 'code'
 
     return render_template(
         'crm/email_templates/builder.html',
         template=tpl,
         starter_blocks=blocks,
         default_cc=tpl.default_cc or DEFAULT_CC_EMAIL,
+        initial_mode=initial_mode,
         is_new=False
     )
 
@@ -120,9 +135,14 @@ def save_template():
     default_cc = (data.get('default_cc') or DEFAULT_CC_EMAIL).strip()
     content_html = (data.get('content_html') or '').strip()
     blocks_json = data.get('blocks_json')
+    editor_mode = (data.get('editor_mode') or 'visual').strip()
 
     if isinstance(blocks_json, dict):
-        blocks_json = json.dumps(blocks_json)
+        blocks_json_str = json.dumps(blocks_json)
+    elif isinstance(blocks_json, str):
+        blocks_json_str = blocks_json
+    else:
+        blocks_json_str = None
 
     if not name or not subject:
         if is_json:
@@ -130,13 +150,12 @@ def save_template():
         flash('Template name and subject line are required.', 'danger')
         return redirect(request.referrer or url_for('crm_templates.list_templates'))
 
+    tpl = None
     if template_id:
         try:
-            tpl = CRMEmailTemplate.query.get(int(template_id))
+            tpl = db.session.get(CRMEmailTemplate, int(template_id))
         except (ValueError, TypeError):
             tpl = None
-    else:
-        tpl = None
 
     if not tpl:
         tpl = CRMEmailTemplate(
@@ -145,7 +164,7 @@ def save_template():
             category=category,
             default_cc=default_cc,
             content_html=content_html,
-            blocks_json=blocks_json,
+            blocks_json=blocks_json_str if editor_mode == 'visual' else None,
             is_active=True
         )
         db.session.add(tpl)
@@ -155,8 +174,8 @@ def save_template():
         tpl.category = category
         tpl.default_cc = default_cc
         tpl.content_html = content_html
-        if blocks_json:
-            tpl.blocks_json = blocks_json
+        if editor_mode == 'visual' and blocks_json_str:
+            tpl.blocks_json = blocks_json_str
         tpl.updated_at = datetime.utcnow()
 
     db.session.commit()
@@ -165,6 +184,7 @@ def save_template():
         return jsonify({
             'success': True,
             'template_id': tpl.id,
+            'edit_url': url_for('crm_templates.edit_template', template_id=tpl.id),
             'message': f'Template "{tpl.name}" saved successfully!'
         })
 
