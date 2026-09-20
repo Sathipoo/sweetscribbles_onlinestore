@@ -232,6 +232,20 @@
         "crm/templates/crm/clients_hub.html",
         "crm/templates/crm/client_detail.html"
       ]
+    },
+    {
+      "id": "BEH-013",
+      "timestamp": "2026-09-20T12:00:00+05:30",
+      "category": "Authentication & Session Integrity",
+      "title": "B2B Login OTP Session Cookie Race Condition Resolution & Resilient Server-Side Fallback",
+      "problem_addressed": "During B2B Corporate Portal login (/b2b/login), entering a mobile number sent an OTP successfully via MSG91, but clicking 'Verify & Open Workspace' failed with HTTP 400 'Please request an OTP first.' Root Cause: The login buttons carried class `.btn-premium`, triggering b2b_telemetry.js cta_click beacons asynchronously. Because Flask had SESSION_REFRESH_EACH_REQUEST=True by default, the concurrent telemetry beacon response sent a stale Set-Cookie header that clobbered session['b2b_login_otp']. Additionally, any variation between raw and normalized phone formatting could cause an identifier check mismatch.",
+      "solution_implemented": "1. Set SESSION_REFRESH_EACH_REQUEST = False in config.py so non-modifying background endpoints never overwrite active session cookies.\n2. Excluded login buttons and [data-no-telemetry] elements in static/js/b2b_telemetry.js and templates/b2b/login.html from firing CTA analytics beacons.\n3. Added in-memory server-side fallback cache (_B2B_ACTIVE_OTPS) in routes/b2b.py ensuring OTP verification succeeds even if browser cookies are wiped or delayed.\n4. Synchronized canonical server-normalized identifier into login.html savedIdentifier and added trailing 10-digit phone matching in verify_login_otp.",
+      "files_affected": [
+        "config.py",
+        "routes/b2b.py",
+        "static/js/b2b_telemetry.js",
+        "templates/b2b/login.html"
+      ]
     }
   ]
 }
