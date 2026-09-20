@@ -172,10 +172,45 @@ def import_leads():
 def lead_detail(lead_id):
     lead = B2BLead.query.get_or_404(lead_id)
 
-    # Clickstream telemetry events
-    events = B2BEngagementEvent.query.filter_by(lead_id=lead.id).order_by(
-        B2BEngagementEvent.created_at.desc()
-    ).all()
+    # Check if a client exists for this lead (by converted_client_id or matching phone/email)
+    client_ids = [lead.converted_client_id] if lead.converted_client_id else []
+    if not client_ids:
+        match_client = None
+        if lead.phone:
+            match_client = B2BClient.query.filter(
+                (B2BClient.phone == lead.phone) | (B2BClient.phone.endswith(lead.phone[-10:]))
+            ).first()
+        if not match_client and lead.email:
+            match_client = B2BClient.query.filter_by(email=lead.email).first()
+        if match_client:
+            client_ids.append(match_client.id)
+            if not lead.converted_client_id:
+                lead.converted_client_id = match_client.id
+                if lead.stage != 'converted':
+                    lead.stage = 'converted'
+                db.session.commit()
+
+    # Clickstream telemetry events across both lead and linked client
+    if client_ids:
+        events = B2BEngagementEvent.query.filter(
+            (B2BEngagementEvent.lead_id == lead.id) | (B2BEngagementEvent.client_id.in_(client_ids))
+        ).order_by(B2BEngagementEvent.created_at.desc()).all()
+    else:
+        events = B2BEngagementEvent.query.filter_by(lead_id=lead.id).order_by(
+            B2BEngagementEvent.created_at.desc()
+        ).all()
+
+    # Reconcile login count & timestamps from actual events
+    login_events = [e for e in events if e.event_type == 'login']
+    if len(login_events) > (lead.login_count or 0):
+        lead.login_count = len(login_events)
+        if not lead.first_login_at and login_events:
+            lead.first_login_at = login_events[-1].created_at
+        if login_events:
+            lead.last_login_at = login_events[0].created_at
+            if not lead.last_active_at or lead.last_active_at < login_events[0].created_at:
+                lead.last_active_at = login_events[0].created_at
+        db.session.commit()
 
     # Calculate Top Products of Interest from telemetry
     product_views = {}

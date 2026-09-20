@@ -1,7 +1,7 @@
 from flask import Blueprint, render_template, request, current_app
 from extensions import db
 from models.b2b import B2BClient, B2BOrder, B2BCommunicationLog
-from models.b2b_crm import B2BEngagementEvent
+from models.b2b_crm import B2BLead, B2BEngagementEvent
 from crm.routes.auth import crm_login_required
 
 clients_bp = Blueprint('crm_clients', __name__)
@@ -59,9 +59,20 @@ def client_detail(client_id):
     comm_logs = B2BCommunicationLog.query.filter_by(client_id=client.id).order_by(
         B2BCommunicationLog.created_at.desc()
     ).all()
-    events = B2BEngagementEvent.query.filter_by(client_id=client.id).order_by(
+    # Find associated lead
+    lead = B2BLead.query.filter_by(converted_client_id=client.id).first()
+    if not lead and client.phone:
+        lead = B2BLead.query.filter(
+            (B2BLead.phone == client.phone) | (B2BLead.phone.endswith(client.phone[-10:]))
+        ).first()
+
+    filter_cond = (B2BEngagementEvent.client_id == client.id)
+    if lead:
+        filter_cond = filter_cond | (B2BEngagementEvent.lead_id == lead.id)
+
+    events = B2BEngagementEvent.query.filter(filter_cond).order_by(
         B2BEngagementEvent.created_at.desc()
-    ).limit(30).all()
+    ).limit(50).all()
 
     store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
 

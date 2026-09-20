@@ -372,43 +372,56 @@ def verify_login_otp():
     ip_addr = request.headers.get('X-Forwarded-For', request.remote_addr)
     user_agent_str = request.user_agent.string if request.user_agent else None
 
+    client = None
+    lead = None
+
     if entity_type == 'client':
         client = B2BClient.query.get(entity_id)
         if not client or client.is_archived:
             return {'success': False, 'message': 'Corporate client account not found or archived.'}, 403
         
-        session['b2b_client_id'] = client.id
-        session.pop('b2b_lead_id', None)
-        session.modified = True
-
-        login_event = B2BEngagementEvent(
-            client_id=client.id,
-            event_type='login',
-            page_url='/b2b/login',
-            page_title='Client Portal Login',
-            ip_address=ip_addr,
-            user_agent=user_agent_str
-        )
-        db.session.add(login_event)
-        db.session.commit()
-        welcome_name = client.contact_name
+        # Cross-resolve matching lead for this client
+        lead = B2BLead.query.filter_by(converted_client_id=client.id).first()
+        if not lead and client.phone:
+            lead = B2BLead.query.filter(
+                (B2BLead.phone == client.phone) | (B2BLead.phone.endswith(client.phone[-10:]))
+            ).first()
+        if not lead and client.email:
+            lead = B2BLead.query.filter_by(email=client.email).first()
 
     else:
         lead = B2BLead.query.get(entity_id)
         if not lead:
             return {'success': False, 'message': 'Prospect profile not found.'}, 404
-        
-        session['b2b_lead_id'] = lead.id
-        session.pop('b2b_client_id', None)
-        session.modified = True
 
+        # Cross-resolve matching client for this lead
+        if lead.converted_client_id:
+            client = B2BClient.query.get(lead.converted_client_id)
+        if not client and lead.phone:
+            client = B2BClient.query.filter(
+                (B2BClient.phone == lead.phone) | (B2BClient.phone.endswith(lead.phone[-10:]))
+            ).first()
+        if not client and lead.email:
+            client = B2BClient.query.filter_by(email=lead.email).first()
+
+    # Link lead and client if both exist
+    if lead and client and not lead.converted_client_id:
+        lead.converted_client_id = client.id
+        if lead.stage != 'converted':
+            lead.stage = 'converted'
+
+    # If lead exists, update all telemetry and login metrics
+    if lead:
         lead.login_count = (lead.login_count or 0) + 1
         if not lead.first_login_at:
             lead.first_login_at = datetime.utcnow()
         lead.last_login_at = datetime.utcnow()
-        lead.stage = 'portal_active'
+        lead.last_active_at = datetime.utcnow()
+        if not client and lead.stage != 'converted':
+            lead.stage = 'portal_active'
         lead.update_score(50, 'Logged in via OTP')
         lead.is_hot = True
+        session['b2b_lead_id'] = lead.id
 
         # Link campaign recipient if tracked
         trk_token = session.get('b2b_trk_token')
@@ -420,17 +433,24 @@ def verify_login_otp():
                 if rcp.campaign:
                     rcp.campaign.unique_logins_generated = (rcp.campaign.unique_logins_generated or 0) + 1
 
-        login_event = B2BEngagementEvent(
-            lead_id=lead.id,
-            event_type='login',
-            page_url='/b2b/login',
-            page_title='Prospect Portal Login',
-            ip_address=ip_addr,
-            user_agent=user_agent_str
-        )
-        db.session.add(login_event)
-        db.session.commit()
-        welcome_name = lead.contact_name
+    if client:
+        session['b2b_client_id'] = client.id
+
+    session.modified = True
+
+    # Record login event with BOTH client_id and lead_id
+    login_event = B2BEngagementEvent(
+        client_id=client.id if client else None,
+        lead_id=lead.id if lead else None,
+        event_type='login',
+        page_url='/b2b/login',
+        page_title='Corporate Client Portal Login' if client else 'Prospect Portal Login',
+        ip_address=ip_addr,
+        user_agent=user_agent_str
+    )
+    db.session.add(login_event)
+    db.session.commit()
+    welcome_name = client.contact_name if client else lead.contact_name
 
     # Clear OTP state from session and server memory cache
     session.pop('b2b_login_otp', None)
@@ -466,11 +486,32 @@ def record_telemetry():
     client_id = session.get('b2b_client_id')
     lead_id = session.get('b2b_lead_id')
 
+    # Cross-resolve lead and client if one is missing
+    if client_id and not lead_id:
+        match_lead = B2BLead.query.filter_by(converted_client_id=client_id).first()
+        if not match_lead:
+            client_ref = B2BClient.query.get(client_id)
+            if client_ref and client_ref.phone:
+                match_lead = B2BLead.query.filter(
+                    (B2BLead.phone == client_ref.phone) | (B2BLead.phone.endswith(client_ref.phone[-10:]))
+                ).first()
+        if match_lead:
+            lead_id = match_lead.id
+            session['b2b_lead_id'] = lead_id
+
+    if lead_id and not client_id:
+        lead_ref = B2BLead.query.get(lead_id)
+        if lead_ref and lead_ref.converted_client_id:
+            client_id = lead_ref.converted_client_id
+            session['b2b_client_id'] = client_id
+
     # If identity is anonymous, resolve via tracking_token if present
     if not client_id and not lead_id and tracking_token:
         lead_match = B2BLead.query.filter_by(tracking_token=tracking_token).first()
         if lead_match:
             lead_id = lead_match.id
+            if lead_match.converted_client_id:
+                client_id = lead_match.converted_client_id
         else:
             rcp_match = CRMCampaignRecipient.query.filter_by(tracking_token=tracking_token).first()
             if rcp_match:
