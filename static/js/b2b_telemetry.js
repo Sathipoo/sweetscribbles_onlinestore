@@ -95,6 +95,13 @@
                 return;
             }
 
+            // Exclude internal authentication/login buttons or explicit telemetry opt-outs
+            if (target.closest('[data-no-telemetry="true"]') ||
+                target.closest('#b2bLoginStepPhone, #b2bLoginStepVerify') ||
+                window.location.pathname.includes('/b2b/login')) {
+                return;
+            }
+
             // CTA Buttons (Inquire, Request Quote, Catalog Download, Sample Request)
             const isCTA = target.hasAttribute('data-telemetry-cta') ||
                 target.classList.contains('btn-inquire') ||

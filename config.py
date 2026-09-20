@@ -16,6 +16,9 @@ class Config:
         "pool_recycle": 280
     }
     
+    # Session Cookie Security & Race Condition Prevention
+    SESSION_REFRESH_EACH_REQUEST = False
+    
     # GCP Storage Config
     GOOGLE_APPLICATION_CREDENTIALS = os.environ.get('GOOGLE_APPLICATION_CREDENTIALS')
     GCS_BUCKET_NAME = os.environ.get('GCS_BUCKET_NAME')

@@ -198,6 +198,9 @@ def submit_enquiry():
         'redirect_url': url_for('b2b.portal')
     }
 
+# Server-side cache for active OTPs to protect against session cookie race conditions or dropouts
+_B2B_ACTIVE_OTPS = {}
+
 # --- B2B Client & Prospect Login (Dual Mobile / Email OTP) ---
 @b2b_bp.route('/login', methods=['GET', 'POST'])
 def login():
@@ -221,9 +224,12 @@ def send_login_otp():
         if not client:
             lead = B2BLead.query.filter(B2BLead.email.ilike(identifier)).first()
         display_target = identifier
+        digits = None
     else:
         digits = "".join(c for c in raw_identifier if c.isdigit())
-        if len(digits) > 10 and digits.startswith('91'):
+        if len(digits) == 11 and digits.startswith('0'):
+            digits = digits[1:]
+        elif len(digits) > 10 and digits.startswith('91'):
             digits = digits[2:]
         if len(digits) != 10:
             return {'success': False, 'message': 'Please enter a valid 10-digit Indian mobile number.'}, 400
@@ -258,7 +264,7 @@ def send_login_otp():
     contact_name = client.contact_name if client else lead.contact_name
 
     current_ts = time.time()
-    existing_otp = session.get('b2b_login_otp')
+    existing_otp = session.get('b2b_login_otp') or _B2B_ACTIVE_OTPS.get(identifier)
     if existing_otp and existing_otp.get('identifier') == identifier:
         last_sent = existing_otp.get('last_sent', 0)
         if current_ts - last_sent < 30:
@@ -268,8 +274,10 @@ def send_login_otp():
     otp = generate_otp(length=4)
     expiry = (datetime.utcnow() + timedelta(minutes=10)).timestamp()
 
-    session['b2b_login_otp'] = {
+    otp_record = {
         'identifier': identifier,
+        'raw_identifier': raw_identifier,
+        'digits': digits,
         'is_email': is_email,
         'entity_type': entity_type,
         'entity_id': entity_id,
@@ -279,6 +287,16 @@ def send_login_otp():
         'last_sent': current_ts
     }
 
+    session['b2b_login_otp'] = otp_record
+    session.modified = True
+
+    # Store in server memory cache for resilience against session cookie clobbering
+    _B2B_ACTIVE_OTPS[identifier] = otp_record
+    _B2B_ACTIVE_OTPS[raw_identifier] = otp_record
+    if digits:
+        _B2B_ACTIVE_OTPS[digits] = otp_record
+        _B2B_ACTIVE_OTPS[f"+91{digits}"] = otp_record
+
     if is_email:
         sent_real, _ = send_b2b_login_otp_email(to_email=identifier, otp=otp, contact_name=contact_name)
         msg_text = f"4-digit OTP sent to {identifier}."
@@ -286,9 +304,12 @@ def send_login_otp():
         sent_real = send_msg91_otp(identifier, otp)
         msg_text = f"4-digit OTP sent to {display_target}."
 
+    print(f"[B2B LOGIN OTP] Generated OTP {otp} for {identifier} (entity: {entity_type} #{entity_id}). Real sent: {sent_real}")
+
     return {
         'success': True,
         'message': msg_text,
+        'identifier': identifier,
         'is_email': is_email,
         'target_display': display_target,
         'dev_otp': otp if (current_app.debug or not sent_real) else None,
@@ -301,25 +322,50 @@ def verify_login_otp():
     raw_identifier = (data.get('identifier') or data.get('phone') or data.get('email') or request.form.get('identifier') or request.form.get('phone', '')).strip()
     entered_otp = (data.get('otp') or request.form.get('otp', '')).strip()
 
+    if not raw_identifier:
+        return {'success': False, 'message': 'Contact identifier is required.'}, 400
+
     is_email = '@' in raw_identifier
+    digits = "".join(c for c in raw_identifier if c.isdigit())
     if is_email:
         identifier = raw_identifier.lower().strip()
     else:
-        digits = "".join(c for c in raw_identifier if c.isdigit())
-        if len(digits) > 10 and digits.startswith('91'):
+        if len(digits) == 11 and digits.startswith('0'):
+            digits = digits[1:]
+        elif len(digits) > 10 and digits.startswith('91'):
             digits = digits[2:]
-        identifier = f"+91{digits}"
+        identifier = f"+91{digits}" if digits else raw_identifier
 
+    # Retrieve OTP data from session or server memory cache fallback
     otp_data = session.get('b2b_login_otp')
-    if not otp_data or otp_data.get('identifier') != identifier:
+    if not otp_data:
+        otp_data = _B2B_ACTIVE_OTPS.get(identifier) or _B2B_ACTIVE_OTPS.get(raw_identifier)
+        if not otp_data and digits:
+            otp_data = _B2B_ACTIVE_OTPS.get(digits) or _B2B_ACTIVE_OTPS.get(f"+91{digits}")
+
+    print(f"[B2B VERIFY OTP] Raw ID: '{raw_identifier}', Parsed: '{identifier}', Entered OTP: '{entered_otp}', Found OTP Data: {bool(otp_data)}")
+
+    if not otp_data:
         return {'success': False, 'message': 'Please request an OTP first.'}, 400
 
+    # Match identifier against stored record
+    stored_id = otp_data.get('identifier', '')
+    match = (stored_id.lower() == identifier.lower()) or (stored_id.lower() == raw_identifier.lower())
+    if not match and not is_email:
+        stored_digits = "".join(c for c in stored_id if c.isdigit())[-10:]
+        input_digits = digits[-10:] if digits else ""
+        if stored_digits and input_digits and stored_digits == input_digits:
+            match = True
+
+    if not match:
+        print(f"[B2B VERIFY OTP MISMATCH] Stored ID: '{stored_id}' != Input ID: '{identifier}'")
+        return {'success': False, 'message': 'Contact identifier mismatch. Please request a new OTP.'}, 400
 
     if otp_data.get('otp') != entered_otp:
-        return {'success': False, 'message': 'Invalid 4-digit code.'}, 400
+        return {'success': False, 'message': 'Invalid 4-digit code. Please check and try again.'}, 400
 
     if datetime.utcnow().timestamp() > otp_data.get('expires', 0):
-        return {'success': False, 'message': 'OTP expired.'}, 400
+        return {'success': False, 'message': 'OTP has expired. Please request a new one.'}, 400
 
     entity_type = otp_data.get('entity_type')
     entity_id = otp_data.get('entity_id')
@@ -333,6 +379,7 @@ def verify_login_otp():
         
         session['b2b_client_id'] = client.id
         session.pop('b2b_lead_id', None)
+        session.modified = True
 
         login_event = B2BEngagementEvent(
             client_id=client.id,
@@ -353,6 +400,7 @@ def verify_login_otp():
         
         session['b2b_lead_id'] = lead.id
         session.pop('b2b_client_id', None)
+        session.modified = True
 
         lead.login_count = (lead.login_count or 0) + 1
         if not lead.first_login_at:
@@ -384,7 +432,15 @@ def verify_login_otp():
         db.session.commit()
         welcome_name = lead.contact_name
 
+    # Clear OTP state from session and server memory cache
     session.pop('b2b_login_otp', None)
+    session.modified = True
+    _B2B_ACTIVE_OTPS.pop(identifier, None)
+    _B2B_ACTIVE_OTPS.pop(raw_identifier, None)
+    if digits:
+        _B2B_ACTIVE_OTPS.pop(digits, None)
+        _B2B_ACTIVE_OTPS.pop(f"+91{digits}", None)
+
     return {
         'success': True,
         'message': f'Welcome back, {welcome_name}!',
@@ -403,8 +459,9 @@ def record_telemetry():
     tracking_token = data.get('tracking_token') or request.args.get('trk')
     visitor_id = data.get('visitor_id')
 
-    if tracking_token:
+    if tracking_token and session.get('b2b_trk_token') != tracking_token:
         session['b2b_trk_token'] = tracking_token
+        session.modified = True
 
     client_id = session.get('b2b_client_id')
     lead_id = session.get('b2b_lead_id')
