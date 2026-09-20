@@ -266,3 +266,254 @@ body.crm-body {
     border-top: 1px solid var(--crm-border);
     background-color: #f8fafc;
 }
+
+/* Kanban Board Horizontal Scroll Rail */
+.kanban-board-scrollable {
+    display: flex;
+    gap: 14px;
+    overflow-x: auto;
+    padding-bottom: 24px;
+    scroll-behavior: smooth;
+    -webkit-overflow-scrolling: touch;
+}
+
+.kanban-board-scrollable::-webkit-scrollbar {
+    height: 8px;
+}
+
+.kanban-board-scrollable::-webkit-scrollbar-track {
+    background-color: #f1f5f9;
+    border-radius: 4px;
+}
+
+.kanban-board-scrollable::-webkit-scrollbar-thumb {
+    background-color: #cbd5e1;
+    border-radius: 4px;
+}
+
+.kanban-board-scrollable::-webkit-scrollbar-thumb:hover {
+    background-color: #94a3b8;
+}
+
+.kanban-col-wide {
+    flex: 0 0 280px;
+    min-width: 280px;
+    max-width: 280px;
+    background-color: #f8fafc;
+    border: 1px solid var(--crm-border);
+    border-radius: 12px;
+    padding: 12px;
+    max-height: calc(100vh - 240px);
+    display: flex;
+    flex-direction: column;
+}
+
+.kanban-header-title {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    margin-bottom: 10px;
+    padding-bottom: 8px;
+    border-bottom: 1px solid var(--crm-border);
+}
+
+/* Sticky Floating Bulk Action Bar */
+.bulk-actions-bar {
+    position: fixed;
+    bottom: 24px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #0f172a;
+    color: #ffffff;
+    padding: 12px 24px;
+    border-radius: 50px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.25);
+    z-index: 1050;
+    animation: slideUp 0.25s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@keyframes slideUp {
+    from {
+        transform: translate(-50%, 40px);
+        opacity: 0;
+    }
+    to {
+        transform: translate(-50%, 0);
+        opacity: 1;
+    }
+}
+
+/* Parameter Chips in Email Builder */
+.param-chip {
+    background: #f1f5f9;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    padding: 3px 8px;
+    font-size: 0.78rem;
+    font-family: SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    color: #1e293b;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.param-chip:hover {
+    background: #e2e8f0;
+    border-color: var(--crm-gold);
+    color: var(--crm-gold);
+}
+
+/* Email Live Preview Container */
+.email-preview-container {
+    border: 1px solid var(--crm-border);
+    background: #ffffff;
+    border-radius: 8px;
+    padding: 20px;
+    min-height: 260px;
+    box-shadow: inset 0 1px 3px rgba(0, 0, 0, 0.03);
+}
+
+/* Source Badges */
+.badge-source {
+    background-color: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    font-size: 0.72rem;
+    font-weight: 600;
+    padding: 3px 7px;
+    border-radius: 6px;
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+}
+
+.badge-source-linkedin {
+    background-color: #e0f2fe;
+    color: #0284c7;
+    border-color: #bae6fd;
+}
+
+.badge-source-instagram {
+    background-color: #fce7f3;
+    color: #db2777;
+    border-color: #fbcfe8;
+}
+
+.badge-source-cold_calling {
+    background-color: #fef3c7;
+    color: #d97706;
+    border-color: #fde68a;
+}
+
+.badge-source-website {
+    background-color: #ecfdf5;
+    color: #059669;
+    border-color: #a7f3d0;
+}
+
+.badge-source-whatsapp {
+    background-color: #dcfce7;
+    color: #16a34a;
+    border-color: #bbf7d0;
+}
+
+/* =========================================================
+   Stage Badges - Vivid, High Contrast & High Legibility
+   ========================================================= */
+.stage-badge {
+    font-size: 0.74rem;
+    font-weight: 700;
+    padding: 5px 12px;
+    border-radius: 50px;
+    display: inline-flex;
+    align-items: center;
+    gap: 5px;
+    white-space: nowrap;
+    letter-spacing: 0.25px;
+    box-shadow: 0 1px 2px rgba(0, 0, 0, 0.04);
+}
+
+/* 1. Fresh Lead: Slate/Indigo tinted */
+.stage-badge-fresh_lead {
+    background-color: #f1f5f9;
+    color: #334155 !important;
+    border: 1px solid #cbd5e1;
+}
+
+/* 2. DNP (Did Not Pick): Vivid Amber */
+.stage-badge-dnp {
+    background-color: #fef3c7;
+    color: #92400e !important;
+    border: 1px solid #fcd34d;
+}
+
+/* 3. Call Back: Bright Sky Blue */
+.stage-badge-call_back {
+    background-color: #e0f2fe;
+    color: #0369a1 !important;
+    border: 1px solid #7dd3fc;
+}
+
+/* 4. Prospect: Royal Purple/Violet */
+.stage-badge-prospect {
+    background-color: #ede9fe;
+    color: #5b21b6 !important;
+    border: 1px solid #c4b5fd;
+}
+
+/* 5. Meeting Scheduled: High-impact Luxury Midnight Slate */
+.stage-badge-meeting_scheduled {
+    background-color: #0f172a;
+    color: #ffffff !important;
+    border: 1px solid #0f172a;
+}
+
+/* 6. Qualified: Rich Fuchsia/Magenta */
+.stage-badge-qualified {
+    background-color: #fae8ff;
+    color: #86198f !important;
+    border: 1px solid #f0abfc;
+}
+
+/* 7. Converted to Client: Vibrant Emerald Green */
+.stage-badge-converted {
+    background-color: #dcfce7;
+    color: #15803d !important;
+    border: 1px solid #86efac;
+}
+
+/* 8. Existing CX: Rich Teal */
+.stage-badge-existing_cx {
+    background-color: #ccfbf1;
+    color: #0f766e !important;
+    border: 1px solid #5eead4;
+}
+
+/* 9. Deferred Interest: Warm Terracotta/Bronze */
+.stage-badge-deferred_interest {
+    background-color: #ffedd5;
+    color: #9a3412 !important;
+    border: 1px solid #fed7aa;
+}
+
+/* 10. Not Interested: Soft Crimson Red */
+.stage-badge-not_interested {
+    background-color: #ffe4e6;
+    color: #9f1239 !important;
+    border: 1px solid #fecdd3;
+}
+
+/* 11. Invalid: Muted Neutral Slate */
+.stage-badge-invalid {
+    background-color: #f1f5f9;
+    color: #475569 !important;
+    border: 1px solid #cbd5e1;
+}

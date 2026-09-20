@@ -1,0 +1,535 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}{% if is_new %}New Email Template{% else %}Edit {{ template.name }}{% endif %} - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<!-- Top Header & Actions -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div class="d-flex align-items-center gap-3">
+        <a href="{{ url_for('crm_templates.list_templates') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back to Templates
+        </a>
+        <div>
+            <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                {% if is_new %}Visual Email Template Builder{% else %}Edit: {{ template.name }}{% endif %}
+            </h2>
+            <span class="text-muted small">Non-tech modular email designer with real-time responsive preview</span>
+        </div>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <!-- Device Preview Toggle -->
+        <div class="btn-group btn-group-sm me-2" role="group">
+            <button type="button" class="btn btn-dark active" id="btnPreviewDesktop" onclick="setPreviewDevice('desktop')">
+                <i class="bi bi-laptop me-1"></i>Desktop
+            </button>
+            <button type="button" class="btn btn-outline-secondary" id="btnPreviewMobile" onclick="setPreviewDevice('mobile')">
+                <i class="bi bi-phone me-1"></i>Mobile
+            </button>
+        </div>
+
+        <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold shadow-sm" id="btnSaveTemplate" onclick="saveTemplateToServer()">
+            <i class="bi bi-floppy-fill me-1"></i>Save Template
+        </button>
+    </div>
+</div>
+
+<!-- Alert status notification -->
+<div id="saveStatusAlert" class="alert d-none mb-3 py-2 px-3 small rounded-3"></div>
+
+<!-- Split Screen Layout: Left Controls, Right Real-time Preview -->
+<div class="row g-4">
+    <!-- Left Column: Visual Modular Blocks & Settings -->
+    <div class="col-lg-6">
+        <div class="crm-card p-4 mb-4">
+            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3" style="font-family: 'Playfair Display', serif;">
+                1. Template Information &amp; CC Settings
+            </h5>
+
+            <div class="row g-3 mb-3">
+                <div class="col-md-7">
+                    <label class="form-label small text-muted fw-bold">Template Internal Name *</label>
+                    <input type="text" id="tplName" class="form-control crm-input" value="{% if template %}{{ template.name }}{% else %}Diwali &amp; Festive Corporate Hamper Pitch 2026{% endif %}" placeholder="e.g. Diwali Corporate Pitch 2026">
+                </div>
+                <div class="col-md-5">
+                    <label class="form-label small text-muted fw-bold">Category</label>
+                    <select id="tplCategory" class="form-select crm-input">
+                        <option value="Festive" {% if template and template.category == 'Festive' %}selected{% endif %}>Festive &amp; Seasonal</option>
+                        <option value="Sample Pitch" {% if template and template.category == 'Sample Pitch' %}selected{% endif %}>Free Sample Pitch</option>
+                        <option value="Follow-up" {% if template and template.category == 'Follow-up' %}selected{% endif %}>Follow-up</option>
+                        <option value="VIP Client" {% if template and template.category == 'VIP Client' %}selected{% endif %}>VIP Customization</option>
+                        <option value="Custom" {% if template and template.category == 'Custom' %}selected{% endif %}>Custom / General</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label small text-muted fw-bold">Default CC Recipients (comma-separated)</label>
+                <input type="text" id="tplDefaultCc" class="form-control crm-input font-monospace small" value="{% if template %}{{ template.default_cc }}{% else %}{{ default_cc }}{% endif %}" placeholder="Vishnu.govind@pikachooz.com, sales@pikachooz.com">
+                <small class="text-muted" style="font-size: 0.72rem;">These CC addresses will be automatically selected when sending this template in bulk.</small>
+            </div>
+
+            <!-- Subject Line & Tokens -->
+            <div class="mb-3">
+                <label class="form-label small text-muted fw-bold">Subject Line *</label>
+                <input type="text" id="tplSubject" class="form-control crm-input fw-semibold" value="{% if template %}{{ template.subject }}{% else %}Exclusive 2026 Festive Corporate Hampers &amp; Tasting Box for {company_name}{% endif %}" oninput="rebuildPreview()">
+            </div>
+
+            <!-- Parameter Chips -->
+            <div class="mb-2">
+                <label class="form-label small text-muted fw-bold d-block mb-1">Click to Insert Dynamic Tokens into Body / Subject:</label>
+                <div class="d-flex flex-wrap gap-1.5">
+                    <span class="param-chip" onclick="insertParamToActiveField('{contact_name}')"><i class="bi bi-person"></i> {contact_name}</span>
+                    <span class="param-chip" onclick="insertParamToActiveField('{company_name}')"><i class="bi bi-building"></i> {company_name}</span>
+                    <span class="param-chip" onclick="insertParamToActiveField('{city}')"><i class="bi bi-geo-alt"></i> {city}</span>
+                    <span class="param-chip" onclick="insertParamToActiveField('{designation}')"><i class="bi bi-briefcase"></i> {designation}</span>
+                    <span class="param-chip text-warning fw-bold" onclick="insertParamToActiveField('{outreach_link}')"><i class="bi bi-link-45deg"></i> {outreach_link}</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- Mode Nav: Visual Block Builder vs Raw HTML -->
+        <ul class="nav nav-pills mb-3" id="builderTabNav" role="tablist">
+            <li class="nav-item">
+                <button class="nav-link active rounded-pill px-3 py-1.5 btn-sm" id="visualTabBtn" data-bs-toggle="pill" data-bs-target="#visualTab" type="button">
+                    <i class="bi bi-grid-1x2-fill me-1"></i>Modular Blocks Designer
+                </button>
+            </li>
+            <li class="nav-item ms-2">
+                <button class="nav-link rounded-pill px-3 py-1.5 btn-sm" id="codeTabBtn" data-bs-toggle="pill" data-bs-target="#codeTab" type="button" onclick="syncBlocksToHtml()">
+                    <i class="bi bi-code-slash me-1"></i>Raw HTML Code
+                </button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="builderTabContent">
+            <!-- Visual Blocks Tab -->
+            <div class="tab-pane fade show active" id="visualTab" role="tabpanel">
+                <div class="accordion" id="blocksAccordion">
+                    <!-- Block 1: Banner & Color Theme -->
+                    <div class="accordion-item crm-card border mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingBanner">
+                            <button class="accordion-button bg-light text-dark fw-bold py-2.5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBanner">
+                                <i class="bi bi-palette-fill text-warning me-2"></i>Header Insignia &amp; Theme Accent
+                            </button>
+                        </h2>
+                        <div id="collapseBanner" class="accordion-collapse collapse show" data-bs-parent="#blocksAccordion">
+                            <div class="accordion-body p-3">
+                                <div class="row g-2 mb-3">
+                                    <div class="col-8">
+                                        <label class="form-label small text-muted">Sub-banner Tagline</label>
+                                        <input type="text" id="blkBannerTag" class="form-control form-control-sm crm-input" value="{{ starter_blocks.banner_tag or 'Diwali & Festive Gifting 2026' }}" oninput="rebuildPreview()">
+                                    </div>
+                                    <div class="col-4">
+                                        <label class="form-label small text-muted">Accent Color</label>
+                                        <select id="blkThemeColor" class="form-select form-select-sm crm-input" onchange="rebuildPreview()">
+                                            <option value="#b48324" {% if starter_blocks.theme_color == '#b48324' %}selected{% endif %}>Gold Luxury</option>
+                                            <option value="#16a34a" {% if starter_blocks.theme_color == '#16a34a' %}selected{% endif %}>Emerald Green</option>
+                                            <option value="#0f172a" {% if starter_blocks.theme_color == '#0f172a' %}selected{% endif %}>Midnight Slate</option>
+                                            <option value="#831843" {% if starter_blocks.theme_color == '#831843' %}selected{% endif %}>Deep Ruby</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small text-muted">Header Title Headline</label>
+                                    <input type="text" id="blkHeadline" class="form-control form-control-sm crm-input" value="{{ starter_blocks.headline or 'Exclusive Festive Hampers for {company_name}' }}" oninput="rebuildPreview()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Block 2: Salutation & Core Pitch -->
+                    <div class="accordion-item crm-card border mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingBody">
+                            <button class="accordion-button bg-light text-dark fw-bold py-2.5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseBody">
+                                <i class="bi bi-chat-left-quote-fill text-primary me-2"></i>Salutation &amp; Pitch Message
+                            </button>
+                        </h2>
+                        <div id="collapseBody" class="accordion-collapse collapse show" data-bs-parent="#blocksAccordion">
+                            <div class="accordion-body p-3">
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Salutation</label>
+                                    <input type="text" id="blkSalutation" class="form-control form-control-sm crm-input" value="{{ starter_blocks.salutation or 'Dear {contact_name},' }}" oninput="rebuildPreview()">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small text-muted">Core Message Paragraphs</label>
+                                    <textarea id="blkBodyText" class="form-control form-control-sm crm-input font-monospace" rows="6" oninput="rebuildPreview()">{{ starter_blocks.body_text or '' }}</textarea>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Block 3: 3 Highlight Feature Badges -->
+                    <div class="accordion-item crm-card border mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingHighlights">
+                            <button class="accordion-button bg-light text-dark fw-bold py-2.5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseHighlights">
+                                <i class="bi bi-star-fill text-warning me-2"></i>Key Product &amp; Service Highlights (3 Badges)
+                            </button>
+                        </h2>
+                        <div id="collapseHighlights" class="accordion-collapse collapse" data-bs-parent="#blocksAccordion">
+                            <div class="accordion-body p-3">
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Highlight #1</label>
+                                    <input type="text" id="blkHighlight1" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_1 or '✨ 100% Customized Logo Sleeves & Ribbon' }}" oninput="rebuildPreview()">
+                                </div>
+                                <div class="mb-2">
+                                    <label class="form-label small text-muted">Highlight #2</label>
+                                    <input type="text" id="blkHighlight2" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_2 or '🚚 Pan-India Doorstep Delivery to {city}' }}" oninput="rebuildPreview()">
+                                </div>
+                                <div class="mb-0">
+                                    <label class="form-label small text-muted">Highlight #3</label>
+                                    <input type="text" id="blkHighlight3" class="form-control form-control-sm crm-input" value="{{ starter_blocks.highlight_3 or '🍫 Artisanal Belgian Truffles & Premium Nuts' }}" oninput="rebuildPreview()">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Block 4: Call-to-Action (CTA Button) -->
+                    <div class="accordion-item crm-card border mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingCta">
+                            <button class="accordion-button bg-light text-dark fw-bold py-2.5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseCta">
+                                <i class="bi bi-lightning-charge-fill text-danger me-2"></i>Call-To-Action (CTA Button)
+                            </button>
+                        </h2>
+                        <div id="collapseCta" class="accordion-collapse collapse" data-bs-parent="#blocksAccordion">
+                            <div class="accordion-body p-3">
+                                <div class="row g-2">
+                                    <div class="col-7">
+                                        <label class="form-label small text-muted">Button Label Text</label>
+                                        <input type="text" id="blkCtaText" class="form-control form-control-sm crm-input" value="{{ starter_blocks.cta_text or 'Explore Corporate Gifting Showcase' }}" oninput="rebuildPreview()">
+                                    </div>
+                                    <div class="col-5">
+                                        <label class="form-label small text-muted">Button Destination URL</label>
+                                        <input type="text" id="blkCtaUrl" class="form-control form-control-sm crm-input font-monospace" value="{{ starter_blocks.cta_url or '{outreach_link}' }}" oninput="rebuildPreview()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Block 5: Executive Sign-off & Footer -->
+                    <div class="accordion-item crm-card border mb-3 overflow-hidden">
+                        <h2 class="accordion-header" id="headingSignoff">
+                            <button class="accordion-button bg-light text-dark fw-bold py-2.5" type="button" data-bs-toggle="collapse" data-bs-target="#collapseSignoff">
+                                <i class="bi bi-pen-fill text-secondary me-2"></i>Executive Sign-off &amp; Signature
+                            </button>
+                        </h2>
+                        <div id="collapseSignoff" class="accordion-collapse collapse" data-bs-parent="#blocksAccordion">
+                            <div class="accordion-body p-3">
+                                <div class="row g-2">
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted">Sender Name</label>
+                                        <input type="text" id="blkSignoffName" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_name or 'Vishnu Govind' }}" oninput="rebuildPreview()">
+                                    </div>
+                                    <div class="col-6">
+                                        <label class="form-label small text-muted">Sender Title</label>
+                                        <input type="text" id="blkSignoffTitle" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_title or 'Corporate Gifting Director, Sweet Scribbles' }}" oninput="rebuildPreview()">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Raw HTML Tab -->
+            <div class="tab-pane fade" id="codeTab" role="tabpanel">
+                <div class="crm-card p-3">
+                    <label class="form-label small text-muted fw-bold mb-1">Direct HTML Content</label>
+                    <textarea id="rawHtmlInput" class="form-control crm-input font-monospace small" rows="18" oninput="rebuildPreviewFromRawHtml()"></textarea>
+                    <small class="text-muted mt-2 d-block">You can edit the compiled HTML directly or switch back to the Visual Blocks tab.</small>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Column: Real-time Split-Screen Live Preview -->
+    <div class="col-lg-6">
+        <div class="crm-card p-3 sticky-top" style="top: 80px; z-index: 10;">
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-light border text-dark fw-bold">Live Split-Screen Preview</span>
+                    <span id="previewDeviceLabel" class="badge bg-secondary text-white" style="font-size: 0.68rem;">Desktop Mode</span>
+                </div>
+                <div class="small text-muted">
+                    Testing as: <strong>Ananya Sharma @ Wipro Technologies (Bangalore)</strong>
+                </div>
+            </div>
+
+            <div class="preview-envelope p-2 mb-2 bg-light border rounded-3 small">
+                <div><strong>To:</strong> Ananya Sharma &lt;ananya@wipro.com&gt;</div>
+                <div><strong>CC:</strong> <span id="previewCcDisplay">Vishnu.govind@pikachooz.com</span></div>
+                <div><strong>Subject:</strong> <span id="previewSubjectDisplay" class="fw-bold">...</span></div>
+            </div>
+
+            <!-- Screen simulator container -->
+            <div class="d-flex justify-content-center bg-light p-2 rounded-3 border" style="min-height: 540px;">
+                <iframe id="previewIframe" style="width: 100%; max-width: 620px; height: 580px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; transition: max-width 0.25s ease;" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+let lastActiveInput = document.getElementById('tplSubject');
+
+document.addEventListener('DOMContentLoaded', () => {
+    // Track active inputs for parameter chips
+    const inputs = [
+        document.getElementById('tplSubject'),
+        document.getElementById('blkHeadline'),
+        document.getElementById('blkSalutation'),
+        document.getElementById('blkBodyText'),
+        document.getElementById('blkHighlight1'),
+        document.getElementById('blkHighlight2'),
+        document.getElementById('blkHighlight3'),
+        document.getElementById('blkCtaText'),
+        document.getElementById('rawHtmlInput')
+    ];
+
+    inputs.forEach(inp => {
+        if (inp) {
+            inp.addEventListener('focus', () => { lastActiveInput = inp; });
+        }
+    });
+
+    rebuildPreview();
+});
+
+function insertParamToActiveField(param) {
+    if (!lastActiveInput) lastActiveInput = document.getElementById('blkBodyText');
+    const start = lastActiveInput.selectionStart || 0;
+    const end = lastActiveInput.selectionEnd || 0;
+    const val = lastActiveInput.value || '';
+    lastActiveInput.value = val.substring(0, start) + param + val.substring(end);
+    lastActiveInput.focus();
+    lastActiveInput.selectionStart = lastActiveInput.selectionEnd = start + param.length;
+    rebuildPreview();
+}
+
+function setPreviewDevice(device) {
+    const iframe = document.getElementById('previewIframe');
+    const btnD = document.getElementById('btnPreviewDesktop');
+    const btnM = document.getElementById('btnPreviewMobile');
+    const label = document.getElementById('previewDeviceLabel');
+
+    if (device === 'mobile') {
+        iframe.style.maxWidth = '375px';
+        btnM.className = 'btn btn-dark active';
+        btnD.className = 'btn btn-outline-secondary';
+        label.textContent = 'Mobile Screen (375px)';
+    } else {
+        iframe.style.maxWidth = '620px';
+        btnD.className = 'btn btn-dark active';
+        btnM.className = 'btn btn-outline-secondary';
+        label.textContent = 'Desktop Mode';
+    }
+}
+
+function getBlocksData() {
+    return {
+        banner_tag: document.getElementById('blkBannerTag')?.value || '',
+        theme_color: document.getElementById('blkThemeColor')?.value || '#b48324',
+        headline: document.getElementById('blkHeadline')?.value || '',
+        salutation: document.getElementById('blkSalutation')?.value || '',
+        body_text: document.getElementById('blkBodyText')?.value || '',
+        highlight_1: document.getElementById('blkHighlight1')?.value || '',
+        highlight_2: document.getElementById('blkHighlight2')?.value || '',
+        highlight_3: document.getElementById('blkHighlight3')?.value || '',
+        cta_text: document.getElementById('blkCtaText')?.value || '',
+        cta_url: document.getElementById('blkCtaUrl')?.value || '{outreach_link}',
+        signoff_name: document.getElementById('blkSignoffName')?.value || '',
+        signoff_title: document.getElementById('blkSignoffTitle')?.value || ''
+    };
+}
+
+function compileBlocksToHtml(blocks) {
+    const paragraphs = (blocks.body_text || '').split('\n').filter(p => p.trim()).map(p => `<p style="margin: 0 0 14px 0; color: #334155; font-size: 15px; line-height: 1.6;">${p}</p>`).join('\n');
+
+    let highlightsHtml = '';
+    if (blocks.highlight_1 || blocks.highlight_2 || blocks.highlight_3) {
+        highlightsHtml = `
+        <div style="background-color: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 16px; margin: 20px 0;">
+            <div style="font-weight: 700; color: #92400e; font-size: 13px; text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 8px;">Key Executive Highlights:</div>
+            ${blocks.highlight_1 ? `<div style="color: #451a03; font-size: 14px; margin-bottom: 6px;">${blocks.highlight_1}</div>` : ''}
+            ${blocks.highlight_2 ? `<div style="color: #451a03; font-size: 14px; margin-bottom: 6px;">${blocks.highlight_2}</div>` : ''}
+            ${blocks.highlight_3 ? `<div style="color: #451a03; font-size: 14px;">${blocks.highlight_3}</div>` : ''}
+        </div>`;
+    }
+
+    return `
+    <div style="text-align: center; margin-bottom: 24px;">
+        <span style="display: inline-block; background-color: ${blocks.theme_color}; color: #ffffff; font-size: 11px; font-weight: 800; letter-spacing: 1px; text-transform: uppercase; padding: 4px 14px; border-radius: 50px;">
+            ${blocks.banner_tag}
+        </span>
+        <h2 style="color: #0f172a; font-family: 'Playfair Display', Georgia, serif; font-size: 22px; font-weight: 700; margin: 12px 0 0 0;">
+            ${blocks.headline}
+        </h2>
+    </div>
+
+    <div style="color: #1e293b; font-size: 15px; margin-bottom: 12px; font-weight: 600;">
+        ${blocks.salutation}
+    </div>
+
+    ${paragraphs}
+
+    ${highlightsHtml}
+
+    <div style="margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0; color: #64748b; font-size: 13px;">
+        Warm regards,<br>
+        <strong style="color: #0f172a; font-size: 14px;">${blocks.signoff_name}</strong><br>
+        ${blocks.signoff_title}
+    </div>`;
+}
+
+function syncBlocksToHtml() {
+    const blocks = getBlocksData();
+    const html = compileBlocksToHtml(blocks);
+    document.getElementById('rawHtmlInput').value = html;
+}
+
+let previewDebounce = null;
+
+async function rebuildPreview() {
+    clearTimeout(previewDebounce);
+    previewDebounce = setTimeout(async () => {
+        const blocks = getBlocksData();
+        const compiledHtml = compileBlocksToHtml(blocks);
+        document.getElementById('rawHtmlInput').value = compiledHtml;
+
+        const subject = document.getElementById('tplSubject').value;
+        const defaultCc = document.getElementById('tplDefaultCc').value;
+
+        document.getElementById('previewSubjectDisplay').textContent = subject
+            .replaceAll('{company_name}', 'Wipro Technologies')
+            .replaceAll('{contact_name}', 'Ananya Sharma')
+            .replaceAll('{city}', 'Bangalore');
+
+        document.getElementById('previewCcDisplay').textContent = defaultCc || 'None';
+
+        try {
+            const res = await fetch('/crm/email-templates/api/render-preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: subject,
+                    content_html: compiledHtml,
+                    cta_text: blocks.cta_text,
+                    cta_url: blocks.cta_url,
+                    sample_contact: 'Ananya Sharma',
+                    sample_company: 'Wipro Technologies',
+                    sample_city: 'Bangalore',
+                    sample_designation: 'Head of HR',
+                    sample_link: 'https://sweetscribbles.pikachooz.com/b2b?trk=preview-sample'
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('previewIframe').srcdoc = data.html;
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }, 200);
+}
+
+function rebuildPreviewFromRawHtml() {
+    clearTimeout(previewDebounce);
+    previewDebounce = setTimeout(async () => {
+        const html = document.getElementById('rawHtmlInput').value;
+        const subject = document.getElementById('tplSubject').value;
+        const blocks = getBlocksData();
+
+        try {
+            const res = await fetch('/crm/email-templates/api/render-preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: subject,
+                    content_html: html,
+                    cta_text: blocks.cta_text,
+                    cta_url: blocks.cta_url,
+                    sample_contact: 'Ananya Sharma',
+                    sample_company: 'Wipro Technologies',
+                    sample_city: 'Bangalore',
+                    sample_designation: 'Head of HR',
+                    sample_link: 'https://sweetscribbles.pikachooz.com/b2b?trk=preview-sample'
+                })
+            });
+
+            const data = await res.json();
+            if (data.success) {
+                document.getElementById('previewIframe').srcdoc = data.html;
+            }
+        } catch (err) {
+            console.error(err);
+        }
+    }, 200);
+}
+
+async function saveTemplateToServer() {
+    const btn = document.getElementById('btnSaveTemplate');
+    const alertBox = document.getElementById('saveStatusAlert');
+    const name = document.getElementById('tplName').value.trim();
+    const subject = document.getElementById('tplSubject').value.trim();
+    const category = document.getElementById('tplCategory').value;
+    const defaultCc = document.getElementById('tplDefaultCc').value.trim();
+
+    if (!name || !subject) {
+        alert("Please provide both a Template Name and a Subject Line.");
+        return;
+    }
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+    const blocks = getBlocksData();
+    const contentHtml = document.getElementById('rawHtmlInput').value || compileBlocksToHtml(blocks);
+
+    const payload = {
+        id: {% if template %}{{ template.id }}{% else %}null{% endif %},
+        name: name,
+        subject: subject,
+        category: category,
+        default_cc: defaultCc,
+        content_html: contentHtml,
+        blocks_json: blocks
+    };
+
+    try {
+        const res = await fetch("{{ url_for('crm_templates.save_template') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify(payload)
+        });
+
+        const data = await res.json();
+        if (data.success) {
+            alertBox.className = 'alert alert-success py-2 px-3 small rounded-3';
+            alertBox.innerHTML = `<strong>Success:</strong> ${data.message}`;
+            alertBox.classList.remove('d-none');
+            btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Saved';
+            setTimeout(() => {
+                window.location.href = "{{ url_for('crm_templates.list_templates') }}";
+            }, 1200);
+        } else {
+            alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3';
+            alertBox.innerHTML = `<strong>Error:</strong> ${data.error || 'Failed to save template'}`;
+            alertBox.classList.remove('d-none');
+            btn.disabled = false;
+            btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Save Template';
+        }
+    } catch (err) {
+        alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3';
+        alertBox.innerHTML = `<strong>Error:</strong> ${err.message}`;
+        alertBox.classList.remove('d-none');
+        btn.disabled = false;
+        btn.innerHTML = '<i class="bi bi-floppy-fill me-1"></i>Save Template';
+    }
+}
+</script>
+{% endblock %}

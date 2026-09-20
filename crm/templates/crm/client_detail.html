@@ -58,6 +58,81 @@
             </dl>
         </div>
 
+        <!-- Corporate Contacts & POC Directory Card -->
+        <div class="crm-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <div>
+                    <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        Corporate POCs ({{ client.contacts|length }})
+                    </h5>
+                    <small class="text-muted" style="font-size: 0.72rem;">Only Primary POC logs in with OTP</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3 py-1" data-bs-toggle="modal" data-bs-target="#addClientContactModal">
+                    <i class="bi bi-person-plus-fill me-1"></i>Add POC
+                </button>
+            </div>
+
+            {% if client.contacts %}
+            <div class="d-flex flex-column gap-2.5">
+                {% for contact in client.contacts %}
+                <div class="p-3 rounded-3 border {% if contact.is_primary %}bg-light border-warning border-2{% else %}bg-white{% endif %}">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <strong class="text-dark">{{ contact.name }}</strong>
+                            {% if contact.is_primary %}
+                            <span class="badge bg-warning text-dark fw-bold ms-1" style="font-size: 0.68rem;">
+                                <i class="bi bi-star-fill me-0.5"></i>PRIMARY (OTP ENABLED)
+                            </span>
+                            {% else %}
+                            <span class="badge bg-light text-muted border ms-1" style="font-size: 0.68rem;">Secondary POC</span>
+                            {% endif %}
+                        </div>
+                        <div class="d-flex gap-1">
+                            {% if not contact.is_primary %}
+                            <form action="{{ url_for('crm_clients.set_primary_client_contact', client_id=client.id, contact_id=contact.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Make {{ contact.name }} the primary contact? This synchronizes their phone/email for OTP login.');">
+                                <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-2 rounded-pill" title="Make Primary POC" style="font-size: 0.7rem;">
+                                    <i class="bi bi-star me-1"></i>Make Primary
+                                </button>
+                            </form>
+                            <form action="{{ url_for('crm_clients.delete_client_contact', client_id=client.id, contact_id=contact.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove contact {{ contact.name }}?');">
+                                <button type="submit" class="btn btn-outline-danger btn-sm py-0 px-1.5 rounded-pill" title="Delete POC" style="font-size: 0.7rem;">
+                                    <i class="bi bi-trash"></i>
+                                </button>
+                            </form>
+                            {% endif %}
+                        </div>
+                    </div>
+
+                    {% if contact.designation %}
+                    <div class="text-muted small mb-1.5"><i class="bi bi-briefcase me-1"></i>{{ contact.designation }}</div>
+                    {% endif %}
+
+                    <div class="small d-flex flex-wrap gap-2 text-secondary">
+                        {% if contact.phone %}
+                        <a href="tel:{{ contact.phone }}" class="text-decoration-none text-secondary">
+                            <i class="bi bi-telephone-fill text-muted me-1"></i>{{ contact.phone }}
+                        </a>
+                        {% endif %}
+                        {% if contact.email %}
+                        <a href="mailto:{{ contact.email }}" class="text-decoration-none text-secondary">
+                            <i class="bi bi-envelope-fill text-muted me-1"></i>{{ contact.email }}
+                        </a>
+                        {% endif %}
+                    </div>
+
+                    {% if contact.notes %}
+                    <div class="text-muted mt-2 pt-1 border-top" style="font-size: 0.75rem; font-style: italic;">
+                        {{ contact.notes }}
+                    </div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+            </div>
+            {% else %}
+            <p class="text-muted small mb-0">No contacts listed. Click "Add POC" to record points of contact.</p>
+            {% endif %}
+        </div>
+
         <!-- Communication History Card -->
         <div class="crm-card p-4">
             <h6 class="fw-bold text-dark mb-3">Dispatched Communications</h6>
@@ -148,6 +223,59 @@
             {% else %}
             <p class="text-muted small mb-0">No recent storefront clickstream recorded for this client.</p>
             {% endif %}
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Add Corporate Client Contact -->
+<div class="modal fade crm-modal" id="addClientContactModal" tabindex="-1" aria-labelledby="addClientContactModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-dark" id="addClientContactModalLabel" style="font-family: 'Playfair Display', serif;">
+                    <i class="bi bi-person-plus-fill text-warning me-2"></i>Add Point of Contact (POC)
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_clients.add_client_contact', client_id=client.id) }}" method="POST">
+                <div class="modal-body">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Contact Person Name *</label>
+                        <input type="text" name="name" class="form-control crm-input" placeholder="e.g. Rajesh Nair" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Designation / Role</label>
+                        <input type="text" name="designation" class="form-control crm-input" placeholder="e.g. VP of Human Resources, Procurement Lead">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Mobile Number</label>
+                            <input type="tel" name="phone" class="form-control crm-input" placeholder="10-digit mobile number">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-medium">Official Email</label>
+                            <input type="email" name="email" class="form-control crm-input" placeholder="rajesh@company.com">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Notes / Scope of Authority</label>
+                        <textarea name="notes" class="form-control crm-input" rows="2" placeholder="e.g. Coordinates festive orders for Bangalore campus..."></textarea>
+                    </div>
+                    <div class="form-check p-2.5 rounded-3 bg-light border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" name="is_primary" value="1" id="clientPrimaryCheck">
+                        <label class="form-check-label small text-dark fw-semibold" for="clientPrimaryCheck">
+                            Designate as ⭐ Primary Account Owner
+                        </label>
+                        <small class="d-block text-muted" style="font-size: 0.72rem;">
+                            If checked, this contact's phone & email become the primary login credentials for OTP access.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4 fw-medium">Save Contact</button>
+                </div>
+            </form>
         </div>
     </div>
 </div>

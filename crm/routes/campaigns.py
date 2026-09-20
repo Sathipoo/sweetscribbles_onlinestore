@@ -16,7 +16,7 @@ def list_campaigns():
 
     total_dispatched = sum(c.sent_count for c in campaigns)
     total_logins_generated = sum(c.unique_logins_generated for c in campaigns)
-    active_leads_count = B2BLead.query.filter(B2BLead.stage.in_(['new', 'outreach_sent'])).count()
+    active_leads_count = B2BLead.query.filter(B2BLead.stage.in_(['fresh_lead', 'call_back', 'prospect'])).count()
     existing_clients_count = B2BClient.query.filter_by(is_archived=False).count()
 
     return render_template(
@@ -159,7 +159,7 @@ def dispatch_campaign(campaign_id):
             sent_count += 1
 
             if rcp.lead:
-                rcp.lead.stage = 'outreach_sent'
+                rcp.lead.stage = 'prospect'
                 rcp.lead.update_score(10, f"Outreach email dispatched: {campaign.name}")
 
             if rcp.client:

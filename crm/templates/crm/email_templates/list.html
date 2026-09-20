@@ -1,0 +1,188 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Email Template Studio - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<!-- Top Header & Primary Action -->
+<div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+    <div>
+        <h2 class="fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+            Email Template Studio
+        </h2>
+        <p class="text-muted small mb-0">
+            Build and manage high-conversion luxury email templates for corporate pitches, festive gifting, and tasting hampers.
+        </p>
+    </div>
+
+    <div class="d-flex align-items-center gap-2">
+        <a href="{{ url_for('crm_leads.list_leads') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+            <i class="bi bi-arrow-left me-1"></i>Back to Leads
+        </a>
+        <a href="{{ url_for('crm_templates.new_template') }}" class="btn btn-crm-gold btn-sm rounded-pill px-3 py-1.5 shadow-sm fw-bold">
+            <i class="bi bi-plus-circle-fill me-1"></i>Create New Template
+        </a>
+    </div>
+</div>
+
+<!-- Category Filters & Search Toolbar -->
+<div class="crm-card p-3 mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <!-- Category Filter Pills -->
+        <div class="d-flex flex-wrap gap-1.5 align-items-center">
+            <span class="text-muted small fw-bold me-1">Categories:</span>
+            <a href="{{ url_for('crm_templates.list_templates') }}" class="btn btn-sm {% if not current_category %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3 py-0.5">
+                All Templates
+            </a>
+            {% for cat in categories %}
+            <a href="{{ url_for('crm_templates.list_templates', category=cat) }}" class="btn btn-sm {% if current_category == cat %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %} rounded-pill px-3 py-0.5">
+                {{ cat }}
+            </a>
+            {% endfor %}
+        </div>
+
+        <!-- Search Bar -->
+        <form method="GET" action="{{ url_for('crm_templates.list_templates') }}" class="d-flex gap-2" style="max-width: 320px;">
+            {% if current_category %}<input type="hidden" name="category" value="{{ current_category }}">{% endif %}
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
+                <input type="text" name="q" value="{{ search }}" class="form-control crm-input" placeholder="Search templates...">
+                {% if search %}
+                <a href="{{ url_for('crm_templates.list_templates', category=current_category) }}" class="btn btn-outline-secondary" title="Clear"><i class="bi bi-x"></i></a>
+                {% endif %}
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Template Cards Grid -->
+<div class="row g-4">
+    {% for tpl in templates %}
+    <div class="col-md-6 col-lg-4">
+        <div class="crm-card h-100 p-4 d-flex flex-direction-column justify-content-between">
+            <div>
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-light border text-dark fw-bold" style="font-size: 0.72rem;">
+                        <i class="bi bi-tag-fill text-warning me-1"></i>{{ tpl.category }}
+                    </span>
+                    <span class="text-muted small" style="font-size: 0.72rem;">
+                        {{ tpl.updated_at|time_ago }}
+                    </span>
+                </div>
+
+                <h5 class="fw-bold text-dark mb-2" style="font-family: 'Playfair Display', serif;">
+                    {{ tpl.name }}
+                </h5>
+
+                <div class="small text-muted mb-3">
+                    <strong>Subject:</strong> <span class="text-dark">{{ tpl.subject }}</span>
+                </div>
+
+                <div class="d-flex align-items-center gap-1.5 mb-3">
+                    <span class="badge bg-light border text-muted small" style="font-size: 0.7rem;">
+                        <i class="bi bi-cc-circle me-1"></i>CC: {{ tpl.default_cc or 'Default' }}
+                    </span>
+                </div>
+            </div>
+
+            <!-- Card Actions -->
+            <div class="pt-3 border-top d-flex justify-content-between align-items-center">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="openPreviewModal({{ tpl.id }}, '{{ tpl.name|replace("'", "\\'") }}')">
+                    <i class="bi bi-eye me-1"></i>Preview
+                </button>
+
+                <div class="d-flex gap-1.5">
+                    <form action="{{ url_for('crm_templates.clone_template', template_id=tpl.id) }}" method="POST" class="d-inline">
+                        <button type="submit" class="btn btn-outline-warning btn-sm rounded-pill px-2.5" title="Clone Template">
+                            <i class="bi bi-copy"></i>
+                        </button>
+                    </form>
+                    <a href="{{ url_for('crm_templates.edit_template', template_id=tpl.id) }}" class="btn btn-crm-gold btn-sm rounded-pill px-3 fw-bold">
+                        <i class="bi bi-pencil-square me-1"></i>Edit
+                    </a>
+                    <form action="{{ url_for('crm_templates.delete_template', template_id=tpl.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Delete this email template?');">
+                        <button type="submit" class="btn btn-outline-danger btn-sm rounded-pill px-2.5" title="Delete Template">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                    </form>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% else %}
+    <div class="col-12 text-center py-5">
+        <i class="bi bi-envelope-open text-muted fs-1 mb-2 d-block"></i>
+        <h5 class="text-dark fw-bold">No Email Templates Found</h5>
+        <p class="text-muted small">Create your first sophisticated corporate email template to start pitching corporate accounts.</p>
+        <a href="{{ url_for('crm_templates.new_template') }}" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold">
+            <i class="bi bi-plus-circle-fill me-1"></i>Create New Template
+        </a>
+    </div>
+    {% endfor %}
+</div>
+
+<!-- Modal: Template Quick Preview -->
+<div class="modal fade crm-modal" id="templatePreviewModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title fw-bold text-dark" id="previewModalTitle">Template Preview</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-0">
+                <div class="p-3 bg-light border-bottom d-flex justify-content-between align-items-center">
+                    <div>
+                        <span class="text-muted small">Subject:</span>
+                        <strong class="text-dark small ms-1" id="previewModalSubject">...</strong>
+                    </div>
+                    <span class="badge bg-white border text-dark small">Rendered with Sample Lead Data</span>
+                </div>
+                <iframe id="previewModalFrame" style="width: 100%; height: 500px; border: none;"></iframe>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Close</button>
+                <a id="previewModalEditLink" href="#" class="btn btn-crm-gold btn-sm px-4 fw-bold">Edit in Builder</a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+async function openPreviewModal(templateId, templateName) {
+    document.getElementById('previewModalTitle').textContent = templateName;
+    document.getElementById('previewModalEditLink').href = `/crm/email-templates/${templateId}/edit`;
+
+    const res = await fetch('/crm/email-templates/api/list');
+    const data = await res.json();
+    if (data.success) {
+        const tpl = data.templates.find(t => t.id === templateId);
+        if (tpl) {
+            document.getElementById('previewModalSubject').textContent = tpl.subject
+                .replace('{company_name}', 'Wipro Technologies')
+                .replace('{contact_name}', 'Ananya Sharma')
+                .replace('{city}', 'Bangalore');
+
+            // Fetch fully styled rendered layout
+            const previewRes = await fetch('/crm/email-templates/api/render-preview', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    subject: tpl.subject,
+                    content_html: tpl.content_html,
+                    sample_contact: 'Ananya Sharma',
+                    sample_company: 'Wipro Technologies',
+                    sample_city: 'Bangalore',
+                    sample_designation: 'Head of HR',
+                    sample_link: 'https://sweetscribbles.pikachooz.com/b2b?trk=preview-sample'
+                })
+            });
+            const previewData = await previewRes.json();
+            const frame = document.getElementById('previewModalFrame');
+            frame.srcdoc = previewData.html;
+        }
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('templatePreviewModal'));
+    modal.show();
+}
+</script>
+{% endblock %}

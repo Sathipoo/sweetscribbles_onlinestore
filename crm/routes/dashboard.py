@@ -22,7 +22,7 @@ def radar():
     # Core Intelligence Metrics
     total_leads = B2BLead.query.count()
     hot_leads_count = B2BLead.query.filter((B2BLead.is_hot == True) | (B2BLead.priority_score >= 60)).count()
-    portal_engaged_count = B2BLead.query.filter(B2BLead.stage == 'portal_active').count()
+    portal_engaged_count = B2BLead.query.filter((B2BLead.login_count > 0) | (B2BLead.stage.in_(['prospect', 'meeting_scheduled', 'qualified', 'converted']))).count()
     events_24h_count = B2BEngagementEvent.query.filter(B2BEngagementEvent.created_at >= past_24h).count()
     logins_today_count = B2BEngagementEvent.query.filter(
         B2BEngagementEvent.event_type == 'login',

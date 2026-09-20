@@ -42,6 +42,9 @@
                 <a href="{{ url_for('crm_clients.list_clients') }}" class="crm-nav-link text-decoration-none {% if 'crm_clients' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-building-check me-1.5 text-success"></i>Existing Clients Hub
                 </a>
+                <a href="{{ url_for('crm_templates.list_templates') }}" class="crm-nav-link text-decoration-none {% if 'crm_templates' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-layout-text-window-reverse me-1.5 text-warning"></i>Email Templates
+                </a>
             </nav>
 
             <!-- Quick Utility Links -->

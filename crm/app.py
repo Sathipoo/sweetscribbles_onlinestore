@@ -21,12 +21,14 @@ def create_crm_app(config_class=CRMConfig):
     from crm.routes.leads import leads_bp
     from crm.routes.campaigns import campaigns_bp
     from crm.routes.clients import clients_bp
+    from crm.routes.email_templates import templates_bp
 
     crm_app.register_blueprint(auth_bp, url_prefix='/auth')
     crm_app.register_blueprint(dashboard_bp)
     crm_app.register_blueprint(leads_bp)
     crm_app.register_blueprint(campaigns_bp)
     crm_app.register_blueprint(clients_bp)
+    crm_app.register_blueprint(templates_bp)
 
     # Template formatting filters
     @crm_app.template_filter('inr')

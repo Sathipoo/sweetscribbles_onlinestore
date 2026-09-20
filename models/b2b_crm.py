@@ -20,10 +20,13 @@ class B2BLead(db.Model):
     estimated_budget = db.Column(db.Float, default=0.0)
     estimated_box_count = db.Column(db.Integer, default=0)
     lead_source = db.Column(db.String(50), default='Outbound Cold List')
+    location = db.Column(db.String(255), nullable=True)
+    tags = db.Column(db.String(255), nullable=True)
 
     # Lifecycle Stage
-    # 'new' -> 'outreach_sent' -> 'portal_active' -> 'contacted' -> 'warm_discussion' -> 'converted' -> 'disqualified'
-    stage = db.Column(db.String(50), default='new', index=True)
+    # 'fresh_lead', 'dnp', 'call_back', 'prospect', 'meeting_scheduled', 'qualified',
+    # 'converted', 'existing_cx', 'deferred_interest', 'not_interested', 'invalid'
+    stage = db.Column(db.String(50), default='fresh_lead', index=True)
 
     # Lead Intent Scoring
     priority_score = db.Column(db.Integer, default=10)
@@ -49,9 +52,36 @@ class B2BLead(db.Model):
     # Relationships
     events = db.relationship('B2BEngagementEvent', backref='lead', lazy=True, order_by="desc(B2BEngagementEvent.created_at)", cascade="all, delete-orphan")
     converted_client = db.relationship('B2BClient', foreign_keys=[converted_client_id], backref='source_lead', lazy=True)
+    contacts = db.relationship('B2BLeadContact', backref='lead', lazy=True, order_by="desc(B2BLeadContact.is_primary)", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<B2BLead {self.company_name} ({self.contact_name}) - Stage: {self.stage} (Score: {self.priority_score})>"
+
+    @property
+    def primary_contact(self):
+        for c in self.contacts:
+            if c.is_primary:
+                return c
+        return self.contacts[0] if self.contacts else None
+
+    def set_primary_contact(self, contact_id):
+        """Designates a contact as the primary POC and syncs parent lead credentials."""
+        chosen = None
+        for c in self.contacts:
+            if c.id == contact_id:
+                c.is_primary = True
+                chosen = c
+            else:
+                c.is_primary = False
+        if chosen:
+            self.contact_name = chosen.name
+            if chosen.phone:
+                self.phone = chosen.phone
+            if chosen.email:
+                self.email = chosen.email
+            if chosen.designation:
+                self.designation = chosen.designation
+        return chosen
 
     def update_score(self, points, reason=None):
         """Dynamically increments score and evaluates hot prospect status."""
@@ -89,15 +119,58 @@ class B2BLead(db.Model):
     @property
     def stage_display(self):
         stage_map = {
-            'new': '1. New / Uncontacted',
-            'outreach_sent': '2. Outreach Dispatched',
-            'portal_active': '3. Portal Active (Engaged)',
-            'contacted': '4. Phone Contacted',
-            'warm_discussion': '5. In Negotiation',
-            'converted': '6. Converted to Client',
-            'disqualified': 'Disqualified'
+            'fresh_lead': '1. Fresh Lead',
+            'dnp': '2. DNP (Did Not Pick)',
+            'call_back': '3. Call Back',
+            'prospect': '4. Prospect',
+            'meeting_scheduled': '5. Meeting Scheduled',
+            'qualified': '6. Qualified',
+            'converted': '7. Converted to Client',
+            'existing_cx': '8. Existing CX',
+            'deferred_interest': '9. Deferred Interest',
+            'not_interested': '10. Not Interested',
+            'invalid': '11. Invalid',
+            # Legacy fallbacks
+            'new': '1. Fresh Lead',
+            'outreach_sent': '4. Prospect',
+            'portal_active': '4. Prospect',
+            'contacted': '3. Call Back',
+            'warm_discussion': '6. Qualified',
+            'disqualified': '10. Not Interested'
         }
-        return stage_map.get(self.stage, (self.stage or 'new').title())
+        return stage_map.get(self.stage, (self.stage or 'fresh_lead').replace('_', ' ').title())
+
+    @property
+    def stage_badge_class(self):
+        badge_map = {
+            'fresh_lead': 'stage-badge-fresh_lead',
+            'dnp': 'stage-badge-dnp',
+            'call_back': 'stage-badge-call_back',
+            'prospect': 'stage-badge-prospect',
+            'meeting_scheduled': 'stage-badge-meeting_scheduled',
+            'qualified': 'stage-badge-qualified',
+            'converted': 'stage-badge-converted',
+            'existing_cx': 'stage-badge-existing_cx',
+            'deferred_interest': 'stage-badge-deferred_interest',
+            'not_interested': 'stage-badge-not_interested',
+            'invalid': 'stage-badge-invalid',
+            # Legacy fallbacks
+            'new': 'stage-badge-fresh_lead',
+            'outreach_sent': 'stage-badge-prospect',
+            'portal_active': 'stage-badge-prospect',
+            'contacted': 'stage-badge-call_back',
+            'warm_discussion': 'stage-badge-qualified',
+            'disqualified': 'stage-badge-not_interested',
+        }
+        return badge_map.get(self.stage, 'stage-badge-fresh_lead')
+
+    @property
+    def google_maps_url(self):
+        query = (self.location or self.city or '').strip()
+        if not query:
+            return None
+        import urllib.parse
+        return f"https://www.google.com/maps/search/?api=1&query={urllib.parse.quote(query)}"
 
 
 class B2BEngagementEvent(db.Model):
@@ -190,3 +263,57 @@ class CRMCampaignRecipient(db.Model):
 
     def __repr__(self):
         return f"<CRMCampaignRecipient {self.recipient_email or self.recipient_phone} ({self.status})>"
+
+
+class B2BLeadContact(db.Model):
+    __tablename__ = 'b2b_lead_contacts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('b2b_leads.id', ondelete='CASCADE'), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    designation = db.Column(db.String(100), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    is_primary = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<B2BLeadContact {self.name} ({self.designation}) for Lead #{self.lead_id}>"
+
+
+class CRMEmailTemplate(db.Model):
+    __tablename__ = 'crm_email_templates'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(150), nullable=False)
+    subject = db.Column(db.String(255), nullable=False)
+    category = db.Column(db.String(50), default='Outreach', nullable=False)  # 'Diwali & Festive', 'Sample Pitch', 'Follow-up', 'Custom'
+    content_html = db.Column(db.Text, nullable=False)
+    blocks_json = db.Column(db.Text, nullable=True)  # Serialized modular builder blocks
+    default_cc = db.Column(db.String(255), default='Vishnu.govind@pikachooz.com')
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<CRMEmailTemplate '{self.name}' ({self.category})>"
+
+    def render_subject(self, lead_dict):
+        """Interpolates dynamic tokens into the subject line."""
+        res = self.subject or ""
+        for k, v in lead_dict.items():
+            res = res.replace(f"{{{k}}}", str(v or ''))
+        return res
+
+    def render_body(self, lead_dict):
+        """Interpolates dynamic tokens into the template HTML."""
+        res = self.content_html or ""
+        for k, v in lead_dict.items():
+            res = res.replace(f"{{{k}}}", str(v or ''))
+        return res
+
+    @property
+    def is_visual_builder(self):
+        """Returns True if template was designed using the visual block builder."""
+        return bool(self.blocks_json and self.blocks_json.strip() and self.blocks_json != '[]')

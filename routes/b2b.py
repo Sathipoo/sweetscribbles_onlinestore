@@ -248,6 +248,52 @@ def send_login_otp():
             ).first()
 
     if not client and not lead:
+        # Check if this contact belongs to a secondary POC of an existing account
+        from models.b2b import B2BClientContact
+        from models.b2b_crm import B2BLeadContact
+
+        secondary_client_contact = None
+        if is_email:
+            secondary_client_contact = B2BClientContact.query.filter(B2BClientContact.email.ilike(identifier)).first()
+        elif digits:
+            secondary_client_contact = B2BClientContact.query.filter(
+                (B2BClientContact.phone == phone_normalized) | (B2BClientContact.phone == digits) | (B2BClientContact.phone.endswith(digits))
+            ).first()
+
+        if secondary_client_contact and secondary_client_contact.client:
+            primary = secondary_client_contact.client.primary_contact
+            primary_name = primary.name if primary else secondary_client_contact.client.contact_name
+            desig = f" ({secondary_client_contact.designation})" if secondary_client_contact.designation else ""
+            return {
+                'success': False,
+                'message': (
+                    f"Access Restricted: This contact is registered as a secondary POC for "
+                    f"{secondary_client_contact.client.company_name} under {secondary_client_contact.name}{desig}. "
+                    f"Only the designated Primary Account Owner ({primary_name}) is authorized to log in with OTP. "
+                    f"Please contact your Sweet Scribbles account manager to switch primary POC."
+                )
+            }, 403
+
+        secondary_lead_contact = None
+        if is_email:
+            secondary_lead_contact = B2BLeadContact.query.filter(B2BLeadContact.email.ilike(identifier)).first()
+        elif digits:
+            secondary_lead_contact = B2BLeadContact.query.filter(
+                (B2BLeadContact.phone == phone_normalized) | (B2BLeadContact.phone == digits) | (B2BLeadContact.phone.endswith(digits))
+            ).first()
+
+        if secondary_lead_contact and secondary_lead_contact.lead:
+            primary = secondary_lead_contact.lead.primary_contact
+            primary_name = primary.name if primary else secondary_lead_contact.lead.contact_name
+            return {
+                'success': False,
+                'message': (
+                    f"Access Restricted: This contact is registered as a secondary POC for "
+                    f"{secondary_lead_contact.lead.company_name}. Only the primary contact ({primary_name}) "
+                    f"is authorized to log in via OTP."
+                )
+            }, 403
+
         return {
             'success': False,
             'message': 'No registered corporate client or invited prospect found with this contact. Please submit an enquiry to get started.'

@@ -20,6 +20,7 @@ class B2BClient(db.Model):
     
     orders = db.relationship('B2BOrder', backref='client', lazy=True, order_by="desc(B2BOrder.created_at)", cascade="all, delete-orphan")
     communication_logs = db.relationship('B2BCommunicationLog', backref='client', lazy=True, order_by="desc(B2BCommunicationLog.created_at)", cascade="all, delete-orphan")
+    contacts = db.relationship('B2BClientContact', backref='client', lazy=True, order_by="desc(B2BClientContact.is_primary)", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<B2BClient {self.company_name} ({self.contact_name})>"
@@ -27,6 +28,47 @@ class B2BClient(db.Model):
     @property
     def total_spend(self):
         return sum((o.total_amount or 0.0) for o in self.orders if o.stage != 'cancelled')
+
+    @property
+    def primary_contact(self):
+        for c in self.contacts:
+            if c.is_primary:
+                return c
+        return self.contacts[0] if self.contacts else None
+
+    def set_primary_contact(self, contact_id):
+        """Designates a contact as the primary POC and syncs parent client credentials."""
+        chosen = None
+        for c in self.contacts:
+            if c.id == contact_id:
+                c.is_primary = True
+                chosen = c
+            else:
+                c.is_primary = False
+        if chosen:
+            self.contact_name = chosen.name
+            if chosen.phone:
+                self.phone = chosen.phone
+            if chosen.email:
+                self.email = chosen.email
+        return chosen
+
+
+class B2BClientContact(db.Model):
+    __tablename__ = 'b2b_client_contacts'
+
+    id = db.Column(db.Integer, primary_key=True)
+    client_id = db.Column(db.Integer, db.ForeignKey('b2b_clients.id', ondelete='CASCADE'), nullable=False, index=True)
+    name = db.Column(db.String(100), nullable=False)
+    designation = db.Column(db.String(100), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    email = db.Column(db.String(120), nullable=True)
+    is_primary = db.Column(db.Boolean, default=False, nullable=False, index=True)
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<B2BClientContact {self.name} ({self.designation}) for Client #{self.client_id}>"
 
 
 class B2BOrder(db.Model):
