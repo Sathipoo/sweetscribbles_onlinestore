@@ -565,10 +565,20 @@
                         </select>
                     </div>
 
-                    <p class="text-muted small mb-3">
-                        Upload a CSV file or paste tabular data with columns: <br>
-                        <strong>Company Name, Contact Person, Phone, Email, Designation, City, [Optional: Source]</strong>
-                    </p>
+                    <div class="p-3 bg-light rounded-3 border mb-3">
+                        <span class="fw-bold small text-dark d-block mb-1">
+                            <i class="bi bi-table text-warning me-1"></i>Standard Marketing Template Format (CSV / Excel):
+                        </span>
+                        <code class="small text-dark d-block p-2 bg-white rounded border font-monospace mb-2" style="font-size: 0.75rem;">
+                            "Company Name", "contact_type", "Contact Person", "Phone", "Email", "Designation", "Address", "Lead Stages"
+                        </code>
+                        <ul class="text-muted small ps-3 mb-0" style="font-size: 0.75rem;">
+                            <li><strong>contact_type:</strong> Use <code>primary</code> for the main account owner, or <code>poc1</code>, <code>poc2</code>, etc. for secondary contacts.</li>
+                            <li><strong>Multi-POC Grouping:</strong> Multiple rows for the same company are automatically grouped under one company lead!</li>
+                            <li><strong>Lead Stages:</strong> Used as the lead source/tag; all leads start in pipeline stage <strong>1. Fresh Lead</strong>.</li>
+                            <li><strong>Address &amp; City:</strong> City is auto-detected from the address field.</li>
+                        </ul>
+                    </div>
 
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-medium">Option A: Upload CSV File</label>
@@ -578,8 +588,8 @@
                     <div class="text-center text-muted small my-2">&mdash; OR &mdash;</div>
 
                     <div class="mb-3">
-                        <label class="form-label small text-muted fw-medium">Option B: Paste Comma-Separated or Excel Rows</label>
-                        <textarea name="raw_data" class="form-control crm-input font-monospace small" rows="6" placeholder="Infosys, Rajesh Kumar, 9876543210, rajesh@infosys.com, VP HR, Bangalore, LinkedIn&#10;TCS, Sneha Rao, 9876543211, sneha@tcs.com, Procurement Manager, Mumbai, Cold Calling"></textarea>
+                        <label class="form-label small text-muted fw-medium">Option B: Paste Tabular or CSV Rows</label>
+                        <textarea name="raw_data" class="form-control crm-input font-monospace small" rows="7" placeholder='"Benaka Electronics","primary","Renukacharya Hiremath","+91 9902908679","toolroom@benaka.com","Manager-Tool Room","#13, West of Chord Road, Rajajinagar, Bangalore 560010","Extremly Interested"&#10;"Benaka Electronics","poc1","Renukacharya Hiremath","080-23353615","toolroom@benaka.com","Manager-Tool Room","#13, West of Chord Road, Rajajinagar, Bangalore 560010","Extremly Interested"'></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">

@@ -1,5 +1,6 @@
 import csv
 import io
+import re
 import json
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, Response
@@ -140,72 +141,294 @@ def add_lead():
     flash(f'Prospect lead for "{company_name}" ({contact_name}) created successfully!', 'success')
     return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
 
+def _clean_import_phone(phone_str, contact_str=""):
+    if not phone_str and not contact_str:
+        return ""
+    combined = f"{phone_str} {contact_str}"
+    
+    # 1. 5+5 digit mobile pattern e.g. 81405 60627, 99640 04467, 91640 97687
+    split5 = re.findall(r'\b([6-9]\d{4}\s*\d{5})\b', combined)
+    if split5:
+        d = re.sub(r'\D', '', split5[0])
+        return f"+91{d}"
+    
+    # 2. 10-digit mobile starting with 6-9
+    c10 = re.findall(r'\b([6-9]\d{9})\b', combined)
+    if c10:
+        return f"+91{c10[0]}"
+    
+    # 3. 12-digit mobile starting with 91
+    c12 = re.findall(r'\b(91[6-9]\d{9})\b', combined)
+    if c12:
+        return f"+{c12[0]}"
+        
+    # 4. Landlines or standard formatting
+    first_part = re.split(r'[/,]', phone_str)[0].strip() if phone_str else ""
+    digits = "".join(c for c in first_part if c.isdigit())
+    if len(digits) == 10:
+        return f"+91{digits}"
+    elif len(digits) == 12 and digits.startswith('91'):
+        return f"+{digits}"
+    elif len(digits) == 11 and digits.startswith('0'):
+        return f"+91{digits[1:]}"
+    elif len(digits) >= 8:
+        return f"+91{digits}" if not digits.startswith('91') else f"+{digits}"
+    
+    return normalize_phone(first_part)
+
+def _clean_import_email(email_str):
+    if not email_str:
+        return None, []
+    emails = [re.sub(r'[^a-zA-Z0-9_.+-@]', '', e).strip().lower() for e in re.split(r'[;,]', email_str) if '@' in e and '.' in e]
+    primary_email = emails[0] if emails else None
+    extra_emails = emails[1:] if len(emails) > 1 else []
+    return primary_email, extra_emails
+
+def _clean_import_contact(contact_str, designation_str=""):
+    if not contact_str or contact_str.strip() in ('-', 'NA', 'N/A', '--', '.', 'nil'):
+        return "Authorized Representative"
+    name = re.sub(r'(?:-|\b)(?:\+?91[\s-]?)?[6-9]\d{9}\b', '', contact_str)
+    name = re.sub(r'[©\d:]+', '', name)
+    if ',' in name and designation_str:
+        name = name.split(',')[0]
+    name = name.strip(' -©,').strip()
+    return name if name else "Authorized Representative"
+
+def _extract_import_city(address_str):
+    if not address_str:
+        return "Bangalore"
+    addr_lower = address_str.lower()
+    cities = [
+        'bangalore', 'bengaluru', 'mumbai', 'delhi', 'new delhi', 'hyderabad',
+        'chennai', 'pune', 'kolkata', 'ahmedabad', 'gurgaon', 'gurugram',
+        'noida', 'mysore', 'mysuru', 'coimbatore', 'kochi', 'jaipur', 'surat'
+    ]
+    for c in cities:
+        if c in addr_lower:
+            return 'Bangalore' if c in ('bangalore', 'bengaluru') else c.title()
+    return "Bangalore"
+
 @leads_bp.route('/leads/import', methods=['POST'])
 @crm_login_required
 def import_leads():
     """
     Bulk import leads via CSV file upload or pasted multi-line text.
-    Format: Company Name, Contact Name, Phone, Email, Designation, City, Source (optional)
+    Supports marketing template format:
+    Company Name, contact_type, Contact Person, Phone, Email, Designation, Address, Lead Stages (Source)
+    as well as legacy / flexible formats.
+    Automatically links multi-POC rows into Primary and Secondary POC contacts,
+    and initializes all leads to 'fresh_lead' stage (ignoring the leadstages column for pipeline stage).
     """
     pasted_data = request.form.get('raw_data', '').strip()
     file = request.files.get('csv_file')
-    default_source = request.form.get('lead_source', 'CSV Import').strip() or 'CSV Import'
+    default_source = request.form.get('lead_source', 'Marketing Import').strip() or 'Marketing Import'
 
-    rows = []
+    raw_text = ""
     if file and file.filename:
         try:
-            stream = io.StringIO(file.stream.read().decode("utf-8", errors="ignore"))
-            reader = csv.reader(stream)
-            rows = list(reader)
+            raw_text = file.stream.read().decode("utf-8-sig", errors="ignore")
         except Exception as e:
             flash(f'Error reading CSV file: {e}', 'danger')
             return redirect(url_for('crm_leads.list_leads'))
     elif pasted_data:
-        stream = io.StringIO(pasted_data)
-        reader = csv.reader(stream)
-        rows = list(reader)
+        raw_text = pasted_data
 
-    if not rows:
-        flash('No valid lead rows provided for import.', 'warning')
+    if not raw_text.strip():
+        flash('No valid lead data provided for import.', 'warning')
         return redirect(url_for('crm_leads.list_leads'))
 
-    imported_count = 0
-    for idx, row in enumerate(rows):
-        if not row or len(row) < 2:
+    # Detect delimiter: tab or comma
+    first_non_empty_line = next((l for l in raw_text.splitlines() if l.strip()), '')
+    delimiter = '\t' if '\t' in first_non_empty_line and ',' not in first_non_empty_line else ','
+
+    stream = io.StringIO(raw_text)
+    reader = csv.reader(stream, delimiter=delimiter)
+    rows = [r for r in reader if r and any(cell.strip() for cell in r)]
+
+    if not rows:
+        flash('No valid data rows found to import.', 'warning')
+        return redirect(url_for('crm_leads.list_leads'))
+
+    # Inspect first row for column headers
+    col_map = {
+        'company': 0,
+        'contact_type': None,
+        'contact': 1,
+        'phone': 2,
+        'email': 3,
+        'designation': 4,
+        'address': 5,
+        'source': 6
+    }
+
+    first_row = [c.strip().lower() for c in rows[0]]
+    has_header = any('company' in c for c in first_row)
+
+    if has_header:
+        for idx, h in enumerate(first_row):
+            if 'company' in h:
+                col_map['company'] = idx
+            elif 'type' in h or 'poc_type' in h:
+                col_map['contact_type'] = idx
+            elif 'contact' in h or 'person' in h or 'name' in h:
+                if col_map['contact'] is None or 'person' in h or 'contact' in h:
+                    col_map['contact'] = idx
+            elif 'phone' in h or 'mobile' in h or 'tel' in h:
+                col_map['phone'] = idx
+            elif 'email' in h or 'mail' in h:
+                col_map['email'] = idx
+            elif 'designation' in h or 'role' in h:
+                col_map['designation'] = idx
+            elif 'address' in h or 'location' in h:
+                col_map['address'] = idx
+            elif 'city' in h:
+                col_map['city'] = idx
+            elif 'stage' in h or 'stages' in h or 'source' in h:
+                col_map['source'] = idx
+        data_rows = rows[1:]
+    else:
+        # If no header, check number of columns
+        if len(rows[0]) >= 8:
+            col_map = {
+                'company': 0,
+                'contact_type': 1,
+                'contact': 2,
+                'phone': 3,
+                'email': 4,
+                'designation': 5,
+                'address': 6,
+                'source': 7
+            }
+        data_rows = rows
+
+    new_leads_count = 0
+    added_pocs_count = 0
+    batch_companies = {}
+
+    for row in data_rows:
+        if not row or not any(row):
             continue
-        
-        # Skip header if present
-        first_col = row[0].strip().lower()
-        if 'company' in first_col and idx == 0:
+
+        def get_val(key):
+            idx = col_map.get(key)
+            if idx is not None and idx < len(row):
+                return row[idx].strip()
+            return ""
+
+        company = get_val('company')
+        if not company or company.upper() in ('NA', 'N/A', '--', 'NONE', 'NIL'):
             continue
 
-        company = row[0].strip() if len(row) > 0 else ""
-        contact = row[1].strip() if len(row) > 1 else ""
-        phone = normalize_phone(row[2]) if len(row) > 2 else ""
-        email = row[3].strip().lower() if len(row) > 3 else ""
-        designation = row[4].strip() if len(row) > 4 else ""
-        city = row[5].strip() if len(row) > 5 else ""
-        row_source = row[6].strip() if len(row) > 6 and row[6].strip() else default_source
+        contact_type = get_val('contact_type').lower() if col_map.get('contact_type') is not None else ''
+        contact_raw = get_val('contact')
+        designation_raw = get_val('designation') or None
+        phone_raw = get_val('phone')
+        email_raw = get_val('email')
+        address_raw = get_val('address') or None
+        source_raw = get_val('source')
 
-        if not company or not contact:
-            continue
+        contact_name = _clean_import_contact(contact_raw, designation_raw)
+        phone = _clean_import_phone(phone_raw, contact_raw)
+        email, extra_emails = _clean_import_email(email_raw)
+        city = get_val('city') if col_map.get('city') is not None else None
+        if not city and address_raw:
+            city = _extract_import_city(address_raw)
+        elif not city:
+            city = "Bangalore"
 
-        lead = B2BLead(
-            company_name=company,
-            contact_name=contact,
-            phone=phone or None,
-            email=email or None,
-            designation=designation or None,
-            city=city or None,
-            lead_source=row_source,
-            stage='fresh_lead',
-            priority_score=10
-        )
-        db.session.add(lead)
-        imported_count += 1
+        # The marketing sheet has list/segment name under "Lead Stages" or "source"
+        # User specified: "ignore the leadstages column mentioend in the csv. and we have the primary conetact and poc contact marked with source."
+        row_source = source_raw if source_raw else default_source
 
-    db.session.commit()
-    flash(f'Successfully imported {imported_count} corporate prospect leads under source "{default_source}"!', 'success')
+        comp_key = company.strip().lower()
+
+        # Determine if this row is intended as Primary or Secondary POC
+        # If contact_type is specified: 'primary' -> True, 'poc...' -> False
+        # If not specified: first occurrence is Primary, subsequent are Secondary
+        is_row_primary = (contact_type == 'primary') or (not contact_type and comp_key not in batch_companies)
+
+        # Check if company was already encountered in this batch or in DB
+        lead = batch_companies.get(comp_key)
+        if not lead:
+            lead = B2BLead.query.filter(db.func.lower(B2BLead.company_name) == comp_key).first()
+            if lead:
+                batch_companies[comp_key] = lead
+
+        if not lead:
+            # Create NEW Lead
+            lead = B2BLead(
+                company_name=company[:150],
+                contact_name=contact_name[:100],
+                phone=phone[:20] if phone else None,
+                email=email[:120] if email else None,
+                designation=designation_raw[:100] if designation_raw else None,
+                city=city[:100] if city else None,
+                location=address_raw[:255] if address_raw else None,
+                lead_source=row_source[:50],
+                tags=row_source[:255] if row_source else None,
+                stage='fresh_lead',  # Always initialize to Fresh Lead as requested
+                priority_score=10
+            )
+            db.session.add(lead)
+            db.session.flush()
+            batch_companies[comp_key] = lead
+            new_leads_count += 1
+
+            # Create Primary Contact
+            poc_notes = f"Primary Account Owner | Source: {row_source}"
+            if extra_emails:
+                poc_notes += f" | Extra emails: {', '.join(extra_emails)}"
+
+            primary_contact = B2BLeadContact(
+                lead_id=lead.id,
+                name=contact_name[:100],
+                designation=designation_raw[:100] if designation_raw else None,
+                phone=phone[:20] if phone else None,
+                email=email[:120] if email else None,
+                is_primary=True,
+                notes=poc_notes
+            )
+            db.session.add(primary_contact)
+        else:
+            # Existing lead: Add as corporate POC contact
+            # Check if this contact (same name & phone) already exists under this lead
+            existing_poc = B2BLeadContact.query.filter_by(lead_id=lead.id, name=contact_name[:100], phone=phone[:20] if phone else None).first()
+            if not existing_poc:
+                type_label = contact_type.upper() if contact_type else "POC"
+                poc_notes = f"{type_label} | Source: {row_source}"
+                if extra_emails:
+                    poc_notes += f" | Extra emails: {', '.join(extra_emails)}"
+
+                poc = B2BLeadContact(
+                    lead_id=lead.id,
+                    name=contact_name[:100],
+                    designation=designation_raw[:100] if designation_raw else None,
+                    phone=phone[:20] if phone else None,
+                    email=email[:120] if email else None,
+                    is_primary=False,
+                    notes=poc_notes
+                )
+                db.session.add(poc)
+                added_pocs_count += 1
+
+            # Enrich main lead if it was missing phone, email, or location
+            if not lead.phone and phone:
+                lead.phone = phone[:20]
+            if not lead.email and email:
+                lead.email = email[:120]
+            if not lead.location and address_raw:
+                lead.location = address_raw[:255]
+            if row_source and row_source not in (lead.tags or ''):
+                new_tags = f"{lead.tags}, {row_source}" if lead.tags else row_source
+                lead.tags = new_tags[:255]
+
+    try:
+        db.session.commit()
+        flash(f"Successfully processed import: Created {new_leads_count} prospect leads and linked {added_pocs_count} corporate POC contacts across company profiles (Default Source: {default_source})!", "success")
+    except Exception as e:
+        db.session.rollback()
+        flash(f"Error saving imported leads: {e}", "danger")
+
     return redirect(url_for('crm_leads.list_leads'))
 
 @leads_bp.route('/leads/export')
