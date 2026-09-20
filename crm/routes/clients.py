@@ -1,4 +1,4 @@
-from flask import Blueprint, render_template, request, current_app
+from flask import Blueprint, render_template, request, current_app, flash, redirect, url_for
 from extensions import db
 from models.b2b import B2BClient, B2BOrder, B2BCommunicationLog
 from models.b2b_crm import B2BLead, B2BEngagementEvent
@@ -84,6 +84,53 @@ def client_detail(client_id):
         events=events,
         store_base_url=store_base_url
     )
+
+@clients_bp.route('/clients/<int:client_id>/edit', methods=['POST'])
+@crm_login_required
+def edit_client(client_id):
+    """
+    Updates client company name, primary contact name, phone, email, and GST number.
+    Synchronizes the primary POC contact record automatically.
+    """
+    from utils.otp_utils import normalize_phone
+    client = B2BClient.query.get_or_404(client_id)
+
+    company_name = request.form.get('company_name', '').strip()
+    contact_name = request.form.get('contact_name', '').strip()
+    phone_raw = request.form.get('phone', '').strip()
+    phone = normalize_phone(phone_raw) if phone_raw else None
+    email = request.form.get('email', '').strip().lower()
+    gst_number = request.form.get('gst_number', '').strip().upper()
+
+    if not company_name or not contact_name:
+        flash('Company name and primary contact person name are required.', 'danger')
+        return redirect(url_for('crm_clients.client_detail', client_id=client.id))
+
+    if phone:
+        existing = B2BClient.query.filter(B2BClient.phone == phone, B2BClient.id != client.id).first()
+        if existing:
+            flash(f'Cannot update phone: Another client ({existing.company_name}) is already registered with {phone}.', 'danger')
+            return redirect(url_for('crm_clients.client_detail', client_id=client.id))
+
+    client.company_name = company_name
+    client.contact_name = contact_name
+    client.phone = phone
+    client.email = email or None
+    client.gst_number = gst_number or None
+
+    primary = client.primary_contact
+    if primary:
+        primary.name = contact_name
+        primary.phone = phone
+        primary.email = email or None
+
+    try:
+        db.session.commit()
+        flash(f'Client profile for "{client.company_name}" updated successfully!', 'success')
+    except Exception as e:
+        db.session.rollback()
+        flash(f'Failed to update client profile: {str(e)}', 'danger')
+    return redirect(url_for('crm_clients.client_detail', client_id=client.id))
 
 # --- Client POC Contacts Management ---
 @clients_bp.route('/clients/<int:client_id>/contacts/add', methods=['POST'])

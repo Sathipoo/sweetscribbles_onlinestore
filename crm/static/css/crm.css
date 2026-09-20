@@ -517,3 +517,13 @@ body.crm-body {
     color: #475569 !important;
     border: 1px solid #cbd5e1;
 }
+
+/* Editable Field Hover State */
+.crm-card dl dd .btn-link {
+    transition: opacity 0.15s ease, color 0.15s ease, transform 0.15s ease;
+}
+.crm-card dl dd:hover .btn-link {
+    opacity: 1 !important;
+    color: #b45309 !important;
+    transform: scale(1.1);
+}

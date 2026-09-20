@@ -484,6 +484,54 @@ def update_location(lead_id):
     flash(f'Location and details for "{lead.company_name}" updated!', 'success')
     return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
 
+@leads_bp.route('/leads/<int:lead_id>/edit', methods=['POST'])
+@crm_login_required
+def edit_lead(lead_id):
+    """
+    Updates all primary prospect details (Company, Contact, Designation, Phone, Email, City, Location, Source, Tags).
+    Synchronizes the primary POC contact record automatically.
+    """
+    lead = B2BLead.query.get_or_404(lead_id)
+
+    company_name = request.form.get('company_name', '').strip()
+    contact_name = request.form.get('contact_name', '').strip()
+    designation = request.form.get('designation', '').strip()
+    phone_raw = request.form.get('phone', '').strip()
+    phone = normalize_phone(phone_raw) if phone_raw else None
+    email = request.form.get('email', '').strip().lower()
+    city = request.form.get('city', '').strip()
+    location = request.form.get('location', '').strip()
+    lead_source = request.form.get('lead_source', '').strip()
+    tags = request.form.get('tags', '').strip()
+
+    if not company_name or not contact_name:
+        flash('Company name and contact person name are required.', 'danger')
+        return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
+
+    lead.company_name = company_name
+    lead.contact_name = contact_name
+    lead.designation = designation or None
+    lead.phone = phone
+    lead.email = email or None
+    lead.city = city or None
+    lead.location = location or None
+    if lead_source:
+        lead.lead_source = lead_source
+    if tags is not None:
+        lead.tags = tags
+
+    # Synchronize primary contact record if present
+    primary = lead.primary_contact
+    if primary:
+        primary.name = contact_name
+        primary.designation = designation or None
+        primary.phone = phone
+        primary.email = email or None
+
+    db.session.commit()
+    flash(f'Prospect details for "{lead.company_name}" updated successfully!', 'success')
+    return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
+
 @leads_bp.route('/leads/<int:lead_id>')
 @crm_login_required
 def lead_detail(lead_id):
@@ -545,12 +593,21 @@ def lead_detail(lead_id):
     store_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
     tracking_link = f"{store_url}/b2b?trk={lead.tracking_token}"
 
+    db_sources = [r[0] for r in db.session.query(B2BLead.lead_source).distinct().all() if r[0]]
+    default_sources = [
+        'LinkedIn Outreach', 'Instagram / Social', 'Cold Outreach', 'WhatsApp Campaign',
+        'Referral / Network', 'Website Storefront / Organic', 'Event / Trade Expo',
+        'Cold Calling', 'Inbound Form', 'CSV Import', 'Other'
+    ]
+    all_sources = sorted(list(set(db_sources + default_sources)))
+
     return render_template(
         'crm/lead_detail.html',
         lead=lead,
         events=events,
         top_products=top_products,
         stages=STAGES,
+        sources=all_sources,
         tracking_link=tracking_link,
         store_base_url=store_url
     )

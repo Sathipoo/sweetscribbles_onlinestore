@@ -62,26 +62,49 @@
                 </span>
             </div>
 
-            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3">Prospect Details</h6>
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h6 class="fw-bold text-dark mb-0">Prospect Details</h6>
+                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 fw-bold" data-bs-toggle="modal" data-bs-target="#editProspectModal" style="font-size: 0.75rem;">
+                    <i class="bi bi-pencil-square me-1"></i>Edit Details
+                </button>
+            </div>
             
             <dl class="row small mb-0">
                 <dt class="col-sm-5 text-muted">Company:</dt>
-                <dd class="col-sm-7 text-dark fw-semibold">{{ lead.company_name }}</dd>
+                <dd class="col-sm-7 text-dark fw-semibold d-flex justify-content-between align-items-center">
+                    <span>{{ lead.company_name }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Company"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Contact:</dt>
-                <dd class="col-sm-7 text-dark">{{ lead.contact_name }}</dd>
+                <dd class="col-sm-7 text-dark d-flex justify-content-between align-items-center">
+                    <span>{{ lead.contact_name }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Contact"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Designation:</dt>
-                <dd class="col-sm-7 text-secondary">{{ lead.designation or 'Not specified' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ lead.designation or 'Not specified' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Designation"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Mobile:</dt>
-                <dd class="col-sm-7 text-secondary">{{ lead.phone or 'Not provided' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ lead.phone or 'Not provided' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Mobile"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Official Email:</dt>
-                <dd class="col-sm-7 text-secondary">{{ lead.email or 'Not provided' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ lead.email or 'Not provided' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Email"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">City:</dt>
-                <dd class="col-sm-7 text-secondary">{{ lead.city or '—' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ lead.city or '—' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit City"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Location / Area:</dt>
                 <dd class="col-sm-7 text-dark">
@@ -92,17 +115,18 @@
                             <i class="bi bi-geo-alt-fill me-1"></i>View on Google Maps
                         </a>
                         {% endif %}
-                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill" data-bs-toggle="modal" data-bs-target="#editLocationModal" style="font-size: 0.72rem;">
+                        <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill" data-bs-toggle="modal" data-bs-target="#editProspectModal" style="font-size: 0.72rem;">
                             <i class="bi bi-pencil-fill me-1"></i>Edit Location
                         </button>
                     </div>
                 </dd>
 
                 <dt class="col-sm-5 text-muted mt-2">Lead Source:</dt>
-                <dd class="col-sm-7 text-secondary mt-2">
+                <dd class="col-sm-7 text-secondary mt-2 d-flex justify-content-between align-items-center">
                     <span class="badge-source badge-source-{{ lead.lead_source.lower().replace(' ', '_') }}">
                         <i class="bi bi-funnel-fill" style="font-size: 0.65rem;"></i> {{ lead.lead_source }}
                     </span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Source"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
                 </dd>
 
                 <dt class="col-sm-5 text-muted">Created:</dt>
@@ -355,42 +379,80 @@
     </div>
 </div>
 
-<!-- Modal: Edit Lead Location & Details -->
-<div class="modal fade crm-modal" id="editLocationModal" tabindex="-1" aria-labelledby="editLocationModalLabel" aria-hidden="true">
-    <div class="modal-dialog">
+<!-- Modal: Edit Prospect Details (Full Field Editor) -->
+<div class="modal fade crm-modal" id="editProspectModal" tabindex="-1" aria-labelledby="editProspectModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold text-dark" id="editLocationModalLabel" style="font-family: 'Playfair Display', serif;">
-                    <i class="bi bi-geo-alt-fill text-danger me-2"></i>Update Prospect Location
-                </h5>
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="editProspectModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-pencil-square text-warning me-2"></i>Edit Prospect Details
+                    </h5>
+                    <small class="text-muted">Update company info, key contact, designation, phone, email, location, and lead source.</small>
+                </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
-            <form action="{{ url_for('crm_leads.update_location', lead_id=lead.id) }}" method="POST">
-                <div class="modal-body">
-                    <div class="mb-3">
-                        <label class="form-label small text-muted fw-medium">City</label>
-                        <input type="text" name="city" id="detailLeadCity" class="form-control crm-input" value="{{ lead.city or '' }}" placeholder="e.g. Bangalore">
-                    </div>
-
-                    <div class="mb-3">
-                        <div class="d-flex justify-content-between align-items-center mb-1">
-                            <label class="form-label small text-muted fw-medium mb-0">Location / Address / Area</label>
-                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" onclick="detectDetailLocation(this)" style="font-size: 0.72rem;">
-                                <i class="bi bi-geo-alt-fill me-1"></i>Detect Current Location
-                            </button>
+            <form action="{{ url_for('crm_leads.edit_lead', lead_id=lead.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Company / Brand Name *</label>
+                            <input type="text" name="company_name" class="form-control crm-input" value="{{ lead.company_name }}" required>
                         </div>
-                        <input type="text" name="location" id="detailLeadLocation" class="form-control crm-input" value="{{ lead.location or '' }}" placeholder="e.g. Indiranagar, Bangalore or 12.9716, 77.5946">
-                        <small class="text-muted" style="font-size: 0.7rem;">Click "Detect Current Location" to fetch GPS coordinates via your browser without any paid API.</small>
-                    </div>
-
-                    <div class="mb-3">
-                        <label class="form-label small text-muted fw-medium">Tags (comma-separated)</label>
-                        <input type="text" name="tags" class="form-control crm-input" value="{{ lead.tags or '' }}" placeholder="e.g. Tech Park, Diwali Hamper, VIP, Follow-up">
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Contact Person Name *</label>
+                            <input type="text" name="contact_name" class="form-control crm-input" value="{{ lead.contact_name }}" required>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Designation / Role</label>
+                            <input type="text" name="designation" class="form-control crm-input" value="{{ lead.designation or '' }}" placeholder="e.g. VP of Operations, Head of HR">
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Lead Marketing Source</label>
+                            <select name="lead_source" class="form-select crm-input">
+                                {% if sources %}
+                                    {% for src in sources %}
+                                        <option value="{{ src }}" {% if lead.lead_source == src %}selected{% endif %}>{{ src }}</option>
+                                    {% endfor %}
+                                {% else %}
+                                    <option value="{{ lead.lead_source }}" selected>{{ lead.lead_source }}</option>
+                                {% endif %}
+                            </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Mobile Number (Primary POC &amp; OTP)</label>
+                            <input type="tel" name="phone" class="form-control crm-input font-monospace" value="{{ lead.phone or '' }}" placeholder="e.g. +919876543211">
+                            <small class="text-muted" style="font-size: 0.68rem;">Synchronizes with Primary POC credentials for OTP portal login.</small>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Official Email Address</label>
+                            <input type="email" name="email" class="form-control crm-input" value="{{ lead.email or '' }}" placeholder="e.g. contact@company.com">
+                        </div>
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">City</label>
+                            <input type="text" name="city" id="detailLeadCity" class="form-control crm-input" value="{{ lead.city or '' }}" placeholder="e.g. Bangalore">
+                        </div>
+                        <div class="col-md-8">
+                            <div class="d-flex justify-content-between align-items-center mb-1">
+                                <label class="form-label small text-muted fw-bold mb-0">Location / Address / Area</label>
+                                <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" onclick="detectDetailLocation(this)" style="font-size: 0.72rem;">
+                                    <i class="bi bi-geo-alt-fill me-1"></i>Detect Current Location
+                                </button>
+                            </div>
+                            <input type="text" name="location" id="detailLeadLocation" class="form-control crm-input" value="{{ lead.location or '' }}" placeholder="e.g. Indiranagar, Bangalore or 12.9716, 77.5946">
+                            <small class="text-muted" style="font-size: 0.68rem;">Click "Detect Current Location" to fetch GPS via your browser without any paid API.</small>
+                        </div>
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Internal Tags (comma-separated)</label>
+                            <input type="text" name="tags" class="form-control crm-input" value="{{ lead.tags or '' }}" placeholder="e.g. Tech Park, Diwali Hamper, VIP, Follow-up">
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-crm-gold btn-sm px-4 fw-medium">Save Location</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4 fw-bold">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
                 </div>
             </form>
         </div>

@@ -34,24 +34,44 @@
     <!-- Left Column: Client Profile & Quick Re-engagement -->
     <div class="col-lg-4">
         <div class="crm-card p-4 mb-4">
-            <h5 class="fw-bold text-dark border-bottom pb-2 mb-3" style="font-family: 'Playfair Display', serif;">
-                Client Profile
-            </h5>
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                    Client Profile
+                </h5>
+                <button type="button" class="btn btn-sm btn-outline-warning rounded-pill px-3 py-1 fw-bold" data-bs-toggle="modal" data-bs-target="#editClientModal" style="font-size: 0.75rem;">
+                    <i class="bi bi-pencil-square me-1"></i>Edit Profile
+                </button>
+            </div>
             <dl class="row small mb-0">
                 <dt class="col-sm-5 text-muted">Company:</dt>
-                <dd class="col-sm-7 text-dark fw-semibold">{{ client.company_name }}</dd>
+                <dd class="col-sm-7 text-dark fw-semibold d-flex justify-content-between align-items-center">
+                    <span>{{ client.company_name }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editClientModal" title="Edit Company"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Contact Person:</dt>
-                <dd class="col-sm-7 text-dark">{{ client.contact_name }}</dd>
+                <dd class="col-sm-7 text-dark d-flex justify-content-between align-items-center">
+                    <span>{{ client.contact_name }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editClientModal" title="Edit Contact Person"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Mobile Number:</dt>
-                <dd class="col-sm-7 text-secondary">{{ client.phone or '—' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ client.phone or '—' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editClientModal" title="Edit Mobile"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Billing Email:</dt>
-                <dd class="col-sm-7 text-secondary">{{ client.email or '—' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ client.email or '—' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editClientModal" title="Edit Email"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">GST Number:</dt>
-                <dd class="col-sm-7 text-secondary">{{ client.gst_number or 'Unregistered' }}</dd>
+                <dd class="col-sm-7 text-secondary d-flex justify-content-between align-items-center">
+                    <span>{{ client.gst_number or 'Unregistered' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editClientModal" title="Edit GST Number"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
 
                 <dt class="col-sm-5 text-muted">Created Date:</dt>
                 <dd class="col-sm-7 text-muted">{{ client.created_at|datetime_fmt }}</dd>
@@ -274,6 +294,54 @@
                 <div class="modal-footer">
                     <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
                     <button type="submit" class="btn btn-crm-gold btn-sm px-4 fw-medium">Save Contact</button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Edit Client Profile -->
+<div class="modal fade crm-modal" id="editClientModal" tabindex="-1" aria-labelledby="editClientModalLabel" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="editClientModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-pencil-square text-warning me-2"></i>Edit Client Profile
+                    </h5>
+                    <small class="text-muted">Update company name, primary contact, mobile number, billing email, and GST.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_clients.edit_client', client_id=client.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Company / Brand Name *</label>
+                        <input type="text" name="company_name" class="form-control crm-input" value="{{ client.company_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Primary Contact Person Name *</label>
+                        <input type="text" name="contact_name" class="form-control crm-input" value="{{ client.contact_name }}" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Mobile Number (Primary POC &amp; Storefront OTP)</label>
+                        <input type="tel" name="phone" class="form-control crm-input font-monospace" value="{{ client.phone or '' }}" placeholder="e.g. +919876543211">
+                        <small class="text-muted" style="font-size: 0.68rem;">Synchronizes with Primary POC credentials for OTP portal login.</small>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Billing Email Address</label>
+                        <input type="email" name="email" class="form-control crm-input" value="{{ client.email or '' }}" placeholder="billing@company.com">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">GST Number</label>
+                        <input type="text" name="gst_number" class="form-control crm-input font-monospace text-uppercase" value="{{ client.gst_number or '' }}" placeholder="e.g. 29ABCDE1234F1Z5">
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4 fw-bold">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
                 </div>
             </form>
         </div>
