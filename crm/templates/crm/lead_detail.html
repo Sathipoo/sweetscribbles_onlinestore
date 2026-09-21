@@ -129,6 +129,12 @@
                     <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Source"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
                 </dd>
 
+                <dt class="col-sm-5 text-muted">Lead Owner:</dt>
+                <dd class="col-sm-7 text-dark d-flex justify-content-between align-items-center">
+                    <span class="badge bg-light text-dark border px-2 py-1"><i class="bi bi-person-badge-fill text-primary me-1"></i>{{ lead.assigned_to or 'Unassigned' }}</span>
+                    <button type="button" class="btn btn-link btn-sm p-0 text-muted opacity-75" data-bs-toggle="modal" data-bs-target="#editProspectModal" title="Edit Owner"><i class="bi bi-pencil" style="font-size: 0.75rem;"></i></button>
+                </dd>
+
                 <dt class="col-sm-5 text-muted">Created:</dt>
                 <dd class="col-sm-7 text-muted">{{ lead.created_at|datetime_fmt }}</dd>
             </dl>
@@ -418,6 +424,15 @@
                                     <option value="{{ lead.lead_source }}" selected>{{ lead.lead_source }}</option>
                                 {% endif %}
                             </select>
+                        </div>
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Assigned Lead Owner</label>
+                            <input type="text" name="assigned_to" class="form-control crm-input" value="{{ lead.assigned_to or '' }}" placeholder="e.g. Vishnu Govind, Pooja Sathish, Sales Operations" list="ownerOptionsList">
+                            <datalist id="ownerOptionsList">
+                                {% for ow in owners %}
+                                    <option value="{{ ow }}">
+                                {% endfor %}
+                            </datalist>
                         </div>
                         <div class="col-md-6">
                             <label class="form-label small text-muted fw-bold">Mobile Number (Primary POC &amp; OTP)</label>

@@ -527,3 +527,34 @@ body.crm-body {
     color: #b45309 !important;
     transform: scale(1.1);
 }
+
+/* Sortable Table Columns & Row Highlight Flash */
+.cursor-pointer {
+    cursor: pointer;
+    user-select: none;
+}
+.cursor-pointer:hover {
+    background-color: rgba(245, 158, 11, 0.08) !important;
+}
+
+@keyframes rowHighlightGlow {
+    0% { background-color: rgba(254, 240, 138, 0.7); }
+    100% { background-color: transparent; }
+}
+.row-highlight-flash {
+    animation: rowHighlightGlow 2s ease-out;
+}
+
+/* Stage Navigation Scrollbar */
+.stage-nav-strip {
+    scrollbar-width: thin;
+    scrollbar-color: #cbd5e1 transparent;
+}
+.stage-nav-strip::-webkit-scrollbar {
+    height: 4px;
+}
+.stage-nav-strip::-webkit-scrollbar-thumb {
+    background: #cbd5e1;
+    border-radius: 4px;
+}
+

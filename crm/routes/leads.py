@@ -31,11 +31,14 @@ STAGES = [
 @leads_bp.route('/leads')
 @crm_login_required
 def list_leads():
-    stage_filter = request.args.get('stage')
+    stage_filter = request.args.get('stage', '').strip()
+    if stage_filter == 'all':
+        stage_filter = ''
     source_filter = request.args.get('source')
     search = request.args.get('q', '').strip()
     hot_only = request.args.get('hot') == '1'
     view_mode = request.args.get('view', 'kanban')  # 'kanban' or 'list'
+    sort = request.args.get('sort', 'date_modified_desc').strip()
 
     query = B2BLead.query
 
@@ -57,16 +60,39 @@ def list_leads():
             (B2BLead.email.ilike(search_fmt)) |
             (B2BLead.city.ilike(search_fmt)) |
             (B2BLead.location.ilike(search_fmt)) |
-            (B2BLead.lead_source.ilike(search_fmt))
+            (B2BLead.lead_source.ilike(search_fmt)) |
+            (B2BLead.assigned_to.ilike(search_fmt))
         )
 
-    all_leads = query.order_by(B2BLead.priority_score.desc(), B2BLead.created_at.desc()).all()
+    # Lead Sorting Logic (Ascending and Descending for Name, Date Modified, Date Created)
+    if sort == 'name_asc':
+        query = query.order_by(B2BLead.company_name.asc(), B2BLead.contact_name.asc())
+    elif sort == 'name_desc':
+        query = query.order_by(B2BLead.company_name.desc(), B2BLead.contact_name.desc())
+    elif sort == 'date_created_asc':
+        query = query.order_by(B2BLead.created_at.asc())
+    elif sort == 'date_created_desc':
+        query = query.order_by(B2BLead.created_at.desc())
+    elif sort == 'date_modified_asc':
+        query = query.order_by(B2BLead.updated_at.asc().nullslast(), B2BLead.created_at.asc())
+    elif sort == 'date_modified_desc':
+        query = query.order_by(B2BLead.updated_at.desc().nullslast(), B2BLead.created_at.desc())
+    else:
+        sort = 'date_modified_desc'
+        query = query.order_by(B2BLead.updated_at.desc().nullslast(), B2BLead.created_at.desc())
+
+    all_leads = query.all()
 
     # Bucket leads for Kanban view across all 11 stages
     kanban = {stage[0]: [] for stage in STAGES}
     for lead in all_leads:
         st = lead.stage if lead.stage in kanban else 'fresh_lead'
         kanban[st].append(lead)
+
+    # Calculate stage counts across the whole database for quick-nav badges
+    stage_counts_raw = db.session.query(B2BLead.stage, db.func.count(B2BLead.id)).group_by(B2BLead.stage).all()
+    stage_counts = {r[0]: r[1] for r in stage_counts_raw if r[0]}
+    total_leads_count = B2BLead.query.count()
 
     # Distinct sources for source filtering
     db_sources = [r[0] for r in db.session.query(B2BLead.lead_source).distinct().all() if r[0]]
@@ -76,6 +102,11 @@ def list_leads():
         'Outbound Cold List', 'CSV Import'
     ]
     all_sources = sorted(list(set(db_sources + default_sources)))
+
+    # Team members and known lead owners for assignment
+    db_owners = [r[0] for r in db.session.query(B2BLead.assigned_to).distinct().all() if r[0]]
+    default_owners = ['Vishnu Govind', 'Pooja Sathish', 'Sales Operations', 'Sathish Kumar']
+    all_owners = sorted(list(set(default_owners + db_owners)))
 
     # Fetch active saved email templates for Bulk Email modal
     saved_templates = CRMEmailTemplate.query.filter_by(is_active=True).order_by(CRMEmailTemplate.updated_at.desc()).all()
@@ -92,6 +123,10 @@ def list_leads():
         search=search,
         hot_only=hot_only,
         view_mode=view_mode,
+        sort=sort,
+        stage_counts=stage_counts,
+        total_leads_count=total_leads_count,
+        owners=all_owners,
         default_cc=DEFAULT_CC_EMAIL,
         store_base_url=current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
     )
@@ -626,6 +661,121 @@ def bulk_email():
         'message': msg
     })
 
+@leads_bp.route('/leads/bulk-action', methods=['POST'])
+@crm_login_required
+def bulk_action():
+    """
+    Executes bulk actions across selected leads:
+    - 'change_stage': Updates lead.stage, updates updated_at, appends audit note, adjusts priority score.
+    - 'change_owner': Updates lead.assigned_to, updates updated_at, appends audit note.
+    Returns JSON with updated lead states and stage counts for instant client-side UI reflection without reload.
+    """
+    data = request.get_json(silent=True) or request.form
+    action = (data.get('action') or '').strip()
+    raw_ids = data.get('lead_ids', [])
+
+    if isinstance(raw_ids, str):
+        try:
+            raw_ids = json.loads(raw_ids)
+        except Exception:
+            raw_ids = [int(i.strip()) for i in raw_ids.split(',') if i.strip().isdigit()]
+    elif isinstance(raw_ids, list):
+        raw_ids = [int(i) for i in raw_ids if str(i).isdigit()]
+
+    if not raw_ids:
+        return jsonify({'success': False, 'message': 'Please select at least one lead.'}), 400
+
+    leads = B2BLead.query.filter(B2BLead.id.in_(raw_ids)).all()
+    if not leads:
+        return jsonify({'success': False, 'message': 'No matching leads found.'}), 404
+
+    now = datetime.utcnow()
+    timestamp_str = now.strftime("%d %b %Y, %I:%M %p")
+
+    if action == 'change_stage':
+        new_stage = (data.get('new_stage') or data.get('stage') or '').strip()
+        valid_stages = dict([(s[0], s[1]) for s in STAGES])
+        if new_stage not in valid_stages:
+            return jsonify({'success': False, 'message': f'Invalid stage: {new_stage}'}), 400
+
+        stage_label = valid_stages[new_stage]
+        for lead in leads:
+            old_stage = lead.stage
+            lead.stage = new_stage
+            lead.updated_at = now
+            if new_stage == 'meeting_scheduled':
+                lead.update_score(30, 'Meeting scheduled (bulk)')
+            elif new_stage == 'qualified':
+                lead.update_score(40, 'Qualified prospect (bulk)')
+            elif new_stage == 'prospect':
+                lead.update_score(20, 'Prospect engaged (bulk)')
+            elif new_stage == 'converted':
+                lead.update_score(50, 'Converted to client (bulk)')
+
+            audit_entry = f"[{timestamp_str} - Bulk Action] Stage updated from '{old_stage}' to '{stage_label}'\n"
+            lead.notes = audit_entry + (lead.notes or '')
+
+        db.session.commit()
+
+        # Recalculate stage counts across the whole database
+        stage_counts_raw = db.session.query(B2BLead.stage, db.func.count(B2BLead.id)).group_by(B2BLead.stage).all()
+        stage_counts = {r[0]: r[1] for r in stage_counts_raw if r[0]}
+
+        updated_leads = []
+        for l in leads:
+            updated_leads.append({
+                'id': l.id,
+                'stage': l.stage,
+                'stage_display': l.stage_display,
+                'stage_badge_class': l.stage_badge_class,
+                'updated_at_iso': l.updated_at.isoformat() if l.updated_at else now.isoformat(),
+                'updated_at_display': 'Just now'
+            })
+
+        return jsonify({
+            'success': True,
+            'action': 'change_stage',
+            'count': len(leads),
+            'new_stage': new_stage,
+            'new_stage_label': stage_label,
+            'message': f"Successfully moved {len(leads)} lead{'s' if len(leads) > 1 else ''} to '{stage_label}'.",
+            'updated_leads': updated_leads,
+            'stage_counts': stage_counts
+        })
+
+    elif action == 'change_owner':
+        new_owner = (data.get('assigned_to') or data.get('owner') or '').strip()
+        display_owner = new_owner or 'Unassigned'
+        for lead in leads:
+            old_owner = lead.assigned_to or 'Unassigned'
+            lead.assigned_to = new_owner or None
+            lead.updated_at = now
+            audit_entry = f"[{timestamp_str} - Bulk Action] Owner reassigned from '{old_owner}' to '{display_owner}'\n"
+            lead.notes = audit_entry + (lead.notes or '')
+
+        db.session.commit()
+
+        updated_leads = []
+        for l in leads:
+            updated_leads.append({
+                'id': l.id,
+                'assigned_to': l.assigned_to or 'Unassigned',
+                'updated_at_iso': l.updated_at.isoformat() if l.updated_at else now.isoformat(),
+                'updated_at_display': 'Just now'
+            })
+
+        return jsonify({
+            'success': True,
+            'action': 'change_owner',
+            'count': len(leads),
+            'assigned_to': display_owner,
+            'message': f"Successfully assigned {len(leads)} lead{'s' if len(leads) > 1 else ''} to '{display_owner}'.",
+            'updated_leads': updated_leads
+        })
+
+    else:
+        return jsonify({'success': False, 'message': f'Unknown action: {action}'}), 400
+
 # --- Lead Multiple POC Contacts Management ---
 @leads_bp.route('/leads/<int:lead_id>/contacts/add', methods=['POST'])
 @crm_login_required
@@ -726,6 +876,7 @@ def edit_lead(lead_id):
     location = request.form.get('location', '').strip()
     lead_source = request.form.get('lead_source', '').strip()
     tags = request.form.get('tags', '').strip()
+    assigned_to = request.form.get('assigned_to', '').strip()
 
     if not company_name or not contact_name:
         flash('Company name and contact person name are required.', 'danger')
@@ -742,6 +893,8 @@ def edit_lead(lead_id):
         lead.lead_source = lead_source
     if tags is not None:
         lead.tags = tags
+    if 'assigned_to' in request.form:
+        lead.assigned_to = assigned_to or None
 
     # Synchronize primary contact record if present
     primary = lead.primary_contact
@@ -824,6 +977,10 @@ def lead_detail(lead_id):
     ]
     all_sources = sorted(list(set(db_sources + default_sources)))
 
+    db_owners = [r[0] for r in db.session.query(B2BLead.assigned_to).distinct().all() if r[0]]
+    default_owners = ['Vishnu Govind', 'Pooja Sathish', 'Sales Operations', 'Sathish Kumar']
+    all_owners = sorted(list(set(default_owners + db_owners)))
+
     return render_template(
         'crm/lead_detail.html',
         lead=lead,
@@ -831,6 +988,7 @@ def lead_detail(lead_id):
         top_products=top_products,
         stages=STAGES,
         sources=all_sources,
+        owners=all_owners,
         tracking_link=tracking_link,
         store_base_url=store_url
     )

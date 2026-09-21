@@ -47,21 +47,42 @@
     </div>
 </div>
 
+<!-- Stage Quick-Navigation Strip (Direct One-Click Navigation into 'All Leads' and Individual Funnel Stages) -->
+<div class="stage-nav-strip d-flex gap-2 overflow-x-auto pb-2 mb-3 align-items-center">
+    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}" 
+       class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 fw-bold transition-all {% if not current_stage or current_stage == 'all' %}btn-dark text-white shadow-sm{% else %}btn-outline-secondary text-dark bg-white border{% endif %}">
+        <i class="bi bi-grid-fill me-1"></i>All Leads
+        <span class="badge {% if not current_stage or current_stage == 'all' %}bg-white text-dark{% else %}bg-secondary text-white{% endif %} ms-1.5 rounded-pill" id="stage-count-all">
+            {{ total_leads_count }}
+        </span>
+    </a>
+    {% for st_key, st_label, st_badge in stages %}
+    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, stage=st_key, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}" 
+       class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 transition-all {% if current_stage == st_key %}btn-dark text-white shadow-sm fw-bold{% else %}btn-outline-secondary text-secondary bg-white border{% endif %}">
+        {{ st_label }}
+        <span class="badge {% if current_stage == st_key %}bg-white text-dark{% else %}bg-light text-dark border{% endif %} ms-1.5 rounded-pill" id="stage-count-{{ st_key }}">
+            {{ stage_counts.get(st_key, 0) }}
+        </span>
+    </a>
+    {% endfor %}
+</div>
+
 <!-- Search & Filters Toolbar -->
 <div class="crm-card p-3 mb-4">
-    <form method="GET" action="{{ url_for('crm_leads.list_leads') }}" class="row g-2 align-items-center">
+    <form method="GET" action="{{ url_for('crm_leads.list_leads') }}" id="leadFilterForm" class="row g-2 align-items-center">
         <input type="hidden" name="view" value="{{ view_mode }}">
+        <input type="hidden" name="sort" id="filterSortInput" value="{{ sort }}">
         
-        <div class="col-md-4">
+        <div class="col-md-3">
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
-                <input type="text" name="q" value="{{ search }}" class="form-control crm-input" placeholder="Search company, contact, email, city, location...">
+                <input type="text" name="q" value="{{ search }}" class="form-control crm-input" placeholder="Search company, contact, owner, city...">
             </div>
         </div>
 
         <!-- Stage Filter (11 Stages) -->
-        <div class="col-md-3">
-            <select name="stage" class="form-select form-select-sm crm-input">
+        <div class="col-md-2">
+            <select name="stage" class="form-select form-select-sm crm-input" onchange="this.form.submit()">
                 <option value="">All Stages (11 Funnel Steps)</option>
                 {% for st, label, badge in stages %}
                     <option value="{{ st }}" {% if current_stage == st %}selected{% endif %}>{{ label }}</option>
@@ -71,12 +92,27 @@
 
         <!-- Source Filter -->
         <div class="col-md-2">
-            <select name="source" class="form-select form-select-sm crm-input">
+            <select name="source" class="form-select form-select-sm crm-input" onchange="this.form.submit()">
                 <option value="">All Lead Sources</option>
                 {% for src in sources %}
                     <option value="{{ src }}" {% if current_source == src %}selected{% endif %}>{{ src }}</option>
                 {% endfor %}
             </select>
+        </div>
+
+        <!-- In-Place Lead Sorting Option (Name, Date Modified, Date Created - Asc & Desc) -->
+        <div class="col-md-3">
+            <div class="input-group input-group-sm">
+                <span class="input-group-text bg-light text-muted border" title="Sort Leads"><i class="bi bi-arrow-down-up me-1"></i>Sort</span>
+                <select id="leadSortSelect" class="form-select form-select-sm crm-input" onchange="changeLeadSort(this.value)">
+                    <option value="date_modified_desc" {% if sort == 'date_modified_desc' %}selected{% endif %}>Date Modified (Newest first)</option>
+                    <option value="date_modified_asc" {% if sort == 'date_modified_asc' %}selected{% endif %}>Date Modified (Oldest first)</option>
+                    <option value="date_created_desc" {% if sort == 'date_created_desc' %}selected{% endif %}>Date Created (Newest first)</option>
+                    <option value="date_created_asc" {% if sort == 'date_created_asc' %}selected{% endif %}>Date Created (Oldest first)</option>
+                    <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name (A &rarr; Z)</option>
+                    <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name (Z &rarr; A)</option>
+                </select>
+            </div>
         </div>
 
         <div class="col-md-1">
@@ -86,9 +122,9 @@
             </div>
         </div>
 
-        <div class="col-md-2 d-flex gap-2 justify-content-end">
+        <div class="col-md-1 d-flex gap-1 justify-content-end">
             <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Filter</button>
-            {% if search or current_stage or current_source or hot_only %}
+            {% if search or current_stage or current_source or hot_only or sort != 'date_modified_desc' %}
                 <a href="{{ url_for('crm_leads.list_leads', view=view_mode) }}" class="btn btn-sm btn-outline-danger" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </div>
@@ -109,8 +145,30 @@
 
         <div class="kanban-cards">
             {% for lead in kanban[st_key] %}
-            <div class="kanban-card position-relative" onclick="window.location.href='{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}'">
-                <div class="d-flex justify-content-between align-items-start mb-2">
+            <div class="kanban-card position-relative" id="lead-card-{{ lead.id }}"
+                 data-id="{{ lead.id }}"
+                 data-name="{{ (lead.company_name ~ ' ' ~ lead.contact_name)|lower }}"
+                 data-date-modified="{{ lead.updated_at.isoformat() if lead.updated_at else '' }}"
+                 data-date-created="{{ lead.created_at.isoformat() if lead.created_at else '' }}"
+                 data-stage="{{ lead.stage }}"
+                 data-owner="{{ lead.assigned_to or '' }}"
+                 onclick="window.location.href='{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}'">
+                
+                <!-- Discrete Checkbox for Kanban card bulk selection -->
+                <div class="position-absolute" style="top: 8px; right: 8px;" onclick="event.stopPropagation()">
+                    <input type="checkbox" class="form-check-input lead-checkbox shadow-sm"
+                           value="{{ lead.id }}"
+                           data-id="{{ lead.id }}"
+                           data-name="{{ lead.contact_name }}"
+                           data-company="{{ lead.company_name }}"
+                           data-email="{{ lead.email or '' }}"
+                           data-stage="{{ lead.stage }}"
+                           data-source="{{ lead.lead_source or '' }}"
+                           data-owner="{{ lead.assigned_to or '' }}"
+                           title="Select lead for bulk action">
+                </div>
+
+                <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
                     <span class="fw-bold text-dark fs-6 mb-0">{{ lead.company_name }}</span>
                     <span class="badge {{ lead.priority_badge_class }} small" style="font-size: 0.7rem;">
                         {{ lead.priority_score }} pts
@@ -122,6 +180,15 @@
                     {% if lead.designation %}
                         <span class="text-muted">({{ lead.designation }})</span>
                     {% endif %}
+                </div>
+
+                <!-- Lead Owner Tag -->
+                <div class="small mb-1 d-flex align-items-center gap-1">
+                    <i class="bi bi-person-badge text-muted" style="font-size: 0.72rem;"></i>
+                    <span class="text-muted" style="font-size: 0.7rem;">Owner:</span>
+                    <span class="badge bg-light text-dark border px-1.5 py-0.5" id="kanban-owner-{{ lead.id }}" style="font-size: 0.68rem;">
+                        {{ lead.assigned_to or 'Unassigned' }}
+                    </span>
                 </div>
 
                 <!-- Source Tag -->
@@ -150,8 +217,8 @@
                     <span class="badge bg-light text-warning border" style="font-size: 0.68rem;">
                         <i class="bi bi-box-arrow-in-right me-1"></i>{{ lead.login_count }} logins
                     </span>
-                    <span class="text-muted" style="font-size: 0.72rem;">
-                        {{ lead.last_active_at|time_ago }}
+                    <span class="text-muted" style="font-size: 0.72rem;" id="kanban-modified-{{ lead.id }}">
+                        {{ lead.updated_at|time_ago if lead.updated_at else lead.created_at|time_ago }}
                     </span>
                 </div>
             </div>
@@ -166,28 +233,43 @@
 </div>
 
 {% else %}
-<!-- Table List View with Checkboxes and Floating Bulk Actions -->
+<!-- Table List View with Checkboxes and In-Place Sorting -->
 <div class="crm-card p-0 overflow-hidden mb-5">
     <div class="table-responsive">
         <table class="table crm-table align-middle mb-0" id="leadsTable">
             <thead>
                 <tr>
                     <th style="width: 40px;" class="text-center">
-                        <input type="checkbox" class="form-check-input" id="selectAllLeads" title="Select All">
+                        <input type="checkbox" class="form-check-input" id="selectAllLeads" title="Select All Visible Leads">
                     </th>
-                    <th>Company &amp; Source</th>
-                    <th>Contact Person</th>
+                    <th class="cursor-pointer" onclick="toggleSort('name')" title="Click to sort by Company / Contact Name">
+                        Company &amp; Contact 
+                        <i class="bi {% if sort == 'name_asc' %}bi-sort-alpha-down text-warning{% elif sort == 'name_desc' %}bi-sort-alpha-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1" id="sort-icon-name"></i>
+                    </th>
                     <th>Stage</th>
+                    <th>Lead Owner</th>
                     <th>Location / City</th>
                     <th>Intent Score</th>
-                    <th>Logins</th>
-                    <th>Last Active</th>
+                    <th class="cursor-pointer" onclick="toggleSort('date_created')" title="Click to sort by Date Created">
+                        Created
+                        <i class="bi {% if sort == 'date_created_asc' %}bi-sort-numeric-down text-warning{% elif sort == 'date_created_desc' %}bi-sort-numeric-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1" id="sort-icon-date_created"></i>
+                    </th>
+                    <th class="cursor-pointer" onclick="toggleSort('date_modified')" title="Click to sort by Date Modified">
+                        Last Active / Modified
+                        <i class="bi {% if sort == 'date_modified_asc' %}bi-sort-numeric-down text-warning{% elif sort == 'date_modified_desc' %}bi-sort-numeric-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1" id="sort-icon-date_modified"></i>
+                    </th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for lead in leads %}
-                <tr id="lead-row-{{ lead.id }}">
+                <tr id="lead-row-{{ lead.id }}"
+                    data-id="{{ lead.id }}"
+                    data-name="{{ (lead.company_name ~ ' ' ~ lead.contact_name)|lower }}"
+                    data-date-modified="{{ lead.updated_at.isoformat() if lead.updated_at else '' }}"
+                    data-date-created="{{ lead.created_at.isoformat() if lead.created_at else '' }}"
+                    data-stage="{{ lead.stage }}"
+                    data-owner="{{ lead.assigned_to or '' }}">
                     <td class="text-center">
                         <input type="checkbox" class="form-check-input lead-checkbox" 
                                value="{{ lead.id }}"
@@ -196,37 +278,41 @@
                                data-company="{{ lead.company_name }}"
                                data-email="{{ lead.email or '' }}"
                                data-stage="{{ lead.stage }}"
-                               data-source="{{ lead.lead_source or '' }}">
+                               data-source="{{ lead.lead_source or '' }}"
+                               data-owner="{{ lead.assigned_to or '' }}">
                     </td>
                     <td>
                         <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="fw-bold text-dark text-decoration-none">
                             {{ lead.company_name }}
                         </a>
-                        <div>
+                        <div class="text-muted small">
+                            <i class="bi bi-person me-1"></i>{{ lead.contact_name }}
+                            {% if lead.designation %}
+                                <span>&bull; {{ lead.designation }}</span>
+                            {% endif %}
+                        </div>
+                        <div class="small mt-1 d-flex flex-wrap gap-2 align-items-center">
                             {% if lead.lead_source %}
-                            <span class="badge-source badge-source-{{ lead.lead_source.lower().replace(' ', '_') }} mt-1">
+                            <span class="badge-source badge-source-{{ lead.lead_source.lower().replace(' ', '_') }}">
                                 {{ lead.lead_source }}
                             </span>
                             {% endif %}
-                        </div>
-                    </td>
-                    <td>
-                        <div class="text-dark fw-medium small">{{ lead.contact_name }}</div>
-                        <div class="text-muted small">
-                            {% if lead.designation %}{{ lead.designation }}{% else %}<span class="opacity-50">—</span>{% endif %}
-                        </div>
-                        <div class="small mt-1">
                             {% if lead.phone %}
-                                <a href="tel:{{ lead.phone }}" class="text-success text-decoration-none me-2"><i class="bi bi-telephone-fill me-1"></i>{{ lead.phone }}</a>
+                                <a href="tel:{{ lead.phone }}" class="text-success text-decoration-none" title="Call primary phone"><i class="bi bi-telephone-fill me-1"></i>{{ lead.phone }}</a>
                             {% endif %}
                             {% if lead.email %}
-                                <a href="mailto:{{ lead.email }}" class="text-muted text-decoration-none"><i class="bi bi-envelope-fill me-1"></i>{{ lead.email }}</a>
+                                <a href="mailto:{{ lead.email }}" class="text-muted text-decoration-none" title="Send email"><i class="bi bi-envelope-fill me-1"></i>{{ lead.email }}</a>
                             {% endif %}
                         </div>
                     </td>
                     <td>
-                        <span class="stage-badge {{ lead.stage_badge_class }}">
+                        <span class="stage-badge {{ lead.stage_badge_class }}" id="lead-stage-badge-{{ lead.id }}">
                             {{ lead.stage_display }}
+                        </span>
+                    </td>
+                    <td>
+                        <span class="badge bg-light text-dark border px-2 py-1 lead-owner-badge" id="lead-owner-badge-{{ lead.id }}">
+                            <i class="bi bi-person-badge text-primary me-1"></i><span class="owner-text">{{ lead.assigned_to or 'Unassigned' }}</span>
                         </span>
                     </td>
                     <td>
@@ -247,12 +333,19 @@
                         <span class="badge {{ lead.priority_badge_class }} px-2.5 py-1 rounded-pill fw-bold">
                             {{ lead.priority_score }} pts
                         </span>
+                        <div class="text-muted mt-0.5" style="font-size: 0.7rem;">
+                            {{ lead.login_count }} logins
+                        </div>
                     </td>
                     <td>
-                        <span class="text-warning fw-bold small">{{ lead.login_count }}</span>
+                        <span class="small text-muted text-nowrap">
+                            {{ lead.created_at.strftime('%d %b %Y') if lead.created_at else '—' }}
+                        </span>
                     </td>
                     <td>
-                        <span class="small text-muted">{{ lead.last_active_at|time_ago }}</span>
+                        <span class="small text-muted lead-modified-badge text-nowrap" id="lead-modified-{{ lead.id }}" title="{{ lead.updated_at.strftime('%d %b %Y %H:%M') if lead.updated_at else '' }}">
+                            {{ lead.updated_at|time_ago if lead.updated_at else lead.created_at|time_ago }}
+                        </span>
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
@@ -268,7 +361,7 @@
                     </td>
                 </tr>
                 {% else %}
-                <tr>
+                <tr id="no-leads-row">
                     <td colspan="9" class="text-center py-5 text-muted">
                         No corporate leads found matching criteria.
                     </td>
@@ -278,25 +371,131 @@
         </table>
     </div>
 </div>
+{% endif %}
 
-<!-- Floating Bulk Actions Bar (Revealed when rows are selected) -->
+<!-- Floating Bulk Actions Bar (Revealed when 1 or more leads are selected in Table or Kanban) -->
 <div id="bulkActionsBar" class="bulk-actions-bar d-none">
     <div class="d-flex align-items-center gap-2">
         <i class="bi bi-check2-circle text-warning fs-5"></i>
         <span class="fw-bold" id="selectedCountDisplay">0 leads selected</span>
     </div>
     <div class="vr bg-secondary opacity-50 mx-1"></div>
+
+    <!-- Bulk Action 1: Change Stage -->
+    <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark" onclick="openBulkChangeStageModal()" title="Change stage for all selected leads">
+        <i class="bi bi-arrow-left-right me-1"></i>Change Stage
+    </button>
+
+    <!-- Bulk Action 2: Change Lead Owner -->
+    <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold" onclick="openBulkChangeOwnerModal()" title="Assign owner to all selected leads">
+        <i class="bi bi-person-badge-fill me-1"></i>Change Lead Owner
+    </button>
+
+    <!-- Bulk Action 3: Send Bulk Email -->
     <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-3 fw-bold" onclick="openBulkEmailWithSelected()">
         <i class="bi bi-envelope-fill me-1"></i>Send Bulk Email
     </button>
+
+    <!-- Bulk Action 4: Export Selected -->
     <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3" onclick="exportSelectedLeads()">
-        <i class="bi bi-file-earmark-arrow-down me-1"></i>Export Selected
+        <i class="bi bi-file-earmark-arrow-down me-1"></i>Export
     </button>
+
     <button type="button" class="btn btn-link text-white-50 btn-sm p-0 ms-2 text-decoration-none" onclick="clearLeadSelection()">
         <i class="bi bi-x-lg me-1"></i>Cancel
     </button>
 </div>
-{% endif %}
+
+<!-- Realtime CRM Notification Toast -->
+<div class="position-fixed top-0 end-0 p-3" style="z-index: 1090;">
+    <div id="crmNotificationToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body py-2 px-3 small d-flex align-items-center gap-2" id="crmNotificationMessage">
+                <i class="bi bi-check-circle-fill text-success fs-6"></i>
+                <span>Action completed successfully.</span>
+            </div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bulk Change Stage -->
+<div class="modal fade crm-modal" id="bulkChangeStageModal" tabindex="-1" aria-labelledby="bulkChangeStageModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="bulkChangeStageModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-arrow-left-right text-warning me-2"></i>Change Stage in Bulk
+                    </h5>
+                    <small class="text-muted">Move <strong id="bulkStageSelectedCount" class="text-dark">0</strong> selected leads to another marketing funnel stage.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Select New Funnel Stage *</label>
+                    <select id="bulkNewStageSelect" class="form-select crm-input">
+                        {% for st_key, st_label, st_badge in stages %}
+                        <option value="{{ st_key }}">{{ st_label }}</option>
+                        {% endfor %}
+                    </select>
+                </div>
+                <div class="alert alert-light border small text-muted mb-0">
+                    <i class="bi bi-info-circle me-1 text-primary"></i>
+                    All selected records will be updated immediately in-place on this screen, and an audit trail entry will be recorded in each prospect's dossier.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkStage" onclick="executeBulkChangeStage()">
+                    <i class="bi bi-check2-circle me-1"></i>Apply Stage Change
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bulk Change Lead Owner -->
+<div class="modal fade crm-modal" id="bulkChangeOwnerModal" tabindex="-1" aria-labelledby="bulkChangeOwnerModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark" id="bulkChangeOwnerModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-person-badge-fill text-warning me-2"></i>Change Lead Owner in Bulk
+                    </h5>
+                    <small class="text-muted">Assign <strong id="bulkOwnerSelectedCount" class="text-dark">0</strong> selected leads to an account owner.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="mb-3">
+                    <label class="form-label small text-muted fw-bold">Assignee / Lead Owner *</label>
+                    <select id="bulkOwnerSelect" class="form-select crm-input mb-2" onchange="toggleCustomOwnerInput(this.value)">
+                        <option value="">-- Select Team Member --</option>
+                        {% for ow in owners %}
+                        <option value="{{ ow }}">{{ ow }}</option>
+                        {% endfor %}
+                        <option value="__custom__">&plus; Enter Custom Owner Name...</option>
+                        <option value="__unassign__">&times; Unassigned (Clear Owner)</option>
+                    </select>
+                    <input type="text" id="bulkCustomOwnerInput" class="form-control crm-input d-none" placeholder="Enter owner's full name (e.g. Vishnu Govind, Pooja Sathish)...">
+                </div>
+                <div class="alert alert-light border small text-muted mb-0">
+                    <i class="bi bi-shield-check me-1 text-success"></i>
+                    The lead owner will be synced across all selected records and will appear immediately on the table, cards, and dossier.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkOwner" onclick="executeBulkChangeOwner()">
+                    <i class="bi bi-person-check-fill me-1"></i>Assign Owner
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
 
 <!-- ================= MODALS ================= -->
 
@@ -754,12 +953,404 @@ function detectCurrentLocation(inputFieldId, cityFieldId, btnElement) {
     );
 }
 
-// Table Row Selection Handling
-document.addEventListener("DOMContentLoaded", function() {
-    const selectAllCheck = document.getElementById("selectAllLeads");
+let activeSortKey = "{{ sort or 'date_modified_desc' }}";
+
+// Realtime CRM Notification Toast helper
+function showCrmToast(message, isSuccess = true) {
+    const toastEl = document.getElementById('crmNotificationToast');
+    const msgEl = document.getElementById('crmNotificationMessage');
+    if (!toastEl || !msgEl) return;
+
+    msgEl.innerHTML = isSuccess 
+        ? `<i class="bi bi-check-circle-fill text-success fs-6"></i><span>${message}</span>`
+        : `<i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i><span>${message}</span>`;
+
+    const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
+    toast.show();
+}
+
+// Bulk Actions: Change Stage
+function openBulkChangeStageModal() {
+    if (selectedLeadIds.length === 0) {
+        alert("Please select at least one lead first.");
+        return;
+    }
+    document.getElementById('bulkStageSelectedCount').textContent = selectedLeadIds.length;
+    const modal = new bootstrap.Modal(document.getElementById('bulkChangeStageModal'));
+    modal.show();
+}
+
+async function executeBulkChangeStage() {
+    const newStage = document.getElementById('bulkNewStageSelect').value;
+    const btn = document.getElementById('btnExecuteBulkStage');
+    if (!newStage) return;
+
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Updating...';
+
+    try {
+        const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({
+                action: "change_stage",
+                lead_ids: selectedLeadIds,
+                new_stage: newStage
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            // Update each lead record in the DOM immediately
+            data.updated_leads.forEach(l => {
+                // Update Table Row
+                const row = document.getElementById(`lead-row-${l.id}`);
+                if (row) {
+                    row.dataset.stage = l.stage;
+                    row.dataset.dateModified = l.updated_at_iso;
+                    const badge = document.getElementById(`lead-stage-badge-${l.id}`);
+                    if (badge) {
+                        badge.className = `stage-badge ${l.stage_badge_class}`;
+                        badge.textContent = l.stage_display;
+                    }
+                    const modBadge = document.getElementById(`lead-modified-${l.id}`);
+                    if (modBadge) modBadge.textContent = l.updated_at_display;
+                    row.classList.remove('row-highlight-flash');
+                    void row.offsetWidth; // trigger CSS reflow
+                    row.classList.add('row-highlight-flash');
+                }
+
+                // Update Kanban Card
+                const card = document.getElementById(`lead-card-${l.id}`);
+                if (card) {
+                    card.dataset.stage = l.stage;
+                    card.dataset.dateModified = l.updated_at_iso;
+                    const modBadge = document.getElementById(`kanban-modified-${l.id}`);
+                    if (modBadge) modBadge.textContent = l.updated_at_display;
+                    card.classList.remove('row-highlight-flash');
+                    void card.offsetWidth;
+                    card.classList.add('row-highlight-flash');
+                }
+            });
+
+            // Update stage counts across navigation strip
+            if (data.stage_counts) {
+                let total = 0;
+                for (const [stKey, count] of Object.entries(data.stage_counts)) {
+                    total += count;
+                    const countBadge = document.getElementById(`stage-count-${stKey}`);
+                    if (countBadge) countBadge.textContent = count;
+                }
+                const allBadge = document.getElementById('stage-count-all');
+                if (allBadge) allBadge.textContent = total;
+            }
+
+            // Hide modal & clear selection
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkChangeStageModal'));
+            if (modalInstance) modalInstance.hide();
+            clearLeadSelection();
+            showCrmToast(data.message);
+        } else {
+            alert(data.message || 'Failed to update stages');
+        }
+    } catch (err) {
+        alert("Network error: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// Bulk Actions: Change Owner
+function openBulkChangeOwnerModal() {
+    if (selectedLeadIds.length === 0) {
+        alert("Please select at least one lead first.");
+        return;
+    }
+    document.getElementById('bulkOwnerSelectedCount').textContent = selectedLeadIds.length;
+    document.getElementById('bulkOwnerSelect').value = '';
+    document.getElementById('bulkCustomOwnerInput').value = '';
+    document.getElementById('bulkCustomOwnerInput').classList.add('d-none');
+    const modal = new bootstrap.Modal(document.getElementById('bulkChangeOwnerModal'));
+    modal.show();
+}
+
+function toggleCustomOwnerInput(val) {
+    const customInput = document.getElementById('bulkCustomOwnerInput');
+    if (val === '__custom__') {
+        customInput.classList.remove('d-none');
+        customInput.focus();
+    } else {
+        customInput.classList.add('d-none');
+    }
+}
+
+async function executeBulkChangeOwner() {
+    const selectVal = document.getElementById('bulkOwnerSelect').value;
+    const customVal = document.getElementById('bulkCustomOwnerInput').value.trim();
+    const btn = document.getElementById('btnExecuteBulkOwner');
+
+    let chosenOwner = '';
+    if (selectVal === '__custom__') {
+        if (!customVal) {
+            alert("Please enter a custom owner name.");
+            return;
+        }
+        chosenOwner = customVal;
+    } else if (selectVal === '__unassign__') {
+        chosenOwner = '';
+    } else {
+        if (!selectVal) {
+            alert("Please select a team member or enter a name.");
+            return;
+        }
+        chosenOwner = selectVal;
+    }
+
+    btn.disabled = true;
+    const origHtml = btn.innerHTML;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Assigning...';
+
+    try {
+        const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+                "X-Requested-With": "XMLHttpRequest"
+            },
+            body: JSON.stringify({
+                action: "change_owner",
+                lead_ids: selectedLeadIds,
+                assigned_to: chosenOwner
+            })
+        });
+
+        const data = await response.json();
+        if (data.success) {
+            data.updated_leads.forEach(l => {
+                // Table row
+                const row = document.getElementById(`lead-row-${l.id}`);
+                if (row) {
+                    row.dataset.owner = l.assigned_to;
+                    row.dataset.dateModified = l.updated_at_iso;
+                    const ownerBadge = document.getElementById(`lead-owner-badge-${l.id}`);
+                    if (ownerBadge) {
+                        const ownerText = ownerBadge.querySelector('.owner-text');
+                        if (ownerText) ownerText.textContent = l.assigned_to;
+                    }
+                    const modBadge = document.getElementById(`lead-modified-${l.id}`);
+                    if (modBadge) modBadge.textContent = l.updated_at_display;
+                    row.classList.remove('row-highlight-flash');
+                    void row.offsetWidth;
+                    row.classList.add('row-highlight-flash');
+                }
+
+                // Kanban card
+                const card = document.getElementById(`lead-card-${l.id}`);
+                if (card) {
+                    card.dataset.owner = l.assigned_to;
+                    card.dataset.dateModified = l.updated_at_iso;
+                    const kanbanOwner = document.getElementById(`kanban-owner-${l.id}`);
+                    if (kanbanOwner) kanbanOwner.textContent = l.assigned_to;
+                    const modBadge = document.getElementById(`kanban-modified-${l.id}`);
+                    if (modBadge) modBadge.textContent = l.updated_at_display;
+                    card.classList.remove('row-highlight-flash');
+                    void card.offsetWidth;
+                    card.classList.add('row-highlight-flash');
+                }
+            });
+
+            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkChangeOwnerModal'));
+            if (modalInstance) modalInstance.hide();
+            clearLeadSelection();
+            showCrmToast(data.message);
+        } else {
+            alert(data.message || 'Failed to assign owner');
+        }
+    } catch (err) {
+        alert("Network error: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// In-Place Lead Sorting Logic (Name, Date Modified, Date Created with Asc & Desc)
+function changeLeadSort(sortKey) {
+    if (!sortKey) return;
+    activeSortKey = sortKey;
+
+    // 1. Sort DOM elements in place without navigating away
+    sortLeadTableRows(sortKey);
+    sortKanbanCards(sortKey);
+
+    // 2. Synchronize dropdown & hidden form inputs
+    const select = document.getElementById('leadSortSelect');
+    if (select) select.value = sortKey;
+    const hiddenSort = document.getElementById('filterSortInput');
+    if (hiddenSort) hiddenSort.value = sortKey;
+
+    // 3. Update table header sort icons
+    updateSortIcons(sortKey);
+
+    // 4. Persist sorting preference in localStorage so it stays active
+    localStorage.setItem('crm_lead_sort_pref', sortKey);
+
+    // 5. Update browser URL history without navigation
+    try {
+        const url = new URL(window.location);
+        url.searchParams.set('sort', sortKey);
+        window.history.replaceState({}, '', url);
+    } catch (e) {}
+}
+
+function toggleSort(col) {
+    let newSort = '';
+    if (col === 'name') {
+        newSort = (activeSortKey === 'name_asc') ? 'name_desc' : 'name_asc';
+    } else if (col === 'date_created') {
+        newSort = (activeSortKey === 'date_created_desc') ? 'date_created_asc' : 'date_created_desc';
+    } else if (col === 'date_modified') {
+        newSort = (activeSortKey === 'date_modified_desc') ? 'date_modified_asc' : 'date_modified_desc';
+    }
+    if (newSort) {
+        changeLeadSort(newSort);
+    }
+}
+
+function sortLeadTableRows(sortKey) {
+    const tbody = document.querySelector("#leadsTable tbody");
+    if (!tbody) return;
+
+    const rows = Array.from(tbody.querySelectorAll('tr[id^="lead-row-"]'));
+    if (rows.length === 0) return;
+
+    rows.sort((a, b) => {
+        if (sortKey === 'name_asc') {
+            return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+        } else if (sortKey === 'name_desc') {
+            return (b.dataset.name || '').localeCompare(a.dataset.name || '');
+        } else if (sortKey === 'date_created_asc') {
+            return (a.dataset.dateCreated || '').localeCompare(b.dataset.dateCreated || '');
+        } else if (sortKey === 'date_created_desc') {
+            return (b.dataset.dateCreated || '').localeCompare(a.dataset.dateCreated || '');
+        } else if (sortKey === 'date_modified_asc') {
+            return (a.dataset.dateModified || '').localeCompare(b.dataset.dateModified || '');
+        } else if (sortKey === 'date_modified_desc') {
+            return (b.dataset.dateModified || '').localeCompare(a.dataset.dateModified || '');
+        }
+        return 0;
+    });
+
+    // Re-append sorted rows to tbody in order
+    rows.forEach(r => tbody.appendChild(r));
+}
+
+function sortKanbanCards(sortKey) {
+    const cardContainers = document.querySelectorAll('.kanban-cards');
+    cardContainers.forEach(container => {
+        const cards = Array.from(container.querySelectorAll('.kanban-card[id^="lead-card-"]'));
+        if (cards.length <= 1) return;
+
+        cards.sort((a, b) => {
+            if (sortKey === 'name_asc') {
+                return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+            } else if (sortKey === 'name_desc') {
+                return (b.dataset.name || '').localeCompare(a.dataset.name || '');
+            } else if (sortKey === 'date_created_asc') {
+                return (a.dataset.dateCreated || '').localeCompare(b.dataset.dateCreated || '');
+            } else if (sortKey === 'date_created_desc') {
+                return (b.dataset.dateCreated || '').localeCompare(a.dataset.dateCreated || '');
+            } else if (sortKey === 'date_modified_asc') {
+                return (a.dataset.dateModified || '').localeCompare(b.dataset.dateModified || '');
+            } else if (sortKey === 'date_modified_desc') {
+                return (b.dataset.dateModified || '').localeCompare(a.dataset.dateModified || '');
+            }
+            return 0;
+        });
+
+        cards.forEach(c => container.appendChild(c));
+    });
+}
+
+function updateSortIcons(sortKey) {
+    const nameIcon = document.getElementById('sort-icon-name');
+    const createdIcon = document.getElementById('sort-icon-date_created');
+    const modIcon = document.getElementById('sort-icon-date_modified');
+
+    if (nameIcon) {
+        if (sortKey === 'name_asc') {
+            nameIcon.className = 'bi bi-sort-alpha-down text-warning ms-1';
+        } else if (sortKey === 'name_desc') {
+            nameIcon.className = 'bi bi-sort-alpha-up-alt text-warning ms-1';
+        } else {
+            nameIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
+        }
+    }
+
+    if (createdIcon) {
+        if (sortKey === 'date_created_asc') {
+            createdIcon.className = 'bi bi-sort-numeric-down text-warning ms-1';
+        } else if (sortKey === 'date_created_desc') {
+            createdIcon.className = 'bi bi-sort-numeric-up-alt text-warning ms-1';
+        } else {
+            createdIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
+        }
+    }
+
+    if (modIcon) {
+        if (sortKey === 'date_modified_asc') {
+            modIcon.className = 'bi bi-sort-numeric-down text-warning ms-1';
+        } else if (sortKey === 'date_modified_desc') {
+            modIcon.className = 'bi bi-sort-numeric-up-alt text-warning ms-1';
+        } else {
+            modIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
+        }
+    }
+}
+
+// Checkbox Selection Handling (Table & Kanban)
+function updateSelectionState() {
+    selectedLeadIds = [];
     const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
     const bulkBar = document.getElementById("bulkActionsBar");
     const countDisplay = document.getElementById("selectedCountDisplay");
+    const selectAllCheck = document.getElementById("selectAllLeads");
+
+    rowCheckboxes.forEach(cb => {
+        if (cb.checked) {
+            selectedLeadIds.push(cb.value);
+        }
+    });
+
+    if (selectedLeadIds.length > 0) {
+        if (bulkBar) {
+            bulkBar.classList.remove("d-none");
+            countDisplay.textContent = `${selectedLeadIds.length} lead${selectedLeadIds.length > 1 ? 's' : ''} selected`;
+        }
+    } else {
+        if (bulkBar) bulkBar.classList.add("d-none");
+        if (selectAllCheck) selectAllCheck.checked = false;
+    }
+}
+
+function clearLeadSelection() {
+    const selectAllCheck = document.getElementById("selectAllLeads");
+    const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
+    const bulkBar = document.getElementById("bulkActionsBar");
+    if (selectAllCheck) selectAllCheck.checked = false;
+    rowCheckboxes.forEach(cb => cb.checked = false);
+    selectedLeadIds = [];
+    if (bulkBar) bulkBar.classList.add("d-none");
+}
+
+document.addEventListener("DOMContentLoaded", function() {
+    const selectAllCheck = document.getElementById("selectAllLeads");
+    const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
 
     if (selectAllCheck) {
         selectAllCheck.addEventListener("change", function() {
@@ -776,38 +1367,19 @@ document.addEventListener("DOMContentLoaded", function() {
         });
     });
 
-    function updateSelectionState() {
-        selectedLeadIds = [];
-        rowCheckboxes.forEach(cb => {
-            if (cb.checked) {
-                selectedLeadIds.push(cb.value);
-            }
-        });
-
-        if (selectedLeadIds.length > 0) {
-            if (bulkBar) {
-                bulkBar.classList.remove("d-none");
-                countDisplay.textContent = `${selectedLeadIds.length} lead${selectedLeadIds.length > 1 ? 's' : ''} selected`;
-            }
-        } else {
-            if (bulkBar) bulkBar.classList.add("d-none");
-            if (selectAllCheck) selectAllCheck.checked = false;
-        }
+    // Check stored sorting preference in localStorage
+    const savedSort = localStorage.getItem('crm_lead_sort_pref');
+    const urlSort = new URLSearchParams(window.location.search).get('sort');
+    const effectiveSort = urlSort || savedSort || activeSortKey;
+    if (effectiveSort && effectiveSort !== activeSortKey) {
+        changeLeadSort(effectiveSort);
+    } else {
+        updateSortIcons(activeSortKey);
     }
 
     // Default template on load
     applyEmailTemplate('festive_pitch');
 });
-
-function clearLeadSelection() {
-    const selectAllCheck = document.getElementById("selectAllLeads");
-    const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
-    const bulkBar = document.getElementById("bulkActionsBar");
-    if (selectAllCheck) selectAllCheck.checked = false;
-    rowCheckboxes.forEach(cb => cb.checked = false);
-    selectedLeadIds = [];
-    if (bulkBar) bulkBar.classList.add("d-none");
-}
 
 function openBulkEmailWithSelected() {
     if (selectedLeadIds.length === 0) {
