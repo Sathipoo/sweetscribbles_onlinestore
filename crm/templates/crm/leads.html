@@ -197,7 +197,8 @@
                         data-id="{{ lead.id }}" data-name="{{ lead.contact_name }}"
                         data-company="{{ lead.company_name }}" data-email="{{ lead.email or '' }}"
                         data-stage="{{ lead.stage }}" data-source="{{ lead.lead_source or '' }}"
-                        data-owner="{{ lead.assigned_to or '' }}" title="Select lead for bulk action">
+                        data-owner="{{ lead.assigned_to or '' }}" title="Select lead for bulk action"
+                        onchange="updateSelectionState()">
                 </div>
 
                 <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
@@ -275,7 +276,7 @@
                 <tr>
                     <th style="width: 40px;" class="text-center">
                         <input type="checkbox" class="form-check-input" id="selectAllLeads"
-                            title="Select All Visible Leads">
+                            onchange="toggleSelectAllLeads(this)" title="Select All Visible Leads">
                     </th>
                     <th class="cursor-pointer" onclick="toggleSort('name')"
                         title="Click to sort by Company / Contact Name">
@@ -314,7 +315,7 @@
                             data-id="{{ lead.id }}" data-name="{{ lead.contact_name }}"
                             data-company="{{ lead.company_name }}" data-email="{{ lead.email or '' }}"
                             data-stage="{{ lead.stage }}" data-source="{{ lead.lead_source or '' }}"
-                            data-owner="{{ lead.assigned_to or '' }}">
+                            data-owner="{{ lead.assigned_to or '' }}" onchange="updateSelectionState()">
                     </td>
                     <td>
                         <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}"
@@ -932,11 +933,11 @@
     {% if saved_templates %}
     {% for t in saved_templates %}
     "tpl_{{ t.id }}": {
-        id: { { t.id } },
-        name: { { t.name | tojson } },
-        subject: { { t.subject | tojson } },
-        content_html: { { (t.content_html or '')| tojson } },
-        default_cc: { { (t.default_cc or 'Vishnu.govind@pikachooz.com')| tojson } }
+        id: {{ t.id }},
+        name: {{ t.name | tojson }},
+        subject: {{ t.subject | tojson }},
+        content_html: {{ (t.content_html or '') | tojson }},
+        default_cc: {{ (t.default_cc or 'Vishnu.govind@pikachooz.com') | tojson }}
     },
     {% endfor %}
     {% endif %}
@@ -1523,12 +1524,26 @@ Corporate Gifting Director, Sweet Scribbles`
         if (selectedLeadIds.length > 0) {
             if (bulkBar) {
                 bulkBar.classList.remove("d-none");
-                countDisplay.textContent = `${selectedLeadIds.length} lead${selectedLeadIds.length > 1 ? 's' : ''} selected`;
+                bulkBar.style.display = "flex";
+                if (countDisplay) {
+                    countDisplay.textContent = `${selectedLeadIds.length} lead${selectedLeadIds.length > 1 ? 's' : ''} selected`;
+                }
             }
         } else {
-            if (bulkBar) bulkBar.classList.add("d-none");
+            if (bulkBar) {
+                bulkBar.classList.add("d-none");
+                bulkBar.style.display = "none";
+            }
             if (selectAllCheck) selectAllCheck.checked = false;
         }
+    }
+
+    function toggleSelectAllLeads(masterCb) {
+        const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
+        rowCheckboxes.forEach(cb => {
+            cb.checked = masterCb.checked;
+        });
+        updateSelectionState();
     }
 
     function clearLeadSelection() {
@@ -1538,8 +1553,15 @@ Corporate Gifting Director, Sweet Scribbles`
         if (selectAllCheck) selectAllCheck.checked = false;
         rowCheckboxes.forEach(cb => cb.checked = false);
         selectedLeadIds = [];
-        if (bulkBar) bulkBar.classList.add("d-none");
+        if (bulkBar) {
+            bulkBar.classList.add("d-none");
+            bulkBar.style.display = "none";
+        }
     }
+
+    window.updateSelectionState = updateSelectionState;
+    window.toggleSelectAllLeads = toggleSelectAllLeads;
+    window.clearLeadSelection = clearLeadSelection;
 
     document.addEventListener("DOMContentLoaded", function () {
         const selectAllCheck = document.getElementById("selectAllLeads");
