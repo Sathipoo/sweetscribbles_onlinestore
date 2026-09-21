@@ -21,7 +21,7 @@ def list_templates():
     query = CRMEmailTemplate.query.filter_by(is_active=True)
 
     if category_filter:
-        query = query.filter_by(category=category_filter)
+        query = query.filter(CRMEmailTemplate.category.ilike(category_filter))
 
     if search:
         search_fmt = f"%{search}%"
@@ -32,8 +32,14 @@ def list_templates():
 
     templates = query.order_by(CRMEmailTemplate.updated_at.desc()).all()
 
-    # Extract distinct categories
-    all_categories = [c[0] for c in db.session.query(CRMEmailTemplate.category).distinct().filter(CRMEmailTemplate.is_active == True).all()]
+    # Extract distinct categories deduplicated case-insensitively
+    raw_categories = [c[0].strip() for c in db.session.query(CRMEmailTemplate.category).distinct().filter(CRMEmailTemplate.is_active == True).all() if c[0] and c[0].strip()]
+    seen = {}
+    for c in raw_categories:
+        key = c.lower()
+        if key not in seen:
+            seen[key] = c.title()
+    all_categories = sorted(list(seen.values()))
     if not all_categories:
         all_categories = ['Festive', 'Sample Pitch', 'Follow-up', 'Custom']
 

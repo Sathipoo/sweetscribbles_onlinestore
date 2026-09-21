@@ -594,4 +594,33 @@ body.crm-body {
     border-color: transparent !important;
 }
 
+/* Email Template Studio Cards & Action Items */
+.crm-card.template-card {
+    display: flex !important;
+    flex-direction: column !important;
+    justify-content: space-between !important;
+    min-height: 250px;
+    transition: transform 0.2s ease, box-shadow 0.2s ease, border-color 0.2s ease;
+}
+
+.crm-card.template-card:hover {
+    transform: translateY(-2px);
+    border-color: #cbd5e1;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.08);
+}
+
+.template-card .card-action-bar {
+    width: 100%;
+}
+
+.template-card .card-action-bar .btn {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.82rem;
+    line-height: 1.2;
+    flex-shrink: 0;
+}
+
+
 
