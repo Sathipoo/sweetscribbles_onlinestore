@@ -6,7 +6,7 @@ from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, Response
 from extensions import db
 from models.b2b import B2BClient, B2BClientContact
-from models.b2b_crm import B2BLead, B2BEngagementEvent, CRMEmailTemplate, B2BLeadContact
+from models.b2b_crm import B2BLead, B2BEngagementEvent, CRMEmailTemplate, B2BLeadContact, CRMLeadOwner
 from crm.routes.auth import crm_login_required
 from utils.otp_utils import normalize_phone
 from utils.email_utils import send_crm_campaign_email, DEFAULT_CC_EMAIL
@@ -24,17 +24,18 @@ STAGES = [
     ('converted', '7. Converted to Client', 'success'),
     ('existing_cx', '8. Existing CX', 'info'),
     ('deferred_interest', '9. Deferred Interest', 'secondary'),
-    ('not_interested', '10. Not Interested', 'danger'),
-    ('invalid', '11. Invalid', 'dark'),
+    ('not_interested', '10. Not Interested', 'secondary'),
+    ('invalid', '11. Invalid', 'secondary'),
 ]
 
 @leads_bp.route('/leads')
 @crm_login_required
 def list_leads():
-    stage_filter = request.args.get('stage', '').strip()
+    stage_filter = request.args.get('stage')
     if stage_filter == 'all':
         stage_filter = ''
     source_filter = request.args.get('source')
+    owner_filter = request.args.get('owner', '').strip()
     search = request.args.get('q', '').strip()
     hot_only = request.args.get('hot') == '1'
     view_mode = request.args.get('view', 'kanban')  # 'kanban' or 'list'
@@ -47,6 +48,12 @@ def list_leads():
 
     if source_filter:
         query = query.filter(B2BLead.lead_source == source_filter)
+
+    if owner_filter:
+        if owner_filter == '__unassigned__':
+            query = query.filter((B2BLead.assigned_to.is_(None)) | (B2BLead.assigned_to == ''))
+        else:
+            query = query.filter(B2BLead.assigned_to == owner_filter)
 
     if hot_only:
         query = query.filter((B2BLead.is_hot == True) | (B2BLead.priority_score >= 60))
@@ -89,10 +96,16 @@ def list_leads():
         st = lead.stage if lead.stage in kanban else 'fresh_lead'
         kanban[st].append(lead)
 
-    # Calculate stage counts across the whole database for quick-nav badges
-    stage_counts_raw = db.session.query(B2BLead.stage, db.func.count(B2BLead.id)).group_by(B2BLead.stage).all()
+    # Calculate stage counts across the database (respecting active owner filter if applied)
+    counts_query = db.session.query(B2BLead.stage, db.func.count(B2BLead.id))
+    if owner_filter:
+        if owner_filter == '__unassigned__':
+            counts_query = counts_query.filter((B2BLead.assigned_to.is_(None)) | (B2BLead.assigned_to == ''))
+        else:
+            counts_query = counts_query.filter(B2BLead.assigned_to == owner_filter)
+    stage_counts_raw = counts_query.group_by(B2BLead.stage).all()
     stage_counts = {r[0]: r[1] for r in stage_counts_raw if r[0]}
-    total_leads_count = B2BLead.query.count()
+    total_leads_count = sum(stage_counts.values()) if owner_filter else B2BLead.query.count()
 
     # Distinct sources for source filtering
     db_sources = [r[0] for r in db.session.query(B2BLead.lead_source).distinct().all() if r[0]]
@@ -103,10 +116,16 @@ def list_leads():
     ]
     all_sources = sorted(list(set(db_sources + default_sources)))
 
-    # Team members and known lead owners for assignment
+    # Fetch registered lead owners from CRMLeadOwner model
+    registered_owners = CRMLeadOwner.query.filter_by(is_active=True).order_by(CRMLeadOwner.name.asc()).all()
+    if not registered_owners:
+        from crm.routes.settings import ensure_lead_owners_seeded
+        ensure_lead_owners_seeded()
+        registered_owners = CRMLeadOwner.query.filter_by(is_active=True).order_by(CRMLeadOwner.name.asc()).all()
+
+    owner_names = [o.name for o in registered_owners]
     db_owners = [r[0] for r in db.session.query(B2BLead.assigned_to).distinct().all() if r[0]]
-    default_owners = ['Vishnu Govind', 'Pooja Sathish', 'Sales Operations', 'Sathish Kumar']
-    all_owners = sorted(list(set(default_owners + db_owners)))
+    all_owners = sorted(list(set(owner_names + db_owners)))
 
     # Fetch active saved email templates for Bulk Email modal
     saved_templates = CRMEmailTemplate.query.filter_by(is_active=True).order_by(CRMEmailTemplate.updated_at.desc()).all()
@@ -120,12 +139,14 @@ def list_leads():
         saved_templates=saved_templates,
         current_stage=stage_filter,
         current_source=source_filter,
+        current_owner=owner_filter,
         search=search,
         hot_only=hot_only,
         view_mode=view_mode,
         sort=sort,
         stage_counts=stage_counts,
         total_leads_count=total_leads_count,
+        registered_owners=registered_owners,
         owners=all_owners,
         default_cc=DEFAULT_CC_EMAIL,
         store_base_url=current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
@@ -145,6 +166,7 @@ def add_lead():
     notes = request.form.get('notes', '').strip()
     lead_source = request.form.get('lead_source', 'Direct Outbound').strip()
     stage = request.form.get('stage', 'fresh_lead').strip()
+    assigned_to = request.form.get('assigned_to', '').strip()
     tags = request.form.get('tags', '').strip()
 
     if not company_name or not contact_name:
@@ -166,6 +188,7 @@ def add_lead():
         industry=industry or None,
         lead_source=lead_source or 'Direct Outbound',
         stage=stage,
+        assigned_to=assigned_to or None,
         tags=tags or None,
         notes=notes or None,
         priority_score=10
@@ -474,6 +497,7 @@ def export_leads():
     """
     stage_filter = request.args.get('stage')
     source_filter = request.args.get('source')
+    owner_filter = request.args.get('owner', '').strip()
     search = request.args.get('q', '').strip()
     hot_only = request.args.get('hot') == '1'
     selected_ids = request.args.get('ids', '').strip()
@@ -491,6 +515,11 @@ def export_leads():
             query = query.filter(B2BLead.stage == stage_filter)
         if source_filter:
             query = query.filter(B2BLead.lead_source == source_filter)
+        if owner_filter:
+            if owner_filter == '__unassigned__':
+                query = query.filter((B2BLead.assigned_to.is_(None)) | (B2BLead.assigned_to == ''))
+            else:
+                query = query.filter(B2BLead.assigned_to == owner_filter)
         if hot_only:
             query = query.filter((B2BLead.is_hot == True) | (B2BLead.priority_score >= 60))
         if search:
@@ -977,9 +1006,11 @@ def lead_detail(lead_id):
     ]
     all_sources = sorted(list(set(db_sources + default_sources)))
 
+    registered_owners = CRMLeadOwner.query.order_by(CRMLeadOwner.name.asc()).all()
+    reg_names = [o.name for o in registered_owners]
     db_owners = [r[0] for r in db.session.query(B2BLead.assigned_to).distinct().all() if r[0]]
     default_owners = ['Vishnu Govind', 'Pooja Sathish', 'Sales Operations', 'Sathish Kumar']
-    all_owners = sorted(list(set(default_owners + db_owners)))
+    all_owners = sorted(list(set(default_owners + db_owners + reg_names)))
 
     return render_template(
         'crm/lead_detail.html',
@@ -989,6 +1020,7 @@ def lead_detail(lead_id):
         stages=STAGES,
         sources=all_sources,
         owners=all_owners,
+        registered_owners=registered_owners,
         tracking_link=tracking_link,
         store_base_url=store_url
     )

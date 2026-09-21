@@ -1,0 +1,87 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Settings &amp; Administration - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="mb-4">
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+        <div>
+            <h2 class="fw-bold text-dark mb-1" style="font-family: 'Playfair Display', serif;">
+                CRM Settings &amp; Administration
+            </h2>
+            <p class="text-muted small mb-0">
+                Configure your sales organization, lead owners, outreach templates, and operational preferences.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <a href="{{ url_for('crm_leads.list_leads') }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                <i class="bi bi-arrow-left me-1"></i>Back to Pipeline
+            </a>
+        </div>
+    </div>
+</div>
+
+<div class="row g-4">
+    <!-- Left Navigation Pane / Settings Sidebar -->
+    <div class="col-lg-3 col-md-4">
+        <div class="crm-card p-3 shadow-sm border sticky-top" style="top: 80px; z-index: 10;">
+            <div class="text-uppercase small fw-bold text-muted px-2 mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                Team &amp; Ownership
+            </div>
+            <div class="nav flex-column gap-1 mb-4">
+                <a href="{{ url_for('crm_settings.lead_owners') }}"
+                   class="settings-nav-item d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-decoration-none transition-all {% if active_settings_tab == 'lead_owners' %}active{% endif %}">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-person-badge-fill me-2 fs-6 text-primary"></i>
+                        <span class="fw-medium">Lead Owners</span>
+                    </span>
+                    {% if total_owners is defined %}
+                    <span class="badge bg-light text-dark border rounded-pill">{{ total_owners }}</span>
+                    {% endif %}
+                </a>
+            </div>
+
+            <div class="text-uppercase small fw-bold text-muted px-2 mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                Outreach &amp; Marketing
+            </div>
+            <div class="nav flex-column gap-1 mb-4">
+                <a href="{{ url_for('crm_templates.list_templates') }}"
+                   class="settings-nav-item d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-decoration-none transition-all {% if active_settings_tab == 'email_templates' or 'crm_templates' in request.endpoint %}active{% endif %}">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-layout-text-window-reverse me-2 fs-6 text-warning"></i>
+                        <span class="fw-medium">Email Templates</span>
+                    </span>
+                    {% if total_templates is defined and total_templates %}
+                    <span class="badge bg-light text-dark border rounded-pill">{{ total_templates }}</span>
+                    {% endif %}
+                </a>
+            </div>
+
+            <div class="text-uppercase small fw-bold text-muted px-2 mb-2" style="font-size: 0.72rem; letter-spacing: 0.5px;">
+                Pipeline &amp; System (Future)
+            </div>
+            <div class="nav flex-column gap-1">
+                <div class="settings-nav-item disabled d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-muted opacity-75">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-funnel me-2 fs-6"></i>
+                        <span>Funnel Stages &amp; Scoring</span>
+                    </span>
+                    <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">Soon</span>
+                </div>
+                <div class="settings-nav-item disabled d-flex align-items-center justify-content-between px-3 py-2 rounded-3 text-muted opacity-75">
+                    <span class="d-flex align-items-center">
+                        <i class="bi bi-bell me-2 fs-6"></i>
+                        <span>Webhooks &amp; Alerts</span>
+                    </span>
+                    <span class="badge bg-light text-muted border rounded-pill" style="font-size: 0.65rem;">Soon</span>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Right Content Area -->
+    <div class="col-lg-9 col-md-8">
+        {% block settings_content %}{% endblock %}
+    </div>
+</div>
+{% endblock %}

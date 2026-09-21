@@ -18,11 +18,11 @@
     <div class="d-flex flex-wrap align-items-center gap-2">
         <!-- View Mode Switcher -->
         <div class="btn-group me-1" role="group">
-            <a href="{{ url_for('crm_leads.list_leads', view='kanban', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+            <a href="{{ url_for('crm_leads.list_leads', view='kanban', stage=current_stage, source=current_source, owner=current_owner, sort=sort, q=search, hot='1' if hot_only else '0') }}"
                 class="btn btn-sm {% if view_mode == 'kanban' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
                 <i class="bi bi-kanban me-1"></i>Kanban
             </a>
-            <a href="{{ url_for('crm_leads.list_leads', view='list', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+            <a href="{{ url_for('crm_leads.list_leads', view='list', stage=current_stage, source=current_source, owner=current_owner, sort=sort, q=search, hot='1' if hot_only else '0') }}"
                 class="btn btn-sm {% if view_mode == 'list' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
                 <i class="bi bi-list-ul me-1"></i>Table List
             </a>
@@ -43,7 +43,7 @@
         </button>
 
         <!-- Excel / CSV Export -->
-        <a href="{{ url_for('crm_leads.export_leads', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+        <a href="{{ url_for('crm_leads.export_leads', stage=current_stage, source=current_source, owner=current_owner, q=search, hot='1' if hot_only else '0') }}"
             class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5" title="Export as Excel-compatible CSV">
             <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Export Excel
         </a>
@@ -70,7 +70,7 @@
         onclick="refreshLeadsPipeline()" title="Refresh Leads &amp; Stages">
         <i class="bi bi-arrow-clockwise text-primary"></i>
     </button>
-    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, sort=sort, source=current_source, owner=current_owner, q=search, hot='1' if hot_only else '0') }}"
         class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 fw-bold transition-all {% if not current_stage or current_stage == 'all' %}btn-dark text-white shadow-sm{% else %}btn-outline-secondary text-dark bg-white border{% endif %}">
         <i class="bi bi-grid-fill me-1"></i>All Leads
         <span
@@ -80,7 +80,7 @@
         </span>
     </a>
     {% for st_key, st_label, st_badge in stages %}
-    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, stage=st_key, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, stage=st_key, sort=sort, source=current_source, owner=current_owner, q=search, hot='1' if hot_only else '0') }}"
         class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 transition-all {% if current_stage == st_key %}btn-dark text-white shadow-sm fw-bold{% else %}btn-outline-secondary text-secondary bg-white border{% endif %}">
         {{ st_label }}
         <span
@@ -99,11 +99,11 @@
         <input type="hidden" name="view" value="{{ view_mode }}">
         <input type="hidden" name="sort" id="filterSortInput" value="{{ sort }}">
 
-        <div class="col-md-3 col-lg-3">
+        <div class="col-md-3 col-lg-2">
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
                 <input type="text" name="q" value="{{ search }}" class="form-control crm-input"
-                    placeholder="Search company, contact, owner, city...">
+                    placeholder="Search leads...">
             </div>
         </div>
 
@@ -124,6 +124,34 @@
                 {% for src in sources %}
                 <option value="{{ src }}" {% if current_source==src %}selected{% endif %}>{{ src }}</option>
                 {% endfor %}
+            </select>
+        </div>
+
+        <!-- Lead Owner Filter -->
+        <div class="col-md-2 col-lg-2">
+            <select name="owner" class="form-select form-select-sm crm-input" onchange="this.form.submit()" title="Filter by Assigned Lead Owner">
+                <option value="">All Lead Owners</option>
+                <option value="__unassigned__" {% if current_owner == '__unassigned__' %}selected{% endif %}>&times; Unassigned Leads</option>
+                {% if registered_owners %}
+                <optgroup label="Sales Team">
+                    {% for reg_ow in registered_owners %}
+                    <option value="{{ reg_ow.name }}" {% if current_owner == reg_ow.name %}selected{% endif %}>
+                        {{ reg_ow.name }}{% if not reg_ow.is_active %} (Inactive){% endif %}
+                    </option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
+                {% set other_owners = [] %}
+                {% for ow in owners if registered_owners and (ow not in registered_owners|map(attribute='name')|list) %}
+                    {% set _ = other_owners.append(ow) %}
+                {% endfor %}
+                {% if other_owners %}
+                <optgroup label="Other Assignees">
+                    {% for ow in other_owners %}
+                    <option value="{{ ow }}" {% if current_owner == ow %}selected{% endif %}>{{ ow }}</option>
+                    {% endfor %}
+                </optgroup>
+                {% endif %}
             </select>
         </div>
 
@@ -162,11 +190,24 @@
                 onclick="refreshLeadsPipeline()" title="Refresh Leads Pipeline &amp; Sync Latest Changes">
                 <i class="bi bi-arrow-clockwise me-1 refresh-spin-target"></i>Refresh
             </button>
-            {% if search or current_stage or current_source or hot_only or sort != 'date_modified_desc' %}
+            {% if search or current_stage or current_source or current_owner or hot_only or sort != 'date_modified_desc' %}
             <a href="{{ url_for('crm_leads.list_leads', view=view_mode) }}" class="btn btn-sm btn-outline-danger"
                 title="Clear Filters"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </div>
+
+        {% if current_owner %}
+        <div class="col-12 pt-2 border-top mt-2 d-flex align-items-center gap-2 small text-muted">
+            <span class="fw-semibold text-dark"><i class="bi bi-person-fill text-warning me-1"></i>Active Owner Filter:</span>
+            <span class="badge bg-dark text-white rounded-pill px-2.5 py-1">
+                {% if current_owner == '__unassigned__' %}Unassigned Leads Only{% else %}{{ current_owner }}{% endif %}
+            </span>
+            <a href="{{ url_for('crm_leads.list_leads', view=view_mode, stage=current_stage, source=current_source, sort=sort, q=search, hot='1' if hot_only else '0') }}"
+                class="text-danger small text-decoration-none ms-1 fw-medium" title="Clear owner filter">
+                <i class="bi bi-x-circle me-1"></i>Clear owner filter
+            </a>
+        </div>
+        {% endif %}
     </form>
 </div>
 
@@ -535,9 +576,24 @@
                     <select id="bulkOwnerSelect" class="form-select crm-input mb-2"
                         onchange="toggleCustomOwnerInput(this.value)">
                         <option value="">-- Select Team Member --</option>
-                        {% for ow in owners %}
-                        <option value="{{ ow }}">{{ ow }}</option>
+                        {% if registered_owners %}
+                        <optgroup label="Registered Sales Team">
+                            {% for reg_ow in registered_owners %}
+                            <option value="{{ reg_ow.name }}">{{ reg_ow.name }}{% if reg_ow.role %} ({{ reg_ow.role }}){% endif %}{% if not reg_ow.is_active %} [Inactive]{% endif %}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
+                        {% set other_bulk_owners = [] %}
+                        {% for ow in owners if registered_owners and (ow not in registered_owners|map(attribute='name')|list) %}
+                            {% set _ = other_bulk_owners.append(ow) %}
                         {% endfor %}
+                        {% if other_bulk_owners %}
+                        <optgroup label="Other Assignees">
+                            {% for ow in other_bulk_owners %}
+                            <option value="{{ ow }}">{{ ow }}</option>
+                            {% endfor %}
+                        </optgroup>
+                        {% endif %}
                         <option value="__custom__">&plus; Enter Custom Owner Name...</option>
                         <option value="__unassign__">&times; Unassigned (Clear Owner)</option>
                     </select>
@@ -818,6 +874,32 @@
                                 {% endfor %}
                             </select>
                         </div>
+                    </div>
+
+                    <!-- Lead Owner Assignment -->
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-medium">Assigned Lead Owner</label>
+                        <select name="assigned_to" class="form-select crm-input">
+                            <option value="">-- Leave Unassigned --</option>
+                            {% if registered_owners %}
+                            <optgroup label="Sales Team">
+                                {% for reg_ow in registered_owners if reg_ow.is_active %}
+                                <option value="{{ reg_ow.name }}">{{ reg_ow.name }}{% if reg_ow.role %} ({{ reg_ow.role }}){% endif %}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                            {% set other_add_owners = [] %}
+                            {% for ow in owners if registered_owners and (ow not in registered_owners|map(attribute='name')|list) %}
+                                {% set _ = other_add_owners.append(ow) %}
+                            {% endfor %}
+                            {% if other_add_owners %}
+                            <optgroup label="Other Assignees">
+                                {% for ow in other_add_owners %}
+                                <option value="{{ ow }}">{{ ow }}</option>
+                                {% endfor %}
+                            </optgroup>
+                            {% endif %}
+                        </select>
                     </div>
 
                     <!-- Location Capture with Free HTML5 Browser Geolocation -->

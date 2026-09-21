@@ -317,3 +317,28 @@ class CRMEmailTemplate(db.Model):
     def is_visual_builder(self):
         """Returns True if template was designed using the visual block builder."""
         return bool(self.blocks_json and self.blocks_json.strip() and self.blocks_json != '[]')
+
+
+class CRMLeadOwner(db.Model):
+    """
+    Sales representative or corporate team member who owns B2B leads.
+    Managed via CRM Settings, available for lead assignment and pipeline filtering.
+    """
+    __tablename__ = 'crm_lead_owners'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True, index=True)
+    email = db.Column(db.String(120), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    role = db.Column(db.String(100), default='Sales Representative')
+    is_active = db.Column(db.Boolean, default=True, nullable=False, index=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<CRMLeadOwner '{self.name}' ({self.role}) - Active: {self.is_active}>"
+
+    @property
+    def assigned_leads_count(self):
+        return B2BLead.query.filter_by(assigned_to=self.name).count()
+

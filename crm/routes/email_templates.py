@@ -2,7 +2,7 @@ import json
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
 from extensions import db
-from models.b2b_crm import CRMEmailTemplate, B2BLead
+from models.b2b_crm import CRMEmailTemplate, B2BLead, CRMLeadOwner
 from crm.routes.auth import crm_login_required
 from utils.email_utils import _render_luxury_email_layout, DEFAULT_CC_EMAIL
 
@@ -13,7 +13,7 @@ templates_bp = Blueprint('crm_templates', __name__, url_prefix='/email-templates
 def list_templates():
     """
     Studio Gallery: Lists all saved email templates with category filtering,
-    preview modal triggers, and management controls.
+    preview modal triggers, and management controls within the CRM Settings workspace.
     """
     category_filter = request.args.get('category', '').strip()
     search = request.args.get('q', '').strip()
@@ -37,13 +37,19 @@ def list_templates():
     if not all_categories:
         all_categories = ['Festive', 'Sample Pitch', 'Follow-up', 'Custom']
 
+    total_owners = CRMLeadOwner.query.count()
+    total_templates = CRMEmailTemplate.query.filter_by(is_active=True).count()
+
     return render_template(
         'crm/email_templates/list.html',
         templates=templates,
         categories=all_categories,
         current_category=category_filter,
         search=search,
-        default_cc=DEFAULT_CC_EMAIL
+        default_cc=DEFAULT_CC_EMAIL,
+        total_owners=total_owners,
+        total_templates=total_templates,
+        active_settings_tab='email_templates'
     )
 
 @templates_bp.route('/new')
