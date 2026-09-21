@@ -10,43 +10,53 @@
             Prospect Pipeline &amp; Leads Desk
         </h2>
         <p class="text-muted small mb-0">
-            Track corporate accounts across the 11 marketing stages, dispatch customized bulk email campaigns, and monitor engagement.
+            Track corporate accounts across the 11 marketing stages, dispatch customized bulk email campaigns, and
+            monitor engagement.
         </p>
     </div>
 
     <div class="d-flex flex-wrap align-items-center gap-2">
         <!-- View Mode Switcher -->
         <div class="btn-group me-1" role="group">
-            <a href="{{ url_for('crm_leads.list_leads', view='kanban', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}" class="btn btn-sm {% if view_mode == 'kanban' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
+            <a href="{{ url_for('crm_leads.list_leads', view='kanban', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+                class="btn btn-sm {% if view_mode == 'kanban' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
                 <i class="bi bi-kanban me-1"></i>Kanban
             </a>
-            <a href="{{ url_for('crm_leads.list_leads', view='list', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}" class="btn btn-sm {% if view_mode == 'list' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
+            <a href="{{ url_for('crm_leads.list_leads', view='list', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+                class="btn btn-sm {% if view_mode == 'list' %}btn-dark text-white{% else %}btn-outline-secondary text-secondary{% endif %}">
                 <i class="bi bi-list-ul me-1"></i>Table List
             </a>
         </div>
 
+        <!-- Refresh Pipeline Button (High Visibility) -->
+        <button type="button"
+            class="btn btn-sm btn-outline-dark bg-white text-dark rounded-pill px-3 py-1.5 shadow-sm fw-bold border"
+            id="btnRefreshPipeline" onclick="refreshLeadsPipeline()"
+            title="Refresh leads pipeline and sync recent changes">
+            <i class="bi bi-arrow-clockwise me-1 text-primary fw-bold fs-6" id="refreshSpinIcon"></i>Refresh
+        </button>
+
         <!-- Prominent Top Send Bulk Email Button -->
-        <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3 py-1.5 shadow-sm fw-bold" data-bs-toggle="modal" data-bs-target="#bulkEmailModal" onclick="prepareBulkEmailModal('filter')">
+        <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3 py-1.5 shadow-sm fw-bold"
+            data-bs-toggle="modal" data-bs-target="#bulkEmailModal" onclick="prepareBulkEmailModal('filter')">
             <i class="bi bi-envelope-paper-heart-fill me-1"></i>Send Bulk Email
         </button>
 
-        <!-- Refresh Pipeline Button -->
-        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 shadow-sm fw-bold" id="btnRefreshPipeline" onclick="refreshLeadsPipeline()" title="Refresh leads pipeline and sync recent changes">
-            <i class="bi bi-arrow-clockwise me-1" id="refreshSpinIcon"></i>Refresh
-        </button>
-
         <!-- Excel / CSV Export -->
-        <a href="{{ url_for('crm_leads.export_leads', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5" title="Export as Excel-compatible CSV">
+        <a href="{{ url_for('crm_leads.export_leads', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+            class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5" title="Export as Excel-compatible CSV">
             <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Export Excel
         </a>
 
         <!-- Import Modal Trigger -->
-        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#importLeadsModal">
+        <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 py-1.5" data-bs-toggle="modal"
+            data-bs-target="#importLeadsModal">
             <i class="bi bi-file-earmark-arrow-up me-1"></i>Import Leads
         </button>
 
         <!-- Add Lead Trigger -->
-        <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 py-1.5" data-bs-toggle="modal" data-bs-target="#addLeadModal">
+        <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 py-1.5" data-bs-toggle="modal"
+            data-bs-target="#addLeadModal">
             <i class="bi bi-person-plus-fill me-1"></i>Add Prospect
         </button>
     </div>
@@ -54,18 +64,28 @@
 
 <!-- Stage Quick-Navigation Strip (Direct One-Click Navigation into 'All Leads' and Individual Funnel Stages) -->
 <div class="stage-nav-strip d-flex gap-2 overflow-x-auto pb-2 mb-3 align-items-center">
-    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}" 
-       class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 fw-bold transition-all {% if not current_stage or current_stage == 'all' %}btn-dark text-white shadow-sm{% else %}btn-outline-secondary text-dark bg-white border{% endif %}">
+    <!-- Quick Refresh Icon -->
+    <button type="button"
+        class="btn btn-sm text-nowrap rounded-pill px-2.5 py-1.5 btn-outline-secondary text-dark bg-white border shadow-sm"
+        onclick="refreshLeadsPipeline()" title="Refresh Leads &amp; Stages">
+        <i class="bi bi-arrow-clockwise text-primary"></i>
+    </button>
+    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+        class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 fw-bold transition-all {% if not current_stage or current_stage == 'all' %}btn-dark text-white shadow-sm{% else %}btn-outline-secondary text-dark bg-white border{% endif %}">
         <i class="bi bi-grid-fill me-1"></i>All Leads
-        <span class="badge {% if not current_stage or current_stage == 'all' %}bg-white text-dark{% else %}bg-secondary text-white{% endif %} ms-1.5 rounded-pill" id="stage-count-all">
+        <span
+            class="badge {% if not current_stage or current_stage == 'all' %}bg-white text-dark{% else %}bg-secondary text-white{% endif %} ms-1.5 rounded-pill"
+            id="stage-count-all">
             {{ total_leads_count }}
         </span>
     </a>
     {% for st_key, st_label, st_badge in stages %}
-    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, stage=st_key, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}" 
-       class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 transition-all {% if current_stage == st_key %}btn-dark text-white shadow-sm fw-bold{% else %}btn-outline-secondary text-secondary bg-white border{% endif %}">
+    <a href="{{ url_for('crm_leads.list_leads', view=view_mode, stage=st_key, sort=sort, source=current_source, q=search, hot='1' if hot_only else '0') }}"
+        class="btn btn-sm text-nowrap rounded-pill px-3 py-1.5 transition-all {% if current_stage == st_key %}btn-dark text-white shadow-sm fw-bold{% else %}btn-outline-secondary text-secondary bg-white border{% endif %}">
         {{ st_label }}
-        <span class="badge {% if current_stage == st_key %}bg-white text-dark{% else %}bg-light text-dark border{% endif %} ms-1.5 rounded-pill" id="stage-count-{{ st_key }}">
+        <span
+            class="badge {% if current_stage == st_key %}bg-white text-dark{% else %}bg-light text-dark border{% endif %} ms-1.5 rounded-pill"
+            id="stage-count-{{ st_key }}">
             {{ stage_counts.get(st_key, 0) }}
         </span>
     </a>
@@ -74,64 +94,77 @@
 
 <!-- Search & Filters Toolbar -->
 <div class="crm-card p-3 mb-4">
-    <form method="GET" action="{{ url_for('crm_leads.list_leads') }}" id="leadFilterForm" class="row g-2 align-items-center">
+    <form method="GET" action="{{ url_for('crm_leads.list_leads') }}" id="leadFilterForm"
+        class="row g-2 align-items-center">
         <input type="hidden" name="view" value="{{ view_mode }}">
         <input type="hidden" name="sort" id="filterSortInput" value="{{ sort }}">
-        
-        <div class="col-md-3">
+
+        <div class="col-md-3 col-lg-3">
             <div class="input-group input-group-sm">
                 <span class="input-group-text bg-light text-muted border"><i class="bi bi-search"></i></span>
-                <input type="text" name="q" value="{{ search }}" class="form-control crm-input" placeholder="Search company, contact, owner, city...">
+                <input type="text" name="q" value="{{ search }}" class="form-control crm-input"
+                    placeholder="Search company, contact, owner, city...">
             </div>
         </div>
 
         <!-- Stage Filter (11 Stages) -->
-        <div class="col-md-2">
+        <div class="col-md-2 col-lg-2">
             <select name="stage" class="form-select form-select-sm crm-input" onchange="this.form.submit()">
                 <option value="">All Stages (11 Funnel Steps)</option>
                 {% for st, label, badge in stages %}
-                    <option value="{{ st }}" {% if current_stage == st %}selected{% endif %}>{{ label }}</option>
+                <option value="{{ st }}" {% if current_stage==st %}selected{% endif %}>{{ label }}</option>
                 {% endfor %}
             </select>
         </div>
 
         <!-- Source Filter -->
-        <div class="col-md-2">
+        <div class="col-md-2 col-lg-2">
             <select name="source" class="form-select form-select-sm crm-input" onchange="this.form.submit()">
                 <option value="">All Lead Sources</option>
                 {% for src in sources %}
-                    <option value="{{ src }}" {% if current_source == src %}selected{% endif %}>{{ src }}</option>
+                <option value="{{ src }}" {% if current_source==src %}selected{% endif %}>{{ src }}</option>
                 {% endfor %}
             </select>
         </div>
 
         <!-- In-Place Lead Sorting Option (Name, Date Modified, Date Created - Asc & Desc) -->
-        <div class="col-md-3">
+        <div class="col-md-2 col-lg-2">
             <div class="input-group input-group-sm">
-                <span class="input-group-text bg-light text-muted border" title="Sort Leads"><i class="bi bi-arrow-down-up me-1"></i>Sort</span>
-                <select id="leadSortSelect" class="form-select form-select-sm crm-input" onchange="changeLeadSort(this.value)">
-                    <option value="date_modified_desc" {% if sort == 'date_modified_desc' %}selected{% endif %}>Date Modified (Newest first)</option>
-                    <option value="date_modified_asc" {% if sort == 'date_modified_asc' %}selected{% endif %}>Date Modified (Oldest first)</option>
-                    <option value="date_created_desc" {% if sort == 'date_created_desc' %}selected{% endif %}>Date Created (Newest first)</option>
-                    <option value="date_created_asc" {% if sort == 'date_created_asc' %}selected{% endif %}>Date Created (Oldest first)</option>
-                    <option value="name_asc" {% if sort == 'name_asc' %}selected{% endif %}>Name (A &rarr; Z)</option>
-                    <option value="name_desc" {% if sort == 'name_desc' %}selected{% endif %}>Name (Z &rarr; A)</option>
+                <span class="input-group-text bg-light text-muted border" title="Sort Leads"><i
+                        class="bi bi-arrow-down-up me-1"></i>Sort</span>
+                <select id="leadSortSelect" class="form-select form-select-sm crm-input"
+                    onchange="changeLeadSort(this.value)">
+                    <option value="date_modified_desc" {% if sort=='date_modified_desc' %}selected{% endif %}>Date
+                        Modified (Newest first)</option>
+                    <option value="date_modified_asc" {% if sort=='date_modified_asc' %}selected{% endif %}>Date
+                        Modified (Oldest first)</option>
+                    <option value="date_created_desc" {% if sort=='date_created_desc' %}selected{% endif %}>Date Created
+                        (Newest first)</option>
+                    <option value="date_created_asc" {% if sort=='date_created_asc' %}selected{% endif %}>Date Created
+                        (Oldest first)</option>
+                    <option value="name_asc" {% if sort=='name_asc' %}selected{% endif %}>Name (A &rarr; Z)</option>
+                    <option value="name_desc" {% if sort=='name_desc' %}selected{% endif %}>Name (Z &rarr; A)</option>
                 </select>
             </div>
         </div>
 
-        <div class="col-md-1">
+        <div class="col-auto">
             <div class="form-check form-switch pt-1">
-                <input class="form-check-input" type="checkbox" name="hot" value="1" id="hotCheck" {% if hot_only %}checked{% endif %} onchange="this.form.submit()">
+                <input class="form-check-input" type="checkbox" name="hot" value="1" id="hotCheck" {% if hot_only
+                    %}checked{% endif %} onchange="this.form.submit()">
                 <label class="form-check-label small text-dark fw-medium" for="hotCheck">🔥 Hot</label>
             </div>
         </div>
 
-        <div class="col-md-1 d-flex gap-1 justify-content-end">
-            <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Filter</button>
-            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshLeadsPipeline()" title="Refresh Pipeline"><i class="bi bi-arrow-clockwise"></i></button>
+        <div class="col-auto ms-auto d-flex gap-2 align-items-center">
+            <button type="submit" class="btn btn-sm btn-outline-secondary px-3 fw-medium">Filter</button>
+            <button type="button" class="btn btn-sm btn-outline-primary bg-white text-primary px-3 fw-bold shadow-sm"
+                onclick="refreshLeadsPipeline()" title="Refresh Leads Pipeline &amp; Sync Latest Changes">
+                <i class="bi bi-arrow-clockwise me-1 refresh-spin-target"></i>Refresh
+            </button>
             {% if search or current_stage or current_source or hot_only or sort != 'date_modified_desc' %}
-                <a href="{{ url_for('crm_leads.list_leads', view=view_mode) }}" class="btn btn-sm btn-outline-danger" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
+            <a href="{{ url_for('crm_leads.list_leads', view=view_mode) }}" class="btn btn-sm btn-outline-danger"
+                title="Clear Filters"><i class="bi bi-x-lg"></i></a>
             {% endif %}
         </div>
     </form>
@@ -141,37 +174,30 @@
 <!-- Kanban View with Horizontal Scroll Rail for 11 Stages -->
 <div class="kanban-board-scrollable">
     {% for st_key, st_label, st_badge in stages %}
-    <div class="kanban-col-wide">
+    <div class="kanban-col-wide" id="kanban-col-{{ st_key }}">
         <div class="kanban-header-title">
             <span>{{ st_label }}</span>
-            <span class="badge bg-white border text-dark fw-bold px-2 py-1 rounded-pill shadow-sm">
+            <span class="badge bg-white border text-dark fw-bold px-2 py-1 rounded-pill shadow-sm" id="kanban-col-count-{{ st_key }}">
                 {{ kanban[st_key]|length }}
             </span>
         </div>
 
-        <div class="kanban-cards">
+        <div class="kanban-cards" id="kanban-cards-{{ st_key }}" data-stage="{{ st_key }}">
             {% for lead in kanban[st_key] %}
-            <div class="kanban-card position-relative" id="lead-card-{{ lead.id }}"
-                 data-id="{{ lead.id }}"
-                 data-name="{{ (lead.company_name ~ ' ' ~ lead.contact_name)|lower }}"
-                 data-date-modified="{{ lead.updated_at.isoformat() if lead.updated_at else '' }}"
-                 data-date-created="{{ lead.created_at.isoformat() if lead.created_at else '' }}"
-                 data-stage="{{ lead.stage }}"
-                 data-owner="{{ lead.assigned_to or '' }}"
-                 onclick="window.location.href='{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}'">
-                
+            <div class="kanban-card position-relative" id="lead-card-{{ lead.id }}" data-id="{{ lead.id }}"
+                data-name="{{ (lead.company_name ~ ' ' ~ lead.contact_name)|lower }}"
+                data-date-modified="{{ lead.updated_at.isoformat() if lead.updated_at else '' }}"
+                data-date-created="{{ lead.created_at.isoformat() if lead.created_at else '' }}"
+                data-stage="{{ lead.stage }}" data-owner="{{ lead.assigned_to or '' }}"
+                onclick="window.location.href='{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}'">
+
                 <!-- Discrete Checkbox for Kanban card bulk selection -->
                 <div class="position-absolute" style="top: 8px; right: 8px;" onclick="event.stopPropagation()">
-                    <input type="checkbox" class="form-check-input lead-checkbox shadow-sm"
-                           value="{{ lead.id }}"
-                           data-id="{{ lead.id }}"
-                           data-name="{{ lead.contact_name }}"
-                           data-company="{{ lead.company_name }}"
-                           data-email="{{ lead.email or '' }}"
-                           data-stage="{{ lead.stage }}"
-                           data-source="{{ lead.lead_source or '' }}"
-                           data-owner="{{ lead.assigned_to or '' }}"
-                           title="Select lead for bulk action">
+                    <input type="checkbox" class="form-check-input lead-checkbox shadow-sm" value="{{ lead.id }}"
+                        data-id="{{ lead.id }}" data-name="{{ lead.contact_name }}"
+                        data-company="{{ lead.company_name }}" data-email="{{ lead.email or '' }}"
+                        data-stage="{{ lead.stage }}" data-source="{{ lead.lead_source or '' }}"
+                        data-owner="{{ lead.assigned_to or '' }}" title="Select lead for bulk action">
                 </div>
 
                 <div class="d-flex justify-content-between align-items-start mb-2 pe-4">
@@ -184,7 +210,7 @@
                 <div class="text-dark small mb-1">
                     <i class="bi bi-person me-1 text-muted"></i>{{ lead.contact_name }}
                     {% if lead.designation %}
-                        <span class="text-muted">({{ lead.designation }})</span>
+                    <span class="text-muted">({{ lead.designation }})</span>
                     {% endif %}
                 </div>
 
@@ -192,7 +218,8 @@
                 <div class="small mb-1 d-flex align-items-center gap-1">
                     <i class="bi bi-person-badge text-muted" style="font-size: 0.72rem;"></i>
                     <span class="text-muted" style="font-size: 0.7rem;">Owner:</span>
-                    <span class="badge bg-light text-dark border px-1.5 py-0.5" id="kanban-owner-{{ lead.id }}" style="font-size: 0.68rem;">
+                    <span class="badge bg-light text-dark border px-1.5 py-0.5" id="kanban-owner-{{ lead.id }}"
+                        style="font-size: 0.68rem;">
                         {{ lead.assigned_to or 'Unassigned' }}
                     </span>
                 </div>
@@ -212,7 +239,8 @@
                     <i class="bi bi-geo-alt-fill text-danger" style="font-size: 0.75rem;"></i>
                     <span class="text-truncate" style="max-width: 190px;">{{ lead.location or lead.city }}</span>
                     {% if lead.google_maps_url %}
-                    <a href="{{ lead.google_maps_url }}" target="_blank" onclick="event.stopPropagation();" class="text-primary text-decoration-none" title="Open in Google Maps">
+                    <a href="{{ lead.google_maps_url }}" target="_blank" onclick="event.stopPropagation();"
+                        class="text-primary text-decoration-none" title="Open in Google Maps">
                         <i class="bi bi-box-arrow-up-right" style="font-size: 0.65rem;"></i>
                     </a>
                     {% endif %}
@@ -229,7 +257,7 @@
                 </div>
             </div>
             {% else %}
-            <div class="text-center py-4 text-muted opacity-50 small">
+            <div class="text-center py-4 text-muted opacity-50 small kanban-empty-placeholder">
                 No leads in this stage
             </div>
             {% endfor %}
@@ -246,55 +274,57 @@
             <thead>
                 <tr>
                     <th style="width: 40px;" class="text-center">
-                        <input type="checkbox" class="form-check-input" id="selectAllLeads" title="Select All Visible Leads">
+                        <input type="checkbox" class="form-check-input" id="selectAllLeads"
+                            title="Select All Visible Leads">
                     </th>
-                    <th class="cursor-pointer" onclick="toggleSort('name')" title="Click to sort by Company / Contact Name">
-                        Company &amp; Contact 
-                        <i class="bi {% if sort == 'name_asc' %}bi-sort-alpha-down text-warning{% elif sort == 'name_desc' %}bi-sort-alpha-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1" id="sort-icon-name"></i>
+                    <th class="cursor-pointer" onclick="toggleSort('name')"
+                        title="Click to sort by Company / Contact Name">
+                        Company &amp; Contact
+                        <i class="bi {% if sort == 'name_asc' %}bi-sort-alpha-down text-warning{% elif sort == 'name_desc' %}bi-sort-alpha-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1"
+                            id="sort-icon-name"></i>
                     </th>
                     <th>Stage</th>
                     <th>Lead Owner</th>
                     <th>Location / City</th>
                     <th>Intent Score</th>
-                    <th class="cursor-pointer" onclick="toggleSort('date_created')" title="Click to sort by Date Created">
+                    <th class="cursor-pointer" onclick="toggleSort('date_created')"
+                        title="Click to sort by Date Created">
                         Created
-                        <i class="bi {% if sort == 'date_created_asc' %}bi-sort-numeric-down text-warning{% elif sort == 'date_created_desc' %}bi-sort-numeric-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1" id="sort-icon-date_created"></i>
+                        <i class="bi {% if sort == 'date_created_asc' %}bi-sort-numeric-down text-warning{% elif sort == 'date_created_desc' %}bi-sort-numeric-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1"
+                            id="sort-icon-date_created"></i>
                     </th>
-                    <th class="cursor-pointer" onclick="toggleSort('date_modified')" title="Click to sort by Date Modified">
+                    <th class="cursor-pointer" onclick="toggleSort('date_modified')"
+                        title="Click to sort by Date Modified">
                         Last Active / Modified
-                        <i class="bi {% if sort == 'date_modified_asc' %}bi-sort-numeric-down text-warning{% elif sort == 'date_modified_desc' %}bi-sort-numeric-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1" id="sort-icon-date_modified"></i>
+                        <i class="bi {% if sort == 'date_modified_asc' %}bi-sort-numeric-down text-warning{% elif sort == 'date_modified_desc' %}bi-sort-numeric-up-alt text-warning{% else %}bi-arrow-down-up text-muted opacity-50{% endif %} ms-1"
+                            id="sort-icon-date_modified"></i>
                     </th>
                     <th class="text-end">Actions</th>
                 </tr>
             </thead>
             <tbody>
                 {% for lead in leads %}
-                <tr id="lead-row-{{ lead.id }}"
-                    data-id="{{ lead.id }}"
+                <tr id="lead-row-{{ lead.id }}" data-id="{{ lead.id }}"
                     data-name="{{ (lead.company_name ~ ' ' ~ lead.contact_name)|lower }}"
                     data-date-modified="{{ lead.updated_at.isoformat() if lead.updated_at else '' }}"
                     data-date-created="{{ lead.created_at.isoformat() if lead.created_at else '' }}"
-                    data-stage="{{ lead.stage }}"
-                    data-owner="{{ lead.assigned_to or '' }}">
+                    data-stage="{{ lead.stage }}" data-owner="{{ lead.assigned_to or '' }}">
                     <td class="text-center">
-                        <input type="checkbox" class="form-check-input lead-checkbox" 
-                               value="{{ lead.id }}"
-                               data-id="{{ lead.id }}"
-                               data-name="{{ lead.contact_name }}"
-                               data-company="{{ lead.company_name }}"
-                               data-email="{{ lead.email or '' }}"
-                               data-stage="{{ lead.stage }}"
-                               data-source="{{ lead.lead_source or '' }}"
-                               data-owner="{{ lead.assigned_to or '' }}">
+                        <input type="checkbox" class="form-check-input lead-checkbox" value="{{ lead.id }}"
+                            data-id="{{ lead.id }}" data-name="{{ lead.contact_name }}"
+                            data-company="{{ lead.company_name }}" data-email="{{ lead.email or '' }}"
+                            data-stage="{{ lead.stage }}" data-source="{{ lead.lead_source or '' }}"
+                            data-owner="{{ lead.assigned_to or '' }}">
                     </td>
                     <td>
-                        <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="fw-bold text-dark text-decoration-none">
+                        <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}"
+                            class="fw-bold text-dark text-decoration-none">
                             {{ lead.company_name }}
                         </a>
                         <div class="text-muted small">
                             <i class="bi bi-person me-1"></i>{{ lead.contact_name }}
                             {% if lead.designation %}
-                                <span>&bull; {{ lead.designation }}</span>
+                            <span>&bull; {{ lead.designation }}</span>
                             {% endif %}
                         </div>
                         <div class="small mt-1 d-flex flex-wrap gap-2 align-items-center">
@@ -304,10 +334,12 @@
                             </span>
                             {% endif %}
                             {% if lead.phone %}
-                                <a href="tel:{{ lead.phone }}" class="text-success text-decoration-none" title="Call primary phone"><i class="bi bi-telephone-fill me-1"></i>{{ lead.phone }}</a>
+                            <a href="tel:{{ lead.phone }}" class="text-success text-decoration-none"
+                                title="Call primary phone"><i class="bi bi-telephone-fill me-1"></i>{{ lead.phone }}</a>
                             {% endif %}
                             {% if lead.email %}
-                                <a href="mailto:{{ lead.email }}" class="text-muted text-decoration-none" title="Send email"><i class="bi bi-envelope-fill me-1"></i>{{ lead.email }}</a>
+                            <a href="mailto:{{ lead.email }}" class="text-muted text-decoration-none"
+                                title="Send email"><i class="bi bi-envelope-fill me-1"></i>{{ lead.email }}</a>
                             {% endif %}
                         </div>
                     </td>
@@ -317,21 +349,24 @@
                         </span>
                     </td>
                     <td>
-                        <span class="badge bg-light text-dark border px-2 py-1 lead-owner-badge" id="lead-owner-badge-{{ lead.id }}">
-                            <i class="bi bi-person-badge text-primary me-1"></i><span class="owner-text">{{ lead.assigned_to or 'Unassigned' }}</span>
+                        <span class="badge bg-light text-dark border px-2 py-1 lead-owner-badge"
+                            id="lead-owner-badge-{{ lead.id }}">
+                            <i class="bi bi-person-badge text-primary me-1"></i><span class="owner-text">{{
+                                lead.assigned_to or 'Unassigned' }}</span>
                         </span>
                     </td>
                     <td>
                         <div class="small text-dark">
                             {% if lead.location or lead.city %}
-                                <span>{{ lead.location or lead.city }}</span>
-                                {% if lead.google_maps_url %}
-                                <a href="{{ lead.google_maps_url }}" target="_blank" class="ms-1 text-danger" title="Open Google Maps">
-                                    <i class="bi bi-geo-alt-fill"></i>
-                                </a>
-                                {% endif %}
+                            <span>{{ lead.location or lead.city }}</span>
+                            {% if lead.google_maps_url %}
+                            <a href="{{ lead.google_maps_url }}" target="_blank" class="ms-1 text-danger"
+                                title="Open Google Maps">
+                                <i class="bi bi-geo-alt-fill"></i>
+                            </a>
+                            {% endif %}
                             {% else %}
-                                <span class="text-muted">—</span>
+                            <span class="text-muted">—</span>
                             {% endif %}
                         </div>
                     </td>
@@ -349,18 +384,21 @@
                         </span>
                     </td>
                     <td>
-                        <span class="small text-muted lead-modified-badge text-nowrap" id="lead-modified-{{ lead.id }}" title="{{ lead.updated_at.strftime('%d %b %Y %H:%M') if lead.updated_at else '' }}">
+                        <span class="small text-muted lead-modified-badge text-nowrap" id="lead-modified-{{ lead.id }}"
+                            title="{{ lead.updated_at.strftime('%d %b %Y %H:%M') if lead.updated_at else '' }}">
                             {{ lead.updated_at|time_ago if lead.updated_at else lead.created_at|time_ago }}
                         </span>
                     </td>
                     <td class="text-end">
                         <div class="d-flex justify-content-end gap-1">
                             {% if lead.phone %}
-                                <a href="tel:{{ lead.phone }}" class="btn btn-crm-call btn-sm px-2.5 py-1 rounded-pill" title="Call Contact">
-                                    <i class="bi bi-telephone-fill"></i>
-                                </a>
+                            <a href="tel:{{ lead.phone }}" class="btn btn-crm-call btn-sm px-2.5 py-1 rounded-pill"
+                                title="Call Contact">
+                                <i class="bi bi-telephone-fill"></i>
+                            </a>
                             {% endif %}
-                            <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}" class="btn btn-outline-secondary btn-sm rounded-pill px-3">
+                            <a href="{{ url_for('crm_leads.lead_detail', lead_id=lead.id) }}"
+                                class="btn btn-outline-secondary btn-sm rounded-pill px-3">
                                 Dossier
                             </a>
                         </div>
@@ -388,17 +426,20 @@
     <div class="vr bg-secondary opacity-50 mx-1"></div>
 
     <!-- Bulk Action 1: Change Stage -->
-    <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark" onclick="openBulkChangeStageModal()" title="Change stage for all selected leads">
+    <button type="button" class="btn btn-warning btn-sm rounded-pill px-3 fw-bold text-dark"
+        onclick="openBulkChangeStageModal()" title="Change stage for all selected leads">
         <i class="bi bi-arrow-left-right me-1"></i>Change Stage
     </button>
 
     <!-- Bulk Action 2: Change Lead Owner -->
-    <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold" onclick="openBulkChangeOwnerModal()" title="Assign owner to all selected leads">
+    <button type="button" class="btn btn-outline-light btn-sm rounded-pill px-3 fw-bold"
+        onclick="openBulkChangeOwnerModal()" title="Assign owner to all selected leads">
         <i class="bi bi-person-badge-fill me-1"></i>Change Lead Owner
     </button>
 
     <!-- Bulk Action 3: Send Bulk Email -->
-    <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-3 fw-bold" onclick="openBulkEmailWithSelected()">
+    <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-3 fw-bold"
+        onclick="openBulkEmailWithSelected()">
         <i class="bi bi-envelope-fill me-1"></i>Send Bulk Email
     </button>
 
@@ -407,34 +448,40 @@
         <i class="bi bi-file-earmark-arrow-down me-1"></i>Export
     </button>
 
-    <button type="button" class="btn btn-link text-white-50 btn-sm p-0 ms-2 text-decoration-none" onclick="clearLeadSelection()">
+    <button type="button" class="btn btn-link text-white-50 btn-sm p-0 ms-2 text-decoration-none"
+        onclick="clearLeadSelection()">
         <i class="bi bi-x-lg me-1"></i>Cancel
     </button>
 </div>
 
 <!-- Realtime CRM Notification Toast -->
 <div class="position-fixed top-0 end-0 p-3" style="z-index: 1090;">
-    <div id="crmNotificationToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert" aria-live="assertive" aria-atomic="true">
+    <div id="crmNotificationToast" class="toast align-items-center text-white bg-dark border-0 shadow-lg" role="alert"
+        aria-live="assertive" aria-atomic="true">
         <div class="d-flex">
             <div class="toast-body py-2 px-3 small d-flex align-items-center gap-2" id="crmNotificationMessage">
                 <i class="bi bi-check-circle-fill text-success fs-6"></i>
                 <span>Action completed successfully.</span>
             </div>
-            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"
+                aria-label="Close"></button>
         </div>
     </div>
 </div>
 
 <!-- Modal: Bulk Change Stage -->
-<div class="modal fade crm-modal" id="bulkChangeStageModal" tabindex="-1" aria-labelledby="bulkChangeStageModalLabel" aria-hidden="true">
+<div class="modal fade crm-modal" id="bulkChangeStageModal" tabindex="-1" aria-labelledby="bulkChangeStageModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title fw-bold text-dark" id="bulkChangeStageModalLabel" style="font-family: 'Playfair Display', serif;">
+                    <h5 class="modal-title fw-bold text-dark" id="bulkChangeStageModalLabel"
+                        style="font-family: 'Playfair Display', serif;">
                         <i class="bi bi-arrow-left-right text-warning me-2"></i>Change Stage in Bulk
                     </h5>
-                    <small class="text-muted">Move <strong id="bulkStageSelectedCount" class="text-dark">0</strong> selected leads to another marketing funnel stage.</small>
+                    <small class="text-muted">Move <strong id="bulkStageSelectedCount" class="text-dark">0</strong>
+                        selected leads to another marketing funnel stage.</small>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
@@ -449,12 +496,15 @@
                 </div>
                 <div class="alert alert-light border small text-muted mb-0">
                     <i class="bi bi-info-circle me-1 text-primary"></i>
-                    All selected records will be updated immediately in-place on this screen, and an audit trail entry will be recorded in each prospect's dossier.
+                    All selected records will be updated immediately in-place on this screen, and an audit trail entry
+                    will be recorded in each prospect's dossier.
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkStage" onclick="executeBulkChangeStage()">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3"
+                    data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkStage"
+                    onclick="executeBulkChangeStage()">
                     <i class="bi bi-check2-circle me-1"></i>Apply Stage Change
                 </button>
             </div>
@@ -463,22 +513,26 @@
 </div>
 
 <!-- Modal: Bulk Change Lead Owner -->
-<div class="modal fade crm-modal" id="bulkChangeOwnerModal" tabindex="-1" aria-labelledby="bulkChangeOwnerModalLabel" aria-hidden="true">
+<div class="modal fade crm-modal" id="bulkChangeOwnerModal" tabindex="-1" aria-labelledby="bulkChangeOwnerModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title fw-bold text-dark" id="bulkChangeOwnerModalLabel" style="font-family: 'Playfair Display', serif;">
+                    <h5 class="modal-title fw-bold text-dark" id="bulkChangeOwnerModalLabel"
+                        style="font-family: 'Playfair Display', serif;">
                         <i class="bi bi-person-badge-fill text-warning me-2"></i>Change Lead Owner in Bulk
                     </h5>
-                    <small class="text-muted">Assign <strong id="bulkOwnerSelectedCount" class="text-dark">0</strong> selected leads to an account owner.</small>
+                    <small class="text-muted">Assign <strong id="bulkOwnerSelectedCount" class="text-dark">0</strong>
+                        selected leads to an account owner.</small>
                 </div>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <div class="modal-body p-4">
                 <div class="mb-3">
                     <label class="form-label small text-muted fw-bold">Assignee / Lead Owner *</label>
-                    <select id="bulkOwnerSelect" class="form-select crm-input mb-2" onchange="toggleCustomOwnerInput(this.value)">
+                    <select id="bulkOwnerSelect" class="form-select crm-input mb-2"
+                        onchange="toggleCustomOwnerInput(this.value)">
                         <option value="">-- Select Team Member --</option>
                         {% for ow in owners %}
                         <option value="{{ ow }}">{{ ow }}</option>
@@ -486,16 +540,20 @@
                         <option value="__custom__">&plus; Enter Custom Owner Name...</option>
                         <option value="__unassign__">&times; Unassigned (Clear Owner)</option>
                     </select>
-                    <input type="text" id="bulkCustomOwnerInput" class="form-control crm-input d-none" placeholder="Enter owner's full name (e.g. Vishnu Govind, Pooja Sathish)...">
+                    <input type="text" id="bulkCustomOwnerInput" class="form-control crm-input d-none"
+                        placeholder="Enter owner's full name (e.g. Vishnu Govind, Pooja Sathish)...">
                 </div>
                 <div class="alert alert-light border small text-muted mb-0">
                     <i class="bi bi-shield-check me-1 text-success"></i>
-                    The lead owner will be synced across all selected records and will appear immediately on the table, cards, and dossier.
+                    The lead owner will be synced across all selected records and will appear immediately on the table,
+                    cards, and dossier.
                 </div>
             </div>
             <div class="modal-footer">
-                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkOwner" onclick="executeBulkChangeOwner()">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3"
+                    data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkOwner"
+                    onclick="executeBulkChangeOwner()">
                     <i class="bi bi-person-check-fill me-1"></i>Assign Owner
                 </button>
             </div>
@@ -506,12 +564,14 @@
 <!-- ================= MODALS ================= -->
 
 <!-- Modal: Send Bulk Email (With Templates & Live Preview) -->
-<div class="modal fade crm-modal" id="bulkEmailModal" tabindex="-1" aria-labelledby="bulkEmailModalLabel" aria-hidden="true">
+<div class="modal fade crm-modal" id="bulkEmailModal" tabindex="-1" aria-labelledby="bulkEmailModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-xl">
         <div class="modal-content">
             <div class="modal-header">
                 <div>
-                    <h5 class="modal-title fw-bold text-dark" id="bulkEmailModalLabel" style="font-family: 'Playfair Display', serif;">
+                    <h5 class="modal-title fw-bold text-dark" id="bulkEmailModalLabel"
+                        style="font-family: 'Playfair Display', serif;">
                         <i class="bi bi-envelope-paper-heart-fill text-warning me-2"></i>Send Bulk Corporate Outreach
                     </h5>
                     <small class="text-muted" id="bulkRecipientSummary">Preparing email dispatch...</small>
@@ -521,10 +581,12 @@
 
             <div class="modal-body p-4">
                 <!-- Executive CC Notice -->
-                <div class="alert alert-warning py-2 px-3 small d-flex align-items-center justify-content-between mb-3 rounded-3">
+                <div
+                    class="alert alert-warning py-2 px-3 small d-flex align-items-center justify-content-between mb-3 rounded-3">
                     <div>
                         <i class="bi bi-info-circle-fill me-1 text-warning"></i>
-                        <strong>Mandatory Executive Tracking:</strong> All outbound emails automatically CC <code>Vishnu.govind@pikachooz.com</code> and append lead-specific tracking links.
+                        <strong>Mandatory Executive Tracking:</strong> All outbound emails automatically CC
+                        <code>Vishnu.govind@pikachooz.com</code> and append lead-specific tracking links.
                     </div>
                     <span class="badge bg-dark text-white">Automated CC</span>
                 </div>
@@ -535,23 +597,29 @@
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
                                 <label class="form-label small text-muted fw-bold mb-0">Select Email Template</label>
-                                <a href="{{ url_for('crm_templates.list_templates') }}" target="_blank" class="small text-warning text-decoration-none fw-semibold">
+                                <a href="{{ url_for('crm_templates.list_templates') }}" target="_blank"
+                                    class="small text-warning text-decoration-none fw-semibold">
                                     <i class="bi bi-palette-fill me-1"></i>Visual Template Studio &rarr;
                                 </a>
                             </div>
-                            <select id="emailTemplateSelector" class="form-select crm-input" onchange="applyEmailTemplate(this.value)">
+                            <select id="emailTemplateSelector" class="form-select crm-input"
+                                onchange="applyEmailTemplate(this.value)">
                                 {% if saved_templates %}
                                 <optgroup label="🎨 Studio Visual Templates">
                                     {% for tpl in saved_templates %}
-                                    <option value="tpl_{{ tpl.id }}">{{ tpl.name }} ({{ tpl.category|capitalize }})</option>
+                                    <option value="tpl_{{ tpl.id }}">{{ tpl.name }} ({{ tpl.category|capitalize }})
+                                    </option>
                                     {% endfor %}
                                 </optgroup>
                                 {% endif %}
                                 <optgroup label="⚡ Quick Outbound Templates">
-                                    <option value="festive_pitch" {% if not saved_templates %}selected{% endif %}>🎁 1. Diwali &amp; Festive Corporate Hamper Pitch 2026</option>
+                                    <option value="festive_pitch" {% if not saved_templates %}selected{% endif %}>🎁 1.
+                                        Diwali &amp; Festive Corporate Hamper Pitch 2026</option>
                                     <option value="sample_box">🍫 2. Free Tasting Hamper Sample Offer</option>
-                                    <option value="vip_catalog">✨ 3. VIP Customization &amp; Catalog Walkthrough</option>
-                                    <option value="meeting_request">📅 4. Meeting Request with Gifting Specialist</option>
+                                    <option value="vip_catalog">✨ 3. VIP Customization &amp; Catalog Walkthrough
+                                    </option>
+                                    <option value="meeting_request">📅 4. Meeting Request with Gifting Specialist
+                                    </option>
                                     <option value="custom">✍️ 5. Blank / Custom Message</option>
                                 </optgroup>
                             </select>
@@ -560,41 +628,60 @@
                         <!-- CC Recipients Input -->
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
-                                <label class="form-label small text-muted fw-bold mb-0">CC Recipients (Comma-separated)</label>
-                                <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Automated CC</span>
+                                <label class="form-label small text-muted fw-bold mb-0">CC Recipients
+                                    (Comma-separated)</label>
+                                <span class="badge bg-light text-muted border" style="font-size: 0.68rem;">Automated
+                                    CC</span>
                             </div>
                             <div class="input-group input-group-sm">
-                                <span class="input-group-text bg-light text-muted"><i class="bi bi-envelope-at"></i></span>
-                                <input type="text" id="emailCcInput" class="form-control crm-input font-monospace small" value="Vishnu.govind@pikachooz.com" placeholder="e.g. Vishnu.govind@pikachooz.com, sales@sweetscribbles.com" oninput="updateLivePreview()">
+                                <span class="input-group-text bg-light text-muted"><i
+                                        class="bi bi-envelope-at"></i></span>
+                                <input type="text" id="emailCcInput" class="form-control crm-input font-monospace small"
+                                    value="Vishnu.govind@pikachooz.com"
+                                    placeholder="e.g. Vishnu.govind@pikachooz.com, sales@sweetscribbles.com"
+                                    oninput="updateLivePreview()">
                             </div>
-                            <small class="text-muted" style="font-size: 0.7rem;">Every email automatically CCs <code>Vishnu.govind@pikachooz.com</code>. Add extra recipients as needed.</small>
+                            <small class="text-muted" style="font-size: 0.7rem;">Every email automatically CCs
+                                <code>Vishnu.govind@pikachooz.com</code>. Add extra recipients as needed.</small>
                         </div>
 
                         <!-- Parameter Insertion Chips -->
                         <div class="mb-3">
-                            <label class="form-label small text-muted fw-bold d-block mb-1">Click to Insert Dynamic Lead Parameters:</label>
+                            <label class="form-label small text-muted fw-bold d-block mb-1">Click to Insert Dynamic Lead
+                                Parameters:</label>
                             <div class="d-flex flex-wrap gap-1.5">
-                                <span class="param-chip" onclick="insertParam('{contact_name}')"><i class="bi bi-person"></i> {contact_name}</span>
-                                <span class="param-chip" onclick="insertParam('{company_name}')"><i class="bi bi-building"></i> {company_name}</span>
-                                <span class="param-chip" onclick="insertParam('{city}')"><i class="bi bi-geo-alt"></i> {city}</span>
-                                <span class="param-chip" onclick="insertParam('{designation}')"><i class="bi bi-briefcase"></i> {designation}</span>
-                                <span class="param-chip text-warning fw-bold" onclick="insertParam('{outreach_link}')"><i class="bi bi-link-45deg"></i> {outreach_link}</span>
+                                <span class="param-chip" onclick="insertParam('{contact_name}')"><i
+                                        class="bi bi-person"></i> {contact_name}</span>
+                                <span class="param-chip" onclick="insertParam('{company_name}')"><i
+                                        class="bi bi-building"></i> {company_name}</span>
+                                <span class="param-chip" onclick="insertParam('{city}')"><i class="bi bi-geo-alt"></i>
+                                    {city}</span>
+                                <span class="param-chip" onclick="insertParam('{designation}')"><i
+                                        class="bi bi-briefcase"></i> {designation}</span>
+                                <span class="param-chip text-warning fw-bold"
+                                    onclick="insertParam('{outreach_link}')"><i class="bi bi-link-45deg"></i>
+                                    {outreach_link}</span>
                             </div>
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label small text-muted fw-bold">Subject Line *</label>
-                            <input type="text" id="emailSubjectInput" class="form-control crm-input fw-semibold" placeholder="Enter email subject line..." oninput="updateLivePreview()">
+                            <input type="text" id="emailSubjectInput" class="form-control crm-input fw-semibold"
+                                placeholder="Enter email subject line..." oninput="updateLivePreview()">
                         </div>
 
                         <div class="mb-3">
                             <label class="form-label small text-muted fw-bold">Email Message Body *</label>
-                            <textarea id="emailBodyInput" class="form-control crm-input font-monospace" rows="10" placeholder="Type your customized email here..." oninput="updateLivePreview()"></textarea>
-                            <small class="text-muted" style="font-size: 0.72rem;">Line breaks are automatically formatted cleanly for luxury email clients.</small>
+                            <textarea id="emailBodyInput" class="form-control crm-input font-monospace" rows="10"
+                                placeholder="Type your customized email here..."
+                                oninput="updateLivePreview()"></textarea>
+                            <small class="text-muted" style="font-size: 0.72rem;">Line breaks are automatically
+                                formatted cleanly for luxury email clients.</small>
                         </div>
 
                         <div class="mb-3">
-                            <label class="form-label small text-muted fw-bold">Optional: Auto-Advance Lead Stage After Sending</label>
+                            <label class="form-label small text-muted fw-bold">Optional: Auto-Advance Lead Stage After
+                                Sending</label>
                             <select id="emailStageAdvanceSelect" class="form-select crm-input form-select-sm">
                                 <option value="">Do not change stage (Keep current)</option>
                                 <option value="call_back">Advance to: Call back</option>
@@ -609,23 +696,30 @@
                     <div class="col-lg-5">
                         <div class="d-flex justify-content-between align-items-center mb-2">
                             <label class="form-label small text-muted fw-bold mb-0">Live Email Preview</label>
-                            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Sample Recipient</span>
+                            <span class="badge bg-light text-muted border" style="font-size: 0.7rem;">Sample
+                                Recipient</span>
                         </div>
 
                         <div class="email-preview-container">
                             <div class="border-bottom pb-2 mb-3">
-                                <div class="small text-muted"><strong>To:</strong> <span id="previewTo">Ananya Sharma &lt;ananya@wipro.com&gt;</span></div>
-                                <div class="small text-muted"><strong>CC:</strong> <span id="previewCc">Vishnu.govind@pikachooz.com</span></div>
-                                <div class="small text-dark mt-1"><strong>Subject:</strong> <span id="previewSubject" class="fw-bold">Exclusive Corporate Gifting Catalog</span></div>
+                                <div class="small text-muted"><strong>To:</strong> <span id="previewTo">Ananya Sharma
+                                        &lt;ananya@wipro.com&gt;</span></div>
+                                <div class="small text-muted"><strong>CC:</strong> <span
+                                        id="previewCc">Vishnu.govind@pikachooz.com</span></div>
+                                <div class="small text-dark mt-1"><strong>Subject:</strong> <span id="previewSubject"
+                                        class="fw-bold">Exclusive Corporate Gifting Catalog</span></div>
                             </div>
-                            
+
                             <!-- Rendered Luxury Email Body -->
-                            <div id="previewBodyRendered" class="small text-dark" style="line-height: 1.6; white-space: pre-line;">
+                            <div id="previewBodyRendered" class="small text-dark"
+                                style="line-height: 1.6; white-space: pre-line;">
                                 <!-- Live updated preview text -->
                             </div>
 
                             <div class="mt-4 pt-3 border-top text-center">
-                                <a id="previewButton" href="#" class="btn btn-sm btn-crm-gold rounded-pill px-3 py-1.5 fw-bold" onclick="return false;">
+                                <a id="previewButton" href="#"
+                                    class="btn btn-sm btn-crm-gold rounded-pill px-3 py-1.5 fw-bold"
+                                    onclick="return false;">
                                     Explore Corporate Gifting Portal &rarr;
                                 </a>
                                 <div class="text-muted mt-2" style="font-size: 0.68rem;">
@@ -642,7 +736,8 @@
 
             <div class="modal-footer">
                 <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
-                <button type="button" class="btn btn-crm-gold btn-sm px-4 fw-bold" id="btnSendBulkEmail" onclick="executeBulkEmailDispatch()">
+                <button type="button" class="btn btn-crm-gold btn-sm px-4 fw-bold" id="btnSendBulkEmail"
+                    onclick="executeBulkEmailDispatch()">
                     <i class="bi bi-send-fill me-1"></i>Send Campaign
                 </button>
             </div>
@@ -651,41 +746,49 @@
 </div>
 
 <!-- Modal: Add Lead (With Marketing Source & Geolocation) -->
-<div class="modal fade crm-modal" id="addLeadModal" tabindex="-1" aria-labelledby="addLeadModalLabel" aria-hidden="true">
+<div class="modal fade crm-modal" id="addLeadModal" tabindex="-1" aria-labelledby="addLeadModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="addLeadModalLabel" style="font-family: 'Playfair Display', serif;">Add Corporate Prospect</h5>
+                <h5 class="modal-title fw-bold" id="addLeadModalLabel" style="font-family: 'Playfair Display', serif;">
+                    Add Corporate Prospect</h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
             </div>
             <form action="{{ url_for('crm_leads.add_lead') }}" method="POST">
                 <div class="modal-body">
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-medium">Company / Brand Name *</label>
-                        <input type="text" name="company_name" class="form-control crm-input" placeholder="e.g. Wipro Technologies" required>
+                        <input type="text" name="company_name" class="form-control crm-input"
+                            placeholder="e.g. Wipro Technologies" required>
                     </div>
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-medium">Contact Person Name *</label>
-                        <input type="text" name="contact_name" class="form-control crm-input" placeholder="e.g. Ananya Sharma" required>
+                        <input type="text" name="contact_name" class="form-control crm-input"
+                            placeholder="e.g. Ananya Sharma" required>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label small text-muted fw-medium">Mobile Number</label>
-                            <input type="tel" name="phone" class="form-control crm-input" placeholder="9876543210" maxlength="10">
+                            <input type="tel" name="phone" class="form-control crm-input" placeholder="9876543210"
+                                maxlength="10">
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted fw-medium">Official Email</label>
-                            <input type="email" name="email" class="form-control crm-input" placeholder="ananya@wipro.com">
+                            <input type="email" name="email" class="form-control crm-input"
+                                placeholder="ananya@wipro.com">
                         </div>
                     </div>
                     <div class="row g-2 mb-3">
                         <div class="col-6">
                             <label class="form-label small text-muted fw-medium">Designation</label>
-                            <input type="text" name="designation" class="form-control crm-input" placeholder="Head of HR / Procurement">
+                            <input type="text" name="designation" class="form-control crm-input"
+                                placeholder="Head of HR / Procurement">
                         </div>
                         <div class="col-6">
                             <label class="form-label small text-muted fw-medium">City</label>
-                            <input type="text" name="city" id="addLeadCity" class="form-control crm-input" placeholder="Bangalore">
+                            <input type="text" name="city" id="addLeadCity" class="form-control crm-input"
+                                placeholder="Bangalore">
                         </div>
                     </div>
 
@@ -709,7 +812,8 @@
                             <label class="form-label small text-muted fw-medium">Initial Funnel Stage</label>
                             <select name="stage" class="form-select crm-input">
                                 {% for st, label, badge in stages %}
-                                    <option value="{{ st }}" {% if st == 'fresh_lead' %}selected{% endif %}>{{ label }}</option>
+                                <option value="{{ st }}" {% if st=='fresh_lead' %}selected{% endif %}>{{ label }}
+                                </option>
                                 {% endfor %}
                             </select>
                         </div>
@@ -719,17 +823,22 @@
                     <div class="mb-3">
                         <div class="d-flex justify-content-between align-items-center mb-1">
                             <label class="form-label small text-muted fw-medium mb-0">Location / Address / Area</label>
-                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill" onclick="detectCurrentLocation('addLeadLocation', 'addLeadCity', this)" style="font-size: 0.72rem;">
+                            <button type="button" class="btn btn-outline-danger btn-sm py-0 px-2 rounded-pill"
+                                onclick="detectCurrentLocation('addLeadLocation', 'addLeadCity', this)"
+                                style="font-size: 0.72rem;">
                                 <i class="bi bi-geo-alt-fill me-1"></i>Detect Location
                             </button>
                         </div>
-                        <input type="text" name="location" id="addLeadLocation" class="form-control crm-input" placeholder="e.g. Indiranagar 100ft Road, Bangalore">
-                        <small class="text-muted" style="font-size: 0.7rem;">Click "Detect Location" to automatically capture your GPS coordinates or area.</small>
+                        <input type="text" name="location" id="addLeadLocation" class="form-control crm-input"
+                            placeholder="e.g. Indiranagar 100ft Road, Bangalore">
+                        <small class="text-muted" style="font-size: 0.7rem;">Click "Detect Location" to automatically
+                            capture your GPS coordinates or area.</small>
                     </div>
 
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-medium">Initial Requirement / Notes</label>
-                        <textarea name="notes" class="form-control crm-input" rows="2" placeholder="e.g. Inquiring for 300 Diwali hampers budget around ₹1200/box"></textarea>
+                        <textarea name="notes" class="form-control crm-input" rows="2"
+                            placeholder="e.g. Inquiring for 300 Diwali hampers budget around ₹1200/box"></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -742,11 +851,13 @@
 </div>
 
 <!-- Modal: Import Leads Bulk (With Marketing Source Selector) -->
-<div class="modal fade crm-modal" id="importLeadsModal" tabindex="-1" aria-labelledby="importLeadsModalLabel" aria-hidden="true">
+<div class="modal fade crm-modal" id="importLeadsModal" tabindex="-1" aria-labelledby="importLeadsModalLabel"
+    aria-hidden="true">
     <div class="modal-dialog modal-lg">
         <div class="modal-content">
             <div class="modal-header">
-                <h5 class="modal-title fw-bold" id="importLeadsModalLabel" style="font-family: 'Playfair Display', serif;">
+                <h5 class="modal-title fw-bold" id="importLeadsModalLabel"
+                    style="font-family: 'Playfair Display', serif;">
                     <i class="bi bi-file-earmark-arrow-up me-2 text-warning"></i>Bulk Import Prospects
                 </h5>
                 <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
@@ -755,8 +866,10 @@
                 <div class="modal-body">
                     <!-- Source Assignment -->
                     <div class="mb-3 p-3 bg-light rounded-3 border">
-                        <label class="form-label small text-dark fw-bold mb-1">Default Marketing Source for this Batch *</label>
-                        <p class="text-muted small mb-2">Assign which marketing channel these imported leads originated from (e.g. LinkedIn list, Instagram DM, Cold database):</p>
+                        <label class="form-label small text-dark fw-bold mb-1">Default Marketing Source for this Batch
+                            *</label>
+                        <p class="text-muted small mb-2">Assign which marketing channel these imported leads originated
+                            from (e.g. LinkedIn list, Instagram DM, Cold database):</p>
                         <select name="lead_source" class="form-select crm-input">
                             <option value="LinkedIn" selected>LinkedIn</option>
                             <option value="Instagram">Instagram</option>
@@ -772,15 +885,20 @@
 
                     <div class="p-3 bg-light rounded-3 border mb-3">
                         <span class="fw-bold small text-dark d-block mb-1">
-                            <i class="bi bi-table text-warning me-1"></i>Standard Marketing Template Format (CSV / Excel):
+                            <i class="bi bi-table text-warning me-1"></i>Standard Marketing Template Format (CSV /
+                            Excel):
                         </span>
-                        <code class="small text-dark d-block p-2 bg-white rounded border font-monospace mb-2" style="font-size: 0.75rem;">
+                        <code class="small text-dark d-block p-2 bg-white rounded border font-monospace mb-2"
+                            style="font-size: 0.75rem;">
                             "Company Name", "contact_type", "Contact Person", "Phone", "Email", "Designation", "Address", "Lead Stages"
                         </code>
                         <ul class="text-muted small ps-3 mb-0" style="font-size: 0.75rem;">
-                            <li><strong>contact_type:</strong> Use <code>primary</code> for the main account owner, or <code>poc1</code>, <code>poc2</code>, etc. for secondary contacts.</li>
-                            <li><strong>Multi-POC Grouping:</strong> Multiple rows for the same company are automatically grouped under one company lead!</li>
-                            <li><strong>Lead Stages:</strong> Used as the lead source/tag; all leads start in pipeline stage <strong>1. Fresh Lead</strong>.</li>
+                            <li><strong>contact_type:</strong> Use <code>primary</code> for the main account owner, or
+                                <code>poc1</code>, <code>poc2</code>, etc. for secondary contacts.</li>
+                            <li><strong>Multi-POC Grouping:</strong> Multiple rows for the same company are
+                                automatically grouped under one company lead!</li>
+                            <li><strong>Lead Stages:</strong> Used as the lead source/tag; all leads start in pipeline
+                                stage <strong>1. Fresh Lead</strong>.</li>
                             <li><strong>Address &amp; City:</strong> City is auto-detected from the address field.</li>
                         </ul>
                     </div>
@@ -794,7 +912,8 @@
 
                     <div class="mb-3">
                         <label class="form-label small text-muted fw-medium">Option B: Paste Tabular or CSV Rows</label>
-                        <textarea name="raw_data" class="form-control crm-input font-monospace small" rows="7" placeholder='"Benaka Electronics","primary","Renukacharya Hiremath","+91 9902908679","toolroom@benaka.com","Manager-Tool Room","#13, West of Chord Road, Rajajinagar, Bangalore 560010","Extremly Interested"&#10;"Benaka Electronics","poc1","Renukacharya Hiremath","080-23353615","toolroom@benaka.com","Manager-Tool Room","#13, West of Chord Road, Rajajinagar, Bangalore 560010","Extremly Interested"'></textarea>
+                        <textarea name="raw_data" class="form-control crm-input font-monospace small" rows="7"
+                            placeholder='"Benaka Electronics","primary","Renukacharya Hiremath","+91 9902908679","toolroom@benaka.com","Manager-Tool Room","#13, West of Chord Road, Rajajinagar, Bangalore 560010","Extremly Interested"&#10;"Benaka Electronics","poc1","Renukacharya Hiremath","080-23353615","toolroom@benaka.com","Manager-Tool Room","#13, West of Chord Road, Rajajinagar, Bangalore 560010","Extremly Interested"'></textarea>
                     </div>
                 </div>
                 <div class="modal-footer">
@@ -808,26 +927,26 @@
 
 <!-- ================= JAVASCRIPT LOGIC ================= -->
 <script>
-// Saved Studio Visual Templates
-const SAVED_TEMPLATES = {
+    // Saved Studio Visual Templates
+    const SAVED_TEMPLATES = {
     {% if saved_templates %}
     {% for t in saved_templates %}
     "tpl_{{ t.id }}": {
-        id: {{ t.id }},
-        name: {{ t.name|tojson }},
-        subject: {{ t.subject|tojson }},
-        content_html: {{ (t.content_html or '')|tojson }},
-        default_cc: {{ (t.default_cc or 'Vishnu.govind@pikachooz.com')|tojson }}
+        id: { { t.id } },
+        name: { { t.name | tojson } },
+        subject: { { t.subject | tojson } },
+        content_html: { { (t.content_html or '')| tojson } },
+        default_cc: { { (t.default_cc or 'Vishnu.govind@pikachooz.com')| tojson } }
     },
     {% endfor %}
     {% endif %}
 };
 
-// Templates Map
-const EMAIL_TEMPLATES = {
-    festive_pitch: {
-        subject: "Exclusive 2026 Festive Corporate Hampers & Tasting Box for {company_name}",
-        body: `Dear {contact_name},
+    // Templates Map
+    const EMAIL_TEMPLATES = {
+        festive_pitch: {
+            subject: "Exclusive 2026 Festive Corporate Hampers & Tasting Box for {company_name}",
+            body: `Dear {contact_name},
 
 Warm greetings from Sweet Scribbles Artisanal Gifting!
 
@@ -848,10 +967,10 @@ Would you be open to receiving a complimentary tasting sampler box at your {city
 Warm regards,
 Corporate Relations Team
 Sweet Scribbles Gifting`
-    },
-    sample_box: {
-        subject: "Complimentary Hamper Tasting Box for {contact_name} at {company_name}",
-        body: `Hi {contact_name},
+        },
+        sample_box: {
+            subject: "Complimentary Hamper Tasting Box for {contact_name} at {company_name}",
+            body: `Hi {contact_name},
 
 Hope you are having a productive week!
 
@@ -867,10 +986,10 @@ Could you confirm the best delivery address or office location in {city} for you
 Best regards,
 Gifting Advisory Specialist
 Sweet Scribbles`
-    },
-    vip_catalog: {
-        subject: "Customized Gifting Catalog & Insignia Mockup for {company_name}",
-        body: `Dear {contact_name},
+        },
+        vip_catalog: {
+            subject: "Customized Gifting Catalog & Insignia Mockup for {company_name}",
+            body: `Dear {contact_name},
 
 Every great brand deserves gifts that mirror its standard of excellence. 
 
@@ -884,10 +1003,10 @@ Let us know if you'd like us to design a few digital mockups with your logo and 
 Sincerely,
 Executive Accounts
 Sweet Scribbles Artisanal Gifting`
-    },
-    meeting_request: {
-        subject: "Quick 10-Min Walkthrough: Corporate Festive Gifting for {company_name}",
-        body: `Hi {contact_name},
+        },
+        meeting_request: {
+            subject: "Quick 10-Min Walkthrough: Corporate Festive Gifting for {company_name}",
+            body: `Hi {contact_name},
 
 I hope this note finds you well.
 
@@ -901,385 +1020,409 @@ Would you be available for a brief call tomorrow or Thursday afternoon?
 Warm regards,
 Vishnu Govind
 Corporate Gifting Director, Sweet Scribbles`
-    },
-    custom: {
-        subject: "",
-        body: ""
-    }
-};
+        },
+        custom: {
+            subject: "",
+            body: ""
+        }
+    };
 
-let selectedLeadIds = [];
-let currentBulkMode = 'filter'; // 'filter' or 'selected'
+    let selectedLeadIds = [];
+    let currentBulkMode = 'filter'; // 'filter' or 'selected'
 
-// Free HTML5 Browser Geolocation (Zero API Key required)
-function detectCurrentLocation(inputFieldId, cityFieldId, btnElement) {
-    if (!navigator.geolocation) {
-        alert("Geolocation is not supported by your browser.");
-        return;
-    }
+    // Free HTML5 Browser Geolocation (Zero API Key required)
+    function detectCurrentLocation(inputFieldId, cityFieldId, btnElement) {
+        if (!navigator.geolocation) {
+            alert("Geolocation is not supported by your browser.");
+            return;
+        }
 
-    const originalText = btnElement.innerHTML;
-    btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Detecting...';
-    btnElement.disabled = true;
+        const originalText = btnElement.innerHTML;
+        btnElement.innerHTML = '<span class="spinner-border spinner-border-sm" role="status"></span> Detecting...';
+        btnElement.disabled = true;
 
-    navigator.geolocation.getCurrentPosition(
-        async function(position) {
-            const lat = position.coords.latitude.toFixed(6);
-            const lon = position.coords.longitude.toFixed(6);
-            
-            // Attempt reverse geocoding via OpenStreetMap Nominatim (Free, no API key needed)
-            try {
-                const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
-                const data = await response.json();
-                if (data && data.display_name) {
-                    const addr = data.address || {};
-                    const city = addr.city || addr.town || addr.suburb || addr.state_district || 'Bangalore';
-                    const formatted = `${addr.suburb || addr.neighbourhood || ''}, ${city}`.replace(/^,\s*/, '');
+        navigator.geolocation.getCurrentPosition(
+            async function (position) {
+                const lat = position.coords.latitude.toFixed(6);
+                const lon = position.coords.longitude.toFixed(6);
 
-                    document.getElementById(inputFieldId).value = formatted || data.display_name.split(',').slice(0, 3).join(',');
-                    if (cityFieldId && document.getElementById(cityFieldId) && !document.getElementById(cityFieldId).value) {
-                        document.getElementById(cityFieldId).value = city;
+                // Attempt reverse geocoding via OpenStreetMap Nominatim (Free, no API key needed)
+                try {
+                    const response = await fetch(`https://nominatim.openstreetmap.org/reverse?format=json&lat=${lat}&lon=${lon}`);
+                    const data = await response.json();
+                    if (data && data.display_name) {
+                        const addr = data.address || {};
+                        const city = addr.city || addr.town || addr.suburb || addr.state_district || 'Bangalore';
+                        const formatted = `${addr.suburb || addr.neighbourhood || ''}, ${city}`.replace(/^,\s*/, '');
+
+                        document.getElementById(inputFieldId).value = formatted || data.display_name.split(',').slice(0, 3).join(',');
+                        if (cityFieldId && document.getElementById(cityFieldId) && !document.getElementById(cityFieldId).value) {
+                            document.getElementById(cityFieldId).value = city;
+                        }
+                    } else {
+                        document.getElementById(inputFieldId).value = `${lat}, ${lon}`;
                     }
-                } else {
+                } catch (err) {
                     document.getElementById(inputFieldId).value = `${lat}, ${lon}`;
                 }
-            } catch (err) {
-                document.getElementById(inputFieldId).value = `${lat}, ${lon}`;
-            }
 
-            btnElement.innerHTML = originalText;
-            btnElement.disabled = false;
-        },
-        function(error) {
-            alert("Unable to retrieve location: " + error.message);
-            btnElement.innerHTML = originalText;
-            btnElement.disabled = false;
-        },
-        { timeout: 10000, enableHighAccuracy: true }
-    );
-}
-
-let activeSortKey = "{{ sort or 'date_modified_desc' }}";
-
-// Instant Refresh Pipeline Handler
-function refreshLeadsPipeline() {
-    const btn = document.getElementById('btnRefreshPipeline');
-    const icon = document.getElementById('refreshSpinIcon');
-    if (btn) btn.disabled = true;
-    if (icon) icon.classList.add('spin-fast');
-
-    // Retain all current URL search parameters and sync active sort preference
-    const currentSort = localStorage.getItem('crm_lead_sort_pref') || activeSortKey;
-    const url = new URL(window.location.href);
-    if (currentSort) {
-        url.searchParams.set('sort', currentSort);
-    }
-    // Smoothly reload page with freshest leads data from server
-    window.location.href = url.toString();
-}
-
-// Realtime CRM Notification Toast helper
-function showCrmToast(message, isSuccess = true) {
-    const toastEl = document.getElementById('crmNotificationToast');
-    const msgEl = document.getElementById('crmNotificationMessage');
-    if (!toastEl || !msgEl) return;
-
-    msgEl.innerHTML = isSuccess 
-        ? `<i class="bi bi-check-circle-fill text-success fs-6"></i><span>${message}</span>`
-        : `<i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i><span>${message}</span>`;
-
-    const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
-    toast.show();
-}
-
-// Bulk Actions: Change Stage
-function openBulkChangeStageModal() {
-    if (selectedLeadIds.length === 0) {
-        alert("Please select at least one lead first.");
-        return;
-    }
-    document.getElementById('bulkStageSelectedCount').textContent = selectedLeadIds.length;
-    const modal = new bootstrap.Modal(document.getElementById('bulkChangeStageModal'));
-    modal.show();
-}
-
-async function executeBulkChangeStage() {
-    const newStage = document.getElementById('bulkNewStageSelect').value;
-    const btn = document.getElementById('btnExecuteBulkStage');
-    if (!newStage) return;
-
-    btn.disabled = true;
-    const origHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Updating...';
-
-    try {
-        const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest"
+                btnElement.innerHTML = originalText;
+                btnElement.disabled = false;
             },
-            body: JSON.stringify({
-                action: "change_stage",
-                lead_ids: selectedLeadIds,
-                new_stage: newStage
-            })
-        });
-
-        const data = await response.json();
-        if (data.success) {
-            // Update each lead record in the DOM immediately
-            data.updated_leads.forEach(l => {
-                // Update Table Row
-                const row = document.getElementById(`lead-row-${l.id}`);
-                if (row) {
-                    row.dataset.stage = l.stage;
-                    row.dataset.dateModified = l.updated_at_iso;
-                    const badge = document.getElementById(`lead-stage-badge-${l.id}`);
-                    if (badge) {
-                        badge.className = `stage-badge ${l.stage_badge_class}`;
-                        badge.textContent = l.stage_display;
-                    }
-                    const modBadge = document.getElementById(`lead-modified-${l.id}`);
-                    if (modBadge) modBadge.textContent = l.updated_at_display;
-                    row.classList.remove('row-highlight-flash');
-                    void row.offsetWidth; // trigger CSS reflow
-                    row.classList.add('row-highlight-flash');
-                }
-
-                // Update Kanban Card
-                const card = document.getElementById(`lead-card-${l.id}`);
-                if (card) {
-                    card.dataset.stage = l.stage;
-                    card.dataset.dateModified = l.updated_at_iso;
-                    const modBadge = document.getElementById(`kanban-modified-${l.id}`);
-                    if (modBadge) modBadge.textContent = l.updated_at_display;
-                    card.classList.remove('row-highlight-flash');
-                    void card.offsetWidth;
-                    card.classList.add('row-highlight-flash');
-                }
-            });
-
-            // Update stage counts across navigation strip
-            if (data.stage_counts) {
-                let total = 0;
-                for (const [stKey, count] of Object.entries(data.stage_counts)) {
-                    total += count;
-                    const countBadge = document.getElementById(`stage-count-${stKey}`);
-                    if (countBadge) countBadge.textContent = count;
-                }
-                const allBadge = document.getElementById('stage-count-all');
-                if (allBadge) allBadge.textContent = total;
-            }
-
-            // Hide modal & clear selection
-            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkChangeStageModal'));
-            if (modalInstance) modalInstance.hide();
-            clearLeadSelection();
-            showCrmToast(data.message);
-        } else {
-            alert(data.message || 'Failed to update stages');
-        }
-    } catch (err) {
-        alert("Network error: " + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = origHtml;
-    }
-}
-
-// Bulk Actions: Change Owner
-function openBulkChangeOwnerModal() {
-    if (selectedLeadIds.length === 0) {
-        alert("Please select at least one lead first.");
-        return;
-    }
-    document.getElementById('bulkOwnerSelectedCount').textContent = selectedLeadIds.length;
-    document.getElementById('bulkOwnerSelect').value = '';
-    document.getElementById('bulkCustomOwnerInput').value = '';
-    document.getElementById('bulkCustomOwnerInput').classList.add('d-none');
-    const modal = new bootstrap.Modal(document.getElementById('bulkChangeOwnerModal'));
-    modal.show();
-}
-
-function toggleCustomOwnerInput(val) {
-    const customInput = document.getElementById('bulkCustomOwnerInput');
-    if (val === '__custom__') {
-        customInput.classList.remove('d-none');
-        customInput.focus();
-    } else {
-        customInput.classList.add('d-none');
-    }
-}
-
-async function executeBulkChangeOwner() {
-    const selectVal = document.getElementById('bulkOwnerSelect').value;
-    const customVal = document.getElementById('bulkCustomOwnerInput').value.trim();
-    const btn = document.getElementById('btnExecuteBulkOwner');
-
-    let chosenOwner = '';
-    if (selectVal === '__custom__') {
-        if (!customVal) {
-            alert("Please enter a custom owner name.");
-            return;
-        }
-        chosenOwner = customVal;
-    } else if (selectVal === '__unassign__') {
-        chosenOwner = '';
-    } else {
-        if (!selectVal) {
-            alert("Please select a team member or enter a name.");
-            return;
-        }
-        chosenOwner = selectVal;
-    }
-
-    btn.disabled = true;
-    const origHtml = btn.innerHTML;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Assigning...';
-
-    try {
-        const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest"
+            function (error) {
+                alert("Unable to retrieve location: " + error.message);
+                btnElement.innerHTML = originalText;
+                btnElement.disabled = false;
             },
-            body: JSON.stringify({
-                action: "change_owner",
-                lead_ids: selectedLeadIds,
-                assigned_to: chosenOwner
-            })
-        });
+            { timeout: 10000, enableHighAccuracy: true }
+        );
+    }
 
-        const data = await response.json();
-        if (data.success) {
-            data.updated_leads.forEach(l => {
-                // Table row
-                const row = document.getElementById(`lead-row-${l.id}`);
-                if (row) {
-                    row.dataset.owner = l.assigned_to;
-                    row.dataset.dateModified = l.updated_at_iso;
-                    const ownerBadge = document.getElementById(`lead-owner-badge-${l.id}`);
-                    if (ownerBadge) {
-                        const ownerText = ownerBadge.querySelector('.owner-text');
-                        if (ownerText) ownerText.textContent = l.assigned_to;
-                    }
-                    const modBadge = document.getElementById(`lead-modified-${l.id}`);
-                    if (modBadge) modBadge.textContent = l.updated_at_display;
-                    row.classList.remove('row-highlight-flash');
-                    void row.offsetWidth;
-                    row.classList.add('row-highlight-flash');
-                }
+    let activeSortKey = "{{ sort or 'date_modified_desc' }}";
 
-                // Kanban card
-                const card = document.getElementById(`lead-card-${l.id}`);
-                if (card) {
-                    card.dataset.owner = l.assigned_to;
-                    card.dataset.dateModified = l.updated_at_iso;
-                    const kanbanOwner = document.getElementById(`kanban-owner-${l.id}`);
-                    if (kanbanOwner) kanbanOwner.textContent = l.assigned_to;
-                    const modBadge = document.getElementById(`kanban-modified-${l.id}`);
-                    if (modBadge) modBadge.textContent = l.updated_at_display;
-                    card.classList.remove('row-highlight-flash');
-                    void card.offsetWidth;
-                    card.classList.add('row-highlight-flash');
-                }
-            });
+    // Instant Refresh Pipeline Handler
+    function refreshLeadsPipeline() {
+        const btn = document.getElementById('btnRefreshPipeline');
+        const icon = document.getElementById('refreshSpinIcon');
+        if (btn) btn.disabled = true;
+        if (icon) icon.classList.add('spin-fast');
 
-            const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkChangeOwnerModal'));
-            if (modalInstance) modalInstance.hide();
-            clearLeadSelection();
-            showCrmToast(data.message);
-        } else {
-            alert(data.message || 'Failed to assign owner');
+        // Spin all secondary refresh icons
+        document.querySelectorAll('.refresh-spin-target').forEach(el => el.classList.add('spin-fast'));
+
+        // Retain all current URL search parameters and sync active sort preference
+        const currentSort = localStorage.getItem('crm_lead_sort_pref') || activeSortKey;
+        const url = new URL(window.location.href);
+        if (currentSort) {
+            url.searchParams.set('sort', currentSort);
         }
-    } catch (err) {
-        alert("Network error: " + err.message);
-    } finally {
-        btn.disabled = false;
-        btn.innerHTML = origHtml;
+        // Smoothly reload page with freshest leads data from server
+        window.location.href = url.toString();
     }
-}
 
-// In-Place Lead Sorting Logic (Name, Date Modified, Date Created with Asc & Desc)
-function changeLeadSort(sortKey) {
-    if (!sortKey) return;
-    activeSortKey = sortKey;
-
-    // 1. Sort DOM elements in place without navigating away
-    sortLeadTableRows(sortKey);
-    sortKanbanCards(sortKey);
-
-    // 2. Synchronize dropdown & hidden form inputs
-    const select = document.getElementById('leadSortSelect');
-    if (select) select.value = sortKey;
-    const hiddenSort = document.getElementById('filterSortInput');
-    if (hiddenSort) hiddenSort.value = sortKey;
-
-    // 3. Update table header sort icons
-    updateSortIcons(sortKey);
-
-    // 4. Persist sorting preference in localStorage so it stays active
-    localStorage.setItem('crm_lead_sort_pref', sortKey);
-
-    // 5. Update browser URL history without navigation
-    try {
-        const url = new URL(window.location);
-        url.searchParams.set('sort', sortKey);
-        window.history.replaceState({}, '', url);
-    } catch (e) {}
-}
-
-function toggleSort(col) {
-    let newSort = '';
-    if (col === 'name') {
-        newSort = (activeSortKey === 'name_asc') ? 'name_desc' : 'name_asc';
-    } else if (col === 'date_created') {
-        newSort = (activeSortKey === 'date_created_desc') ? 'date_created_asc' : 'date_created_desc';
-    } else if (col === 'date_modified') {
-        newSort = (activeSortKey === 'date_modified_desc') ? 'date_modified_asc' : 'date_modified_desc';
-    }
-    if (newSort) {
-        changeLeadSort(newSort);
-    }
-}
-
-function sortLeadTableRows(sortKey) {
-    const tbody = document.querySelector("#leadsTable tbody");
-    if (!tbody) return;
-
-    const rows = Array.from(tbody.querySelectorAll('tr[id^="lead-row-"]'));
-    if (rows.length === 0) return;
-
-    rows.sort((a, b) => {
-        if (sortKey === 'name_asc') {
-            return (a.dataset.name || '').localeCompare(b.dataset.name || '');
-        } else if (sortKey === 'name_desc') {
-            return (b.dataset.name || '').localeCompare(a.dataset.name || '');
-        } else if (sortKey === 'date_created_asc') {
-            return (a.dataset.dateCreated || '').localeCompare(b.dataset.dateCreated || '');
-        } else if (sortKey === 'date_created_desc') {
-            return (b.dataset.dateCreated || '').localeCompare(a.dataset.dateCreated || '');
-        } else if (sortKey === 'date_modified_asc') {
-            return (a.dataset.dateModified || '').localeCompare(b.dataset.dateModified || '');
-        } else if (sortKey === 'date_modified_desc') {
-            return (b.dataset.dateModified || '').localeCompare(a.dataset.dateModified || '');
+    // Auto-refresh when navigating back via browser bfcache (e.g. returning from Lead Dossier)
+    window.addEventListener('pageshow', function (event) {
+        if (event.persisted) {
+            window.location.reload();
         }
-        return 0;
     });
 
-    // Re-append sorted rows to tbody in order
-    rows.forEach(r => tbody.appendChild(r));
-}
+    // Realtime CRM Notification Toast helper
+    function showCrmToast(message, isSuccess = true) {
+        const toastEl = document.getElementById('crmNotificationToast');
+        const msgEl = document.getElementById('crmNotificationMessage');
+        if (!toastEl || !msgEl) return;
 
-function sortKanbanCards(sortKey) {
-    const cardContainers = document.querySelectorAll('.kanban-cards');
-    cardContainers.forEach(container => {
-        const cards = Array.from(container.querySelectorAll('.kanban-card[id^="lead-card-"]'));
-        if (cards.length <= 1) return;
+        msgEl.innerHTML = isSuccess
+            ? `<i class="bi bi-check-circle-fill text-success fs-6"></i><span>${message}</span>`
+            : `<i class="bi bi-exclamation-triangle-fill text-warning fs-6"></i><span>${message}</span>`;
 
-        cards.sort((a, b) => {
+        const toast = new bootstrap.Toast(toastEl, { delay: 4500 });
+        toast.show();
+    }
+
+    // Bulk Actions: Change Stage
+    function openBulkChangeStageModal() {
+        if (selectedLeadIds.length === 0) {
+            alert("Please select at least one lead first.");
+            return;
+        }
+        document.getElementById('bulkStageSelectedCount').textContent = selectedLeadIds.length;
+        const modal = new bootstrap.Modal(document.getElementById('bulkChangeStageModal'));
+        modal.show();
+    }
+
+    async function executeBulkChangeStage() {
+        const newStage = document.getElementById('bulkNewStageSelect').value;
+        const btn = document.getElementById('btnExecuteBulkStage');
+        if (!newStage) return;
+
+        btn.disabled = true;
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Updating...';
+
+        try {
+            const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({
+                    action: "change_stage",
+                    lead_ids: selectedLeadIds,
+                    new_stage: newStage
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Update each lead record in the DOM immediately
+                data.updated_leads.forEach(l => {
+                    // 1. Update Table Row
+                    const row = document.getElementById(`lead-row-${l.id}`);
+                    if (row) {
+                        row.dataset.stage = l.stage;
+                        row.dataset.dateModified = l.updated_at_iso;
+                        const badge = document.getElementById(`lead-stage-badge-${l.id}`);
+                        if (badge) {
+                            badge.className = `stage-badge ${l.stage_badge_class}`;
+                            badge.textContent = l.stage_display;
+                        }
+                        const modBadge = document.getElementById(`lead-modified-${l.id}`);
+                        if (modBadge) modBadge.textContent = l.updated_at_display;
+                        
+                        // If filtered by a specific stage in Table view that is not the new stage, smoothly remove
+                        const activeFilterStage = "{{ current_stage }}";
+                        if (activeFilterStage && activeFilterStage !== 'all' && activeFilterStage !== l.stage) {
+                            row.style.transition = 'all 0.35s ease';
+                            row.style.opacity = '0';
+                            setTimeout(() => row.remove(), 350);
+                        } else {
+                            row.classList.remove('row-highlight-flash');
+                            void row.offsetWidth; // trigger CSS reflow
+                            row.classList.add('row-highlight-flash');
+                        }
+                    }
+
+                    // 2. Update Kanban Card (Physical relocation to target stage column)
+                    const card = document.getElementById(`lead-card-${l.id}`);
+                    if (card) {
+                        card.dataset.stage = l.stage;
+                        card.dataset.dateModified = l.updated_at_iso;
+                        const modBadge = document.getElementById(`kanban-modified-${l.id}`);
+                        if (modBadge) modBadge.textContent = l.updated_at_display;
+
+                        const oldContainer = card.parentElement;
+                        const targetContainer = document.getElementById(`kanban-cards-${l.stage}`);
+
+                        if (targetContainer && oldContainer !== targetContainer) {
+                            // Remove empty placeholder in target container if present
+                            const emptyPlaceholder = targetContainer.querySelector('.kanban-empty-placeholder');
+                            if (emptyPlaceholder) emptyPlaceholder.remove();
+
+                            // Physically move card into the target stage column
+                            targetContainer.prepend(card);
+
+                            // If old container has no cards left, show empty placeholder
+                            if (oldContainer && oldContainer.querySelectorAll('.kanban-card').length === 0) {
+                                oldContainer.innerHTML = '<div class="text-center py-4 text-muted opacity-50 small kanban-empty-placeholder">No leads in this stage</div>';
+                            }
+                        }
+
+                        card.classList.remove('row-highlight-flash');
+                        void card.offsetWidth;
+                        card.classList.add('row-highlight-flash');
+                    }
+                });
+
+                // 3. Update stage counts across navigation strip and kanban column headers
+                if (data.stage_counts) {
+                    let total = 0;
+                    for (const [stKey, count] of Object.entries(data.stage_counts)) {
+                        total += count;
+                        // Quick-navigation strip badge
+                        const countBadge = document.getElementById(`stage-count-${stKey}`);
+                        if (countBadge) countBadge.textContent = count;
+                        // Kanban column header badge
+                        const colBadge = document.getElementById(`kanban-col-count-${stKey}`);
+                        if (colBadge) colBadge.textContent = count;
+                    }
+                    const allBadge = document.getElementById('stage-count-all');
+                    if (allBadge) allBadge.textContent = total;
+                }
+
+                // Hide modal & clear selection
+                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkChangeStageModal'));
+                if (modalInstance) modalInstance.hide();
+                clearLeadSelection();
+                showCrmToast(data.message);
+
+                // Automatically reload pipeline to ensure 100% server sync
+                setTimeout(() => {
+                    refreshLeadsPipeline();
+                }, 500);
+            } else {
+                alert(data.message || 'Failed to update stages');
+            }
+        } catch (err) {
+            alert("Network error: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+
+    // Bulk Actions: Change Owner
+    function openBulkChangeOwnerModal() {
+        if (selectedLeadIds.length === 0) {
+            alert("Please select at least one lead first.");
+            return;
+        }
+        document.getElementById('bulkOwnerSelectedCount').textContent = selectedLeadIds.length;
+        document.getElementById('bulkOwnerSelect').value = '';
+        document.getElementById('bulkCustomOwnerInput').value = '';
+        document.getElementById('bulkCustomOwnerInput').classList.add('d-none');
+        const modal = new bootstrap.Modal(document.getElementById('bulkChangeOwnerModal'));
+        modal.show();
+    }
+
+    function toggleCustomOwnerInput(val) {
+        const customInput = document.getElementById('bulkCustomOwnerInput');
+        if (val === '__custom__') {
+            customInput.classList.remove('d-none');
+            customInput.focus();
+        } else {
+            customInput.classList.add('d-none');
+        }
+    }
+
+    async function executeBulkChangeOwner() {
+        const selectVal = document.getElementById('bulkOwnerSelect').value;
+        const customVal = document.getElementById('bulkCustomOwnerInput').value.trim();
+        const btn = document.getElementById('btnExecuteBulkOwner');
+
+        let chosenOwner = '';
+        if (selectVal === '__custom__') {
+            if (!customVal) {
+                alert("Please enter a custom owner name.");
+                return;
+            }
+            chosenOwner = customVal;
+        } else if (selectVal === '__unassign__') {
+            chosenOwner = '';
+        } else {
+            if (!selectVal) {
+                alert("Please select a team member or enter a name.");
+                return;
+            }
+            chosenOwner = selectVal;
+        }
+
+        btn.disabled = true;
+        const origHtml = btn.innerHTML;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Assigning...';
+
+        try {
+            const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({
+                    action: "change_owner",
+                    lead_ids: selectedLeadIds,
+                    assigned_to: chosenOwner
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                data.updated_leads.forEach(l => {
+                    // Table row
+                    const row = document.getElementById(`lead-row-${l.id}`);
+                    if (row) {
+                        row.dataset.owner = l.assigned_to;
+                        row.dataset.dateModified = l.updated_at_iso;
+                        const ownerBadge = document.getElementById(`lead-owner-badge-${l.id}`);
+                        if (ownerBadge) {
+                            const ownerText = ownerBadge.querySelector('.owner-text');
+                            if (ownerText) ownerText.textContent = l.assigned_to || 'Unassigned';
+                        }
+                        const modBadge = document.getElementById(`lead-modified-${l.id}`);
+                        if (modBadge) modBadge.textContent = l.updated_at_display;
+                        row.classList.remove('row-highlight-flash');
+                        void row.offsetWidth;
+                        row.classList.add('row-highlight-flash');
+                    }
+
+                    // Kanban card
+                    const card = document.getElementById(`lead-card-${l.id}`);
+                    if (card) {
+                        card.dataset.owner = l.assigned_to;
+                        card.dataset.dateModified = l.updated_at_iso;
+                        const kanbanOwner = document.getElementById(`kanban-owner-${l.id}`);
+                        if (kanbanOwner) kanbanOwner.textContent = l.assigned_to || 'Unassigned';
+                        const modBadge = document.getElementById(`kanban-modified-${l.id}`);
+                        if (modBadge) modBadge.textContent = l.updated_at_display;
+                        card.classList.remove('row-highlight-flash');
+                        void card.offsetWidth;
+                        card.classList.add('row-highlight-flash');
+                    }
+                });
+
+                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkChangeOwnerModal'));
+                if (modalInstance) modalInstance.hide();
+                clearLeadSelection();
+                showCrmToast(data.message);
+
+                // Automatically reload pipeline to reflect owner change
+                setTimeout(() => {
+                    refreshLeadsPipeline();
+                }, 500);
+            } else {
+                alert(data.message || 'Failed to assign owner');
+            }
+        } catch (err) {
+            alert("Network error: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+
+    // In-Place Lead Sorting Logic (Name, Date Modified, Date Created with Asc & Desc)
+    function changeLeadSort(sortKey) {
+        if (!sortKey) return;
+        activeSortKey = sortKey;
+
+        // 1. Sort DOM elements in place without navigating away
+        sortLeadTableRows(sortKey);
+        sortKanbanCards(sortKey);
+
+        // 2. Synchronize dropdown & hidden form inputs
+        const select = document.getElementById('leadSortSelect');
+        if (select) select.value = sortKey;
+        const hiddenSort = document.getElementById('filterSortInput');
+        if (hiddenSort) hiddenSort.value = sortKey;
+
+        // 3. Update table header sort icons
+        updateSortIcons(sortKey);
+
+        // 4. Persist sorting preference in localStorage so it stays active
+        localStorage.setItem('crm_lead_sort_pref', sortKey);
+
+        // 5. Update browser URL history without navigation
+        try {
+            const url = new URL(window.location);
+            url.searchParams.set('sort', sortKey);
+            window.history.replaceState({}, '', url);
+        } catch (e) { }
+    }
+
+    function toggleSort(col) {
+        let newSort = '';
+        if (col === 'name') {
+            newSort = (activeSortKey === 'name_asc') ? 'name_desc' : 'name_asc';
+        } else if (col === 'date_created') {
+            newSort = (activeSortKey === 'date_created_desc') ? 'date_created_asc' : 'date_created_desc';
+        } else if (col === 'date_modified') {
+            newSort = (activeSortKey === 'date_modified_desc') ? 'date_modified_asc' : 'date_modified_desc';
+        }
+        if (newSort) {
+            changeLeadSort(newSort);
+        }
+    }
+
+    function sortLeadTableRows(sortKey) {
+        const tbody = document.querySelector("#leadsTable tbody");
+        if (!tbody) return;
+
+        const rows = Array.from(tbody.querySelectorAll('tr[id^="lead-row-"]'));
+        if (rows.length === 0) return;
+
+        rows.sort((a, b) => {
             if (sortKey === 'name_asc') {
                 return (a.dataset.name || '').localeCompare(b.dataset.name || '');
             } else if (sortKey === 'name_desc') {
@@ -1296,302 +1439,329 @@ function sortKanbanCards(sortKey) {
             return 0;
         });
 
-        cards.forEach(c => container.appendChild(c));
-    });
-}
-
-function updateSortIcons(sortKey) {
-    const nameIcon = document.getElementById('sort-icon-name');
-    const createdIcon = document.getElementById('sort-icon-date_created');
-    const modIcon = document.getElementById('sort-icon-date_modified');
-
-    if (nameIcon) {
-        if (sortKey === 'name_asc') {
-            nameIcon.className = 'bi bi-sort-alpha-down text-warning ms-1';
-        } else if (sortKey === 'name_desc') {
-            nameIcon.className = 'bi bi-sort-alpha-up-alt text-warning ms-1';
-        } else {
-            nameIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
-        }
+        // Re-append sorted rows to tbody in order
+        rows.forEach(r => tbody.appendChild(r));
     }
 
-    if (createdIcon) {
-        if (sortKey === 'date_created_asc') {
-            createdIcon.className = 'bi bi-sort-numeric-down text-warning ms-1';
-        } else if (sortKey === 'date_created_desc') {
-            createdIcon.className = 'bi bi-sort-numeric-up-alt text-warning ms-1';
-        } else {
-            createdIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
-        }
-    }
+    function sortKanbanCards(sortKey) {
+        const cardContainers = document.querySelectorAll('.kanban-cards');
+        cardContainers.forEach(container => {
+            const cards = Array.from(container.querySelectorAll('.kanban-card[id^="lead-card-"]'));
+            if (cards.length <= 1) return;
 
-    if (modIcon) {
-        if (sortKey === 'date_modified_asc') {
-            modIcon.className = 'bi bi-sort-numeric-down text-warning ms-1';
-        } else if (sortKey === 'date_modified_desc') {
-            modIcon.className = 'bi bi-sort-numeric-up-alt text-warning ms-1';
-        } else {
-            modIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
-        }
-    }
-}
-
-// Checkbox Selection Handling (Table & Kanban)
-function updateSelectionState() {
-    selectedLeadIds = [];
-    const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
-    const bulkBar = document.getElementById("bulkActionsBar");
-    const countDisplay = document.getElementById("selectedCountDisplay");
-    const selectAllCheck = document.getElementById("selectAllLeads");
-
-    rowCheckboxes.forEach(cb => {
-        if (cb.checked) {
-            selectedLeadIds.push(cb.value);
-        }
-    });
-
-    if (selectedLeadIds.length > 0) {
-        if (bulkBar) {
-            bulkBar.classList.remove("d-none");
-            countDisplay.textContent = `${selectedLeadIds.length} lead${selectedLeadIds.length > 1 ? 's' : ''} selected`;
-        }
-    } else {
-        if (bulkBar) bulkBar.classList.add("d-none");
-        if (selectAllCheck) selectAllCheck.checked = false;
-    }
-}
-
-function clearLeadSelection() {
-    const selectAllCheck = document.getElementById("selectAllLeads");
-    const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
-    const bulkBar = document.getElementById("bulkActionsBar");
-    if (selectAllCheck) selectAllCheck.checked = false;
-    rowCheckboxes.forEach(cb => cb.checked = false);
-    selectedLeadIds = [];
-    if (bulkBar) bulkBar.classList.add("d-none");
-}
-
-document.addEventListener("DOMContentLoaded", function() {
-    const selectAllCheck = document.getElementById("selectAllLeads");
-    const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
-
-    if (selectAllCheck) {
-        selectAllCheck.addEventListener("change", function() {
-            rowCheckboxes.forEach(cb => {
-                cb.checked = selectAllCheck.checked;
+            cards.sort((a, b) => {
+                if (sortKey === 'name_asc') {
+                    return (a.dataset.name || '').localeCompare(b.dataset.name || '');
+                } else if (sortKey === 'name_desc') {
+                    return (b.dataset.name || '').localeCompare(a.dataset.name || '');
+                } else if (sortKey === 'date_created_asc') {
+                    return (a.dataset.dateCreated || '').localeCompare(b.dataset.dateCreated || '');
+                } else if (sortKey === 'date_created_desc') {
+                    return (b.dataset.dateCreated || '').localeCompare(a.dataset.dateCreated || '');
+                } else if (sortKey === 'date_modified_asc') {
+                    return (a.dataset.dateModified || '').localeCompare(b.dataset.dateModified || '');
+                } else if (sortKey === 'date_modified_desc') {
+                    return (b.dataset.dateModified || '').localeCompare(a.dataset.dateModified || '');
+                }
+                return 0;
             });
-            updateSelectionState();
+
+            cards.forEach(c => container.appendChild(c));
         });
     }
 
-    rowCheckboxes.forEach(cb => {
-        cb.addEventListener("change", function() {
-            updateSelectionState();
+    function updateSortIcons(sortKey) {
+        const nameIcon = document.getElementById('sort-icon-name');
+        const createdIcon = document.getElementById('sort-icon-date_created');
+        const modIcon = document.getElementById('sort-icon-date_modified');
+
+        if (nameIcon) {
+            if (sortKey === 'name_asc') {
+                nameIcon.className = 'bi bi-sort-alpha-down text-warning ms-1';
+            } else if (sortKey === 'name_desc') {
+                nameIcon.className = 'bi bi-sort-alpha-up-alt text-warning ms-1';
+            } else {
+                nameIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
+            }
+        }
+
+        if (createdIcon) {
+            if (sortKey === 'date_created_asc') {
+                createdIcon.className = 'bi bi-sort-numeric-down text-warning ms-1';
+            } else if (sortKey === 'date_created_desc') {
+                createdIcon.className = 'bi bi-sort-numeric-up-alt text-warning ms-1';
+            } else {
+                createdIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
+            }
+        }
+
+        if (modIcon) {
+            if (sortKey === 'date_modified_asc') {
+                modIcon.className = 'bi bi-sort-numeric-down text-warning ms-1';
+            } else if (sortKey === 'date_modified_desc') {
+                modIcon.className = 'bi bi-sort-numeric-up-alt text-warning ms-1';
+            } else {
+                modIcon.className = 'bi bi-arrow-down-up text-muted opacity-50 ms-1';
+            }
+        }
+    }
+
+    // Checkbox Selection Handling (Table & Kanban)
+    function updateSelectionState() {
+        selectedLeadIds = [];
+        const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
+        const bulkBar = document.getElementById("bulkActionsBar");
+        const countDisplay = document.getElementById("selectedCountDisplay");
+        const selectAllCheck = document.getElementById("selectAllLeads");
+
+        rowCheckboxes.forEach(cb => {
+            if (cb.checked) {
+                selectedLeadIds.push(cb.value);
+            }
         });
+
+        if (selectedLeadIds.length > 0) {
+            if (bulkBar) {
+                bulkBar.classList.remove("d-none");
+                countDisplay.textContent = `${selectedLeadIds.length} lead${selectedLeadIds.length > 1 ? 's' : ''} selected`;
+            }
+        } else {
+            if (bulkBar) bulkBar.classList.add("d-none");
+            if (selectAllCheck) selectAllCheck.checked = false;
+        }
+    }
+
+    function clearLeadSelection() {
+        const selectAllCheck = document.getElementById("selectAllLeads");
+        const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
+        const bulkBar = document.getElementById("bulkActionsBar");
+        if (selectAllCheck) selectAllCheck.checked = false;
+        rowCheckboxes.forEach(cb => cb.checked = false);
+        selectedLeadIds = [];
+        if (bulkBar) bulkBar.classList.add("d-none");
+    }
+
+    document.addEventListener("DOMContentLoaded", function () {
+        const selectAllCheck = document.getElementById("selectAllLeads");
+        const rowCheckboxes = document.querySelectorAll(".lead-checkbox");
+
+        if (selectAllCheck) {
+            selectAllCheck.addEventListener("change", function () {
+                rowCheckboxes.forEach(cb => {
+                    cb.checked = selectAllCheck.checked;
+                });
+                updateSelectionState();
+            });
+        }
+
+        rowCheckboxes.forEach(cb => {
+            cb.addEventListener("change", function () {
+                updateSelectionState();
+            });
+        });
+
+        // Check stored sorting preference in localStorage
+        const savedSort = localStorage.getItem('crm_lead_sort_pref');
+        const urlSort = new URLSearchParams(window.location.search).get('sort');
+        const effectiveSort = urlSort || savedSort || activeSortKey;
+        if (effectiveSort && effectiveSort !== activeSortKey) {
+            changeLeadSort(effectiveSort);
+        } else {
+            updateSortIcons(activeSortKey);
+        }
+
+        // Default template on load
+        applyEmailTemplate('festive_pitch');
     });
 
-    // Check stored sorting preference in localStorage
-    const savedSort = localStorage.getItem('crm_lead_sort_pref');
-    const urlSort = new URLSearchParams(window.location.search).get('sort');
-    const effectiveSort = urlSort || savedSort || activeSortKey;
-    if (effectiveSort && effectiveSort !== activeSortKey) {
-        changeLeadSort(effectiveSort);
-    } else {
-        updateSortIcons(activeSortKey);
+    function openBulkEmailWithSelected() {
+        if (selectedLeadIds.length === 0) {
+            alert("Please select at least one lead first.");
+            return;
+        }
+        prepareBulkEmailModal('selected');
+        const modal = new bootstrap.Modal(document.getElementById('bulkEmailModal'));
+        modal.show();
     }
 
-    // Default template on load
-    applyEmailTemplate('festive_pitch');
-});
+    function prepareBulkEmailModal(mode) {
+        currentBulkMode = mode;
+        const summary = document.getElementById('bulkRecipientSummary');
+        const statusAlert = document.getElementById('bulkEmailStatusAlert');
+        statusAlert.classList.add('d-none');
 
-function openBulkEmailWithSelected() {
-    if (selectedLeadIds.length === 0) {
-        alert("Please select at least one lead first.");
-        return;
-    }
-    prepareBulkEmailModal('selected');
-    const modal = new bootstrap.Modal(document.getElementById('bulkEmailModal'));
-    modal.show();
-}
+        if (mode === 'selected') {
+            summary.innerHTML = `Targeting <strong>${selectedLeadIds.length} selected leads</strong> from table`;
+        } else {
+            const stage = "{{ current_stage }}";
+            const source = "{{ current_source }}";
+            let filterDesc = [];
+            if (stage) filterDesc.push(`Stage: ${stage}`);
+            if (source) filterDesc.push(`Source: ${source}`);
+            const filterStr = filterDesc.length ? filterDesc.join(', ') : 'All currently visible leads';
+            summary.innerHTML = `Targeting entire filtered segment: <strong>${filterStr}</strong>`;
+        }
 
-function prepareBulkEmailModal(mode) {
-    currentBulkMode = mode;
-    const summary = document.getElementById('bulkRecipientSummary');
-    const statusAlert = document.getElementById('bulkEmailStatusAlert');
-    statusAlert.classList.add('d-none');
-
-    if (mode === 'selected') {
-        summary.innerHTML = `Targeting <strong>${selectedLeadIds.length} selected leads</strong> from table`;
-    } else {
-        const stage = "{{ current_stage }}";
-        const source = "{{ current_source }}";
-        let filterDesc = [];
-        if (stage) filterDesc.push(`Stage: ${stage}`);
-        if (source) filterDesc.push(`Source: ${source}`);
-        const filterStr = filterDesc.length ? filterDesc.join(', ') : 'All currently visible leads';
-        summary.innerHTML = `Targeting entire filtered segment: <strong>${filterStr}</strong>`;
+        const currentSubject = document.getElementById('emailSubjectInput').value;
+        if (!currentSubject) {
+            applyEmailTemplate(document.getElementById('emailTemplateSelector').value);
+        } else {
+            updateLivePreview();
+        }
     }
 
-    const currentSubject = document.getElementById('emailSubjectInput').value;
-    if (!currentSubject) {
-        applyEmailTemplate(document.getElementById('emailTemplateSelector').value);
-    } else {
-        updateLivePreview();
-    }
-}
-
-function applyEmailTemplate(templateKey) {
-    if (templateKey && templateKey.startsWith('tpl_')) {
-        const tpl = SAVED_TEMPLATES[templateKey];
+    function applyEmailTemplate(templateKey) {
+        if (templateKey && templateKey.startsWith('tpl_')) {
+            const tpl = SAVED_TEMPLATES[templateKey];
+            if (!tpl) return;
+            document.getElementById('emailSubjectInput').value = tpl.subject || '';
+            document.getElementById('emailBodyInput').value = tpl.content_html || tpl.body || '';
+            if (tpl.default_cc && document.getElementById('emailCcInput')) {
+                document.getElementById('emailCcInput').value = tpl.default_cc;
+            }
+            updateLivePreview();
+            return;
+        }
+        const tpl = EMAIL_TEMPLATES[templateKey];
         if (!tpl) return;
-        document.getElementById('emailSubjectInput').value = tpl.subject || '';
-        document.getElementById('emailBodyInput').value = tpl.content_html || tpl.body || '';
-        if (tpl.default_cc && document.getElementById('emailCcInput')) {
-            document.getElementById('emailCcInput').value = tpl.default_cc;
-        }
+        document.getElementById('emailSubjectInput').value = tpl.subject;
+        document.getElementById('emailBodyInput').value = tpl.body;
         updateLivePreview();
-        return;
     }
-    const tpl = EMAIL_TEMPLATES[templateKey];
-    if (!tpl) return;
-    document.getElementById('emailSubjectInput').value = tpl.subject;
-    document.getElementById('emailBodyInput').value = tpl.body;
-    updateLivePreview();
-}
 
-function insertParam(param) {
-    const textarea = document.getElementById('emailBodyInput');
-    const start = textarea.selectionStart;
-    const end = textarea.selectionEnd;
-    const text = textarea.value;
-    textarea.value = text.substring(0, start) + param + text.substring(end);
-    textarea.focus();
-    textarea.selectionStart = textarea.selectionEnd = start + param.length;
-    updateLivePreview();
-}
+    function insertParam(param) {
+        const textarea = document.getElementById('emailBodyInput');
+        const start = textarea.selectionStart;
+        const end = textarea.selectionEnd;
+        const text = textarea.value;
+        textarea.value = text.substring(0, start) + param + text.substring(end);
+        textarea.focus();
+        textarea.selectionStart = textarea.selectionEnd = start + param.length;
+        updateLivePreview();
+    }
 
-function updateLivePreview() {
-    const subject = document.getElementById('emailSubjectInput').value || "(No Subject)";
-    const body = document.getElementById('emailBodyInput').value || "(No Message Body)";
+    function updateLivePreview() {
+        const subject = document.getElementById('emailSubjectInput').value || "(No Subject)";
+        const body = document.getElementById('emailBodyInput').value || "(No Message Body)";
 
-    // Pick first selected lead or mock lead
-    let sampleName = "Ananya Sharma";
-    let sampleCompany = "Wipro Technologies";
-    let sampleCity = "Bangalore";
-    let sampleDesignation = "Head of HR";
-    let sampleEmail = "ananya@wipro.com";
+        // Pick first selected lead or mock lead
+        let sampleName = "Ananya Sharma";
+        let sampleCompany = "Wipro Technologies";
+        let sampleCity = "Bangalore";
+        let sampleDesignation = "Head of HR";
+        let sampleEmail = "ananya@wipro.com";
 
-    if (selectedLeadIds.length > 0) {
-        const firstCb = document.querySelector(`.lead-checkbox[value="${selectedLeadIds[0]}"]`);
-        if (firstCb) {
-            sampleName = firstCb.getAttribute('data-name') || sampleName;
-            sampleCompany = firstCb.getAttribute('data-company') || sampleCompany;
-            sampleEmail = firstCb.getAttribute('data-email') || sampleEmail;
+        if (selectedLeadIds.length > 0) {
+            const firstCb = document.querySelector(`.lead-checkbox[value="${selectedLeadIds[0]}"]`);
+            if (firstCb) {
+                sampleName = firstCb.getAttribute('data-name') || sampleName;
+                sampleCompany = firstCb.getAttribute('data-company') || sampleCompany;
+                sampleEmail = firstCb.getAttribute('data-email') || sampleEmail;
+            }
+        }
+
+        const previewSubject = subject
+            .replaceAll('{contact_name}', sampleName)
+            .replaceAll('{company_name}', sampleCompany)
+            .replaceAll('{city}', sampleCity)
+            .replaceAll('{designation}', sampleDesignation);
+
+        const storeBase = "{{ store_base_url }}";
+        const sampleLink = `${storeBase}/b2b?trk=sample-token`;
+
+        const previewBody = body
+            .replaceAll('{contact_name}', sampleName)
+            .replaceAll('{company_name}', sampleCompany)
+            .replaceAll('{city}', sampleCity)
+            .replaceAll('{designation}', sampleDesignation)
+            .replaceAll('{outreach_link}', sampleLink);
+
+        document.getElementById('previewSubject').textContent = previewSubject;
+        document.getElementById('previewBodyRendered').textContent = previewBody;
+        document.getElementById('previewTo').textContent = `${sampleName} <${sampleEmail}>`;
+
+        const ccVal = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : "Vishnu.govind@pikachooz.com";
+        if (document.getElementById('previewCc')) {
+            document.getElementById('previewCc').textContent = ccVal || "Vishnu.govind@pikachooz.com";
         }
     }
 
-    const previewSubject = subject
-        .replaceAll('{contact_name}', sampleName)
-        .replaceAll('{company_name}', sampleCompany)
-        .replaceAll('{city}', sampleCity)
-        .replaceAll('{designation}', sampleDesignation);
+    // Execute Bulk Email via AJAX
+    async function executeBulkEmailDispatch() {
+        const subject = document.getElementById('emailSubjectInput').value.trim();
+        const body = document.getElementById('emailBodyInput').value.trim();
+        const advanceStage = document.getElementById('emailStageAdvanceSelect').value;
+        const ccRecipients = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : '';
+        const btn = document.getElementById('btnSendBulkEmail');
+        const statusAlert = document.getElementById('bulkEmailStatusAlert');
 
-    const storeBase = "{{ store_base_url }}";
-    const sampleLink = `${storeBase}/b2b?trk=sample-token`;
+        if (!subject || !body) {
+            alert("Please enter both an email subject and body.");
+            return;
+        }
 
-    const previewBody = body
-        .replaceAll('{contact_name}', sampleName)
-        .replaceAll('{company_name}', sampleCompany)
-        .replaceAll('{city}', sampleCity)
-        .replaceAll('{designation}', sampleDesignation)
-        .replaceAll('{outreach_link}', sampleLink);
+        btn.disabled = true;
+        btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Dispatching Emails...';
+        statusAlert.classList.add('d-none');
 
-    document.getElementById('previewSubject').textContent = previewSubject;
-    document.getElementById('previewBodyRendered').textContent = previewBody;
-    document.getElementById('previewTo').textContent = `${sampleName} <${sampleEmail}>`;
+        const payload = {
+            subject: subject,
+            body: body,
+            cc_recipients: ccRecipients,
+            advance_stage: advanceStage,
+            lead_ids: (currentBulkMode === 'selected' && selectedLeadIds.length > 0) ? selectedLeadIds : null,
+            stage: "{{ current_stage }}" || null,
+            source: "{{ current_source }}" || null,
+            q: "{{ search }}" || null
+        };
 
-    const ccVal = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : "Vishnu.govind@pikachooz.com";
-    if (document.getElementById('previewCc')) {
-        document.getElementById('previewCc').textContent = ccVal || "Vishnu.govind@pikachooz.com";
-    }
-}
+        try {
+            const response = await fetch("{{ url_for('crm_leads.bulk_email') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify(payload)
+            });
 
-// Execute Bulk Email via AJAX
-async function executeBulkEmailDispatch() {
-    const subject = document.getElementById('emailSubjectInput').value.trim();
-    const body = document.getElementById('emailBodyInput').value.trim();
-    const advanceStage = document.getElementById('emailStageAdvanceSelect').value;
-    const ccRecipients = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : '';
-    const btn = document.getElementById('btnSendBulkEmail');
-    const statusAlert = document.getElementById('bulkEmailStatusAlert');
+            const data = await response.json();
 
-    if (!subject || !body) {
-        alert("Please enter both an email subject and body.");
-        return;
-    }
-
-    btn.disabled = true;
-    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Dispatching Emails...';
-    statusAlert.classList.add('d-none');
-
-    const payload = {
-        subject: subject,
-        body: body,
-        cc_recipients: ccRecipients,
-        advance_stage: advanceStage,
-        lead_ids: (currentBulkMode === 'selected' && selectedLeadIds.length > 0) ? selectedLeadIds : null,
-        stage: "{{ current_stage }}" || null,
-        source: "{{ current_source }}" || null,
-        q: "{{ search }}" || null
-    };
-
-    try {
-        const response = await fetch("{{ url_for('crm_leads.bulk_email') }}", {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-                "X-Requested-With": "XMLHttpRequest"
-            },
-            body: JSON.stringify(payload)
-        });
-
-        const data = await response.json();
-
-        if (data.success) {
-            statusAlert.className = "alert alert-success p-3 rounded-3 small";
-            statusAlert.innerHTML = `
+            if (data.success) {
+                statusAlert.className = "alert alert-success p-3 rounded-3 small";
+                statusAlert.innerHTML = `
                 <div class="fw-bold fs-6 mb-1">🎉 Emails Dispatched Successfully!</div>
                 <div>${data.message}</div>
                 <div class="mt-2 text-muted">Sent: <strong>${data.sent_count}</strong> | Failed/Skipped: <strong>${data.failed_count}</strong></div>
             `;
-            statusAlert.classList.remove('d-none');
-            btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Completed';
-            setTimeout(() => {
-                window.location.reload();
-            }, 2500);
-        } else {
+                statusAlert.classList.remove('d-none');
+                btn.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>Completed';
+                setTimeout(() => {
+                    window.location.reload();
+                }, 2500);
+            } else {
+                statusAlert.className = "alert alert-danger p-3 rounded-3 small";
+                statusAlert.innerHTML = `<strong>Error:</strong> ${data.error || 'Failed to dispatch emails'}`;
+                statusAlert.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Retry Send';
+            }
+        } catch (err) {
             statusAlert.className = "alert alert-danger p-3 rounded-3 small";
-            statusAlert.innerHTML = `<strong>Error:</strong> ${data.error || 'Failed to dispatch emails'}`;
+            statusAlert.innerHTML = `<strong>Network/Server Error:</strong> ${err.message}`;
             statusAlert.classList.remove('d-none');
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Retry Send';
         }
-    } catch (err) {
-        statusAlert.className = "alert alert-danger p-3 rounded-3 small";
-        statusAlert.innerHTML = `<strong>Network/Server Error:</strong> ${err.message}`;
-        statusAlert.classList.remove('d-none');
-        btn.disabled = false;
-        btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Retry Send';
     }
-}
 
-function exportSelectedLeads() {
-    if (selectedLeadIds.length === 0) {
-        alert("Please select at least one lead to export.");
-        return;
+    function exportSelectedLeads() {
+        if (selectedLeadIds.length === 0) {
+            alert("Please select at least one lead to export.");
+            return;
+        }
+        const idsParam = selectedLeadIds.join(',');
+        window.location.href = `{{ url_for('crm_leads.export_leads') }}?ids=${idsParam}`;
     }
-    const idsParam = selectedLeadIds.join(',');
-    window.location.href = `{{ url_for('crm_leads.export_leads') }}?ids=${idsParam}`;
-}
 </script>
 {% endblock %}
