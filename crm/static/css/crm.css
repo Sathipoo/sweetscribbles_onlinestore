@@ -558,3 +558,13 @@ body.crm-body {
     border-radius: 4px;
 }
 
+/* Refresh Button Spin Animation */
+@keyframes crmSpin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+.spin-fast {
+    display: inline-block;
+    animation: crmSpin 0.6s linear infinite;
+}
+

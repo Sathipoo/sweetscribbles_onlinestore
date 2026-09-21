@@ -30,6 +30,11 @@
             <i class="bi bi-envelope-paper-heart-fill me-1"></i>Send Bulk Email
         </button>
 
+        <!-- Refresh Pipeline Button -->
+        <button type="button" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1.5 shadow-sm fw-bold" id="btnRefreshPipeline" onclick="refreshLeadsPipeline()" title="Refresh leads pipeline and sync recent changes">
+            <i class="bi bi-arrow-clockwise me-1" id="refreshSpinIcon"></i>Refresh
+        </button>
+
         <!-- Excel / CSV Export -->
         <a href="{{ url_for('crm_leads.export_leads', stage=current_stage, source=current_source, q=search, hot='1' if hot_only else '0') }}" class="btn btn-sm btn-outline-success rounded-pill px-3 py-1.5" title="Export as Excel-compatible CSV">
             <i class="bi bi-file-earmark-spreadsheet-fill me-1"></i>Export Excel
@@ -124,6 +129,7 @@
 
         <div class="col-md-1 d-flex gap-1 justify-content-end">
             <button type="submit" class="btn btn-sm btn-outline-secondary w-100">Filter</button>
+            <button type="button" class="btn btn-sm btn-outline-secondary" onclick="refreshLeadsPipeline()" title="Refresh Pipeline"><i class="bi bi-arrow-clockwise"></i></button>
             {% if search or current_stage or current_source or hot_only or sort != 'date_modified_desc' %}
                 <a href="{{ url_for('crm_leads.list_leads', view=view_mode) }}" class="btn btn-sm btn-outline-danger" title="Clear Filters"><i class="bi bi-x-lg"></i></a>
             {% endif %}
@@ -954,6 +960,23 @@ function detectCurrentLocation(inputFieldId, cityFieldId, btnElement) {
 }
 
 let activeSortKey = "{{ sort or 'date_modified_desc' }}";
+
+// Instant Refresh Pipeline Handler
+function refreshLeadsPipeline() {
+    const btn = document.getElementById('btnRefreshPipeline');
+    const icon = document.getElementById('refreshSpinIcon');
+    if (btn) btn.disabled = true;
+    if (icon) icon.classList.add('spin-fast');
+
+    // Retain all current URL search parameters and sync active sort preference
+    const currentSort = localStorage.getItem('crm_lead_sort_pref') || activeSortKey;
+    const url = new URL(window.location.href);
+    if (currentSort) {
+        url.searchParams.set('sort', currentSort);
+    }
+    // Smoothly reload page with freshest leads data from server
+    window.location.href = url.toString();
+}
 
 // Realtime CRM Notification Toast helper
 function showCrmToast(message, isSuccess = true) {
