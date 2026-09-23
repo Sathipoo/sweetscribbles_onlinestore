@@ -490,6 +490,12 @@
         <i class="bi bi-file-earmark-arrow-down me-1"></i>Export
     </button>
 
+    <!-- Bulk Action 5: Bulk Delete Leads (Fresh Leads Only) -->
+    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-3 fw-bold text-white border-danger"
+        onclick="openBulkDeleteModal()" title="Delete selected Fresh Leads">
+        <i class="bi bi-trash3-fill me-1 text-danger"></i>Delete
+    </button>
+
     <button type="button" class="btn btn-link text-white-50 btn-sm p-0 ms-2 text-decoration-none"
         onclick="clearLeadSelection()">
         <i class="bi bi-x-lg me-1"></i>Cancel
@@ -612,6 +618,56 @@
                 <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkOwner"
                     onclick="executeBulkChangeOwner()">
                     <i class="bi bi-person-check-fill me-1"></i>Assign Owner
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: Bulk Delete Leads (Enforces Fresh Lead Only) -->
+<div class="modal fade crm-modal" id="bulkDeleteModal" tabindex="-1" aria-labelledby="bulkDeleteModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold text-danger" id="bulkDeleteModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-exclamation-triangle-fill text-danger me-2"></i>Bulk Delete Leads
+                    </h5>
+                    <small class="text-muted">Delete selected prospect records from the pipeline.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Summary statistics counters -->
+                <div class="d-flex align-items-center justify-content-between p-3 rounded-3 bg-light border mb-3 text-center">
+                    <div class="px-2">
+                        <div class="small text-muted fw-semibold">Total Selected</div>
+                        <div class="fs-5 fw-bold text-dark" id="bulkDeleteTotalSelected">0</div>
+                    </div>
+                    <div class="vr"></div>
+                    <div class="px-2">
+                        <div class="small text-success fw-semibold">Deletable (Fresh)</div>
+                        <div class="fs-5 fw-bold text-success" id="bulkDeleteEligibleCount">0</div>
+                    </div>
+                    <div class="vr"></div>
+                    <div class="px-2">
+                        <div class="small text-secondary fw-semibold">Protected (Active)</div>
+                        <div class="fs-5 fw-bold text-secondary" id="bulkDeleteSkippedCount">0</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Notice / Warning -->
+                <div id="bulkDeleteNotice"></div>
+
+                <div class="p-2.5 rounded-3 bg-light border small text-muted mt-3">
+                    <i class="bi bi-shield-lock-fill text-primary me-1"></i>
+                    <strong>Business Protection Rule:</strong> To preserve sales records and outreach logs, only leads in the <strong>Fresh Lead</strong> stage can be deleted. Any selected leads in advanced stages (Prospect, Qualified, Converted, etc.) are permanently protected.
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                <button type="button" class="btn btn-danger btn-sm rounded-pill px-4 fw-bold" id="btnExecuteBulkDelete" onclick="executeBulkDeleteLeads()">
+                    <i class="bi bi-trash3-fill me-1"></i>Confirm Delete (<span id="bulkDeleteBtnCount">0</span>)
                 </button>
             </div>
         </div>
@@ -1446,6 +1502,139 @@ Corporate Gifting Director, Sweet Scribbles`
                 }, 500);
             } else {
                 alert(data.message || 'Failed to assign owner');
+            }
+        } catch (err) {
+            alert("Network error: " + err.message);
+        } finally {
+            btn.disabled = false;
+            btn.innerHTML = origHtml;
+        }
+    }
+
+    // Bulk Action: Bulk Delete Leads (Fresh Leads Only)
+    function openBulkDeleteModal() {
+        if (selectedLeadIds.length === 0) {
+            alert("Please select at least one lead first.");
+            return;
+        }
+
+        let freshCount = 0;
+        let nonFreshCount = 0;
+
+        selectedLeadIds.forEach(id => {
+            const cb = document.querySelector(`.lead-checkbox[value="${id}"]`);
+            if (cb) {
+                const stage = cb.getAttribute('data-stage');
+                if (stage === 'fresh_lead') {
+                    freshCount++;
+                } else {
+                    nonFreshCount++;
+                }
+            }
+        });
+
+        const totalSelected = selectedLeadIds.length;
+        document.getElementById('bulkDeleteTotalSelected').textContent = totalSelected;
+        document.getElementById('bulkDeleteEligibleCount').textContent = freshCount;
+        document.getElementById('bulkDeleteSkippedCount').textContent = nonFreshCount;
+        document.getElementById('bulkDeleteBtnCount').textContent = freshCount;
+
+        const noticeEl = document.getElementById('bulkDeleteNotice');
+        const btnConfirm = document.getElementById('btnExecuteBulkDelete');
+
+        if (freshCount === 0) {
+            noticeEl.innerHTML = `
+                <div class="alert alert-danger py-2.5 px-3 small mb-0 rounded-3">
+                    <i class="bi bi-x-circle-fill me-1"></i>
+                    <strong>No Deletable Leads:</strong> None of the selected leads are in the <strong>Fresh Lead</strong> stage (${nonFreshCount} lead(s) are in active funnel stages). Leads beyond Fresh Lead cannot be deleted.
+                </div>
+            `;
+            btnConfirm.disabled = true;
+        } else if (nonFreshCount > 0) {
+            noticeEl.innerHTML = `
+                <div class="alert alert-warning py-2.5 px-3 small mb-0 rounded-3">
+                    <i class="bi bi-exclamation-triangle-fill me-1"></i>
+                    <strong>Partial Selection:</strong> <strong>${freshCount}</strong> lead(s) are in the <strong>Fresh Lead</strong> stage and will be deleted. The remaining <strong>${nonFreshCount}</strong> lead(s) are in advanced stages and will be <strong>safely preserved</strong>.
+                </div>
+            `;
+            btnConfirm.disabled = false;
+        } else {
+            noticeEl.innerHTML = `
+                <div class="alert alert-danger py-2.5 px-3 small mb-0 rounded-3">
+                    <i class="bi bi-exclamation-octagon-fill me-1"></i>
+                    Are you sure you want to permanently delete <strong>${freshCount}</strong> Fresh Lead(s)? This action cannot be undone.
+                </div>
+            `;
+            btnConfirm.disabled = false;
+        }
+
+        const modal = new bootstrap.Modal(document.getElementById('bulkDeleteModal'));
+        modal.show();
+    }
+
+    async function executeBulkDeleteLeads() {
+        const btn = document.getElementById('btnExecuteBulkDelete');
+        const origHtml = btn.innerHTML;
+        btn.disabled = true;
+        btn.innerHTML = `<span class="spinner-border spinner-border-sm me-1"></span>Deleting...`;
+
+        try {
+            const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({
+                    action: "delete",
+                    lead_ids: selectedLeadIds
+                })
+            });
+
+            const data = await response.json();
+            if (data.success) {
+                // Remove deleted elements from DOM
+                if (data.deleted_ids && data.deleted_ids.length > 0) {
+                    data.deleted_ids.forEach(id => {
+                        const row = document.getElementById(`lead-row-${id}`);
+                        if (row) {
+                            row.style.transition = 'all 0.3s ease';
+                            row.style.opacity = '0';
+                            setTimeout(() => row.remove(), 300);
+                        }
+                        const card = document.getElementById(`lead-card-${id}`);
+                        if (card) {
+                            card.style.transition = 'all 0.3s ease';
+                            card.style.opacity = '0';
+                            setTimeout(() => card.remove(), 300);
+                        }
+                    });
+                }
+
+                // Update stage counts across navigation strip and kanban column headers
+                if (data.stage_counts) {
+                    let total = 0;
+                    for (const [stKey, count] of Object.entries(data.stage_counts)) {
+                        total += count;
+                        const countBadge = document.getElementById(`stage-count-${stKey}`);
+                        if (countBadge) countBadge.textContent = count;
+                        const colBadge = document.getElementById(`kanban-col-count-${stKey}`);
+                        if (colBadge) colBadge.textContent = count;
+                    }
+                    const allBadge = document.getElementById('stage-count-all');
+                    if (allBadge) allBadge.textContent = total;
+                }
+
+                const modalInstance = bootstrap.Modal.getInstance(document.getElementById('bulkDeleteModal'));
+                if (modalInstance) modalInstance.hide();
+                clearLeadSelection();
+                showCrmToast(data.message);
+
+                setTimeout(() => {
+                    refreshLeadsPipeline();
+                }, 500);
+            } else {
+                alert(data.message || 'Failed to delete leads');
             }
         } catch (err) {
             alert("Network error: " + err.message);

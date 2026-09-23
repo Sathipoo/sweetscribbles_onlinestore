@@ -258,7 +258,7 @@ class CRMCampaignRecipient(db.Model):
     logged_in_at = db.Column(db.DateTime, nullable=True)
 
     # Relationships
-    lead = db.relationship('B2BLead', backref=db.backref('campaign_deliveries', lazy=True))
+    lead = db.relationship('B2BLead', backref=db.backref('campaign_deliveries', lazy=True, cascade='all, delete-orphan'))
     client = db.relationship('B2BClient', backref=db.backref('campaign_deliveries', lazy=True))
 
     def __repr__(self):

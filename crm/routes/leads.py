@@ -701,7 +701,9 @@ def bulk_action():
     """
     data = request.get_json(silent=True) or request.form
     action = (data.get('action') or '').strip()
-    raw_ids = data.get('lead_ids', [])
+    raw_ids = data.get('lead_ids') or data.get('lead_ids[]')
+    if not raw_ids and hasattr(request, 'form') and hasattr(request.form, 'getlist'):
+        raw_ids = request.form.getlist('lead_ids[]') or request.form.getlist('lead_ids')
 
     if isinstance(raw_ids, str):
         try:
@@ -710,6 +712,8 @@ def bulk_action():
             raw_ids = [int(i.strip()) for i in raw_ids.split(',') if i.strip().isdigit()]
     elif isinstance(raw_ids, list):
         raw_ids = [int(i) for i in raw_ids if str(i).isdigit()]
+    else:
+        raw_ids = []
 
     if not raw_ids:
         return jsonify({'success': False, 'message': 'Please select at least one lead.'}), 400
@@ -802,6 +806,43 @@ def bulk_action():
             'updated_leads': updated_leads
         })
 
+    elif action == 'delete':
+        fresh_leads = [l for l in leads if l.stage == 'fresh_lead']
+        skipped_leads = [l for l in leads if l.stage != 'fresh_lead']
+
+        if not fresh_leads:
+            return jsonify({
+                'success': False,
+                'message': "Only leads in the 'Fresh Lead' stage can be deleted. None of the selected leads are in 'Fresh Lead' stage."
+            }), 400
+
+        deleted_ids = []
+        for lead in fresh_leads:
+            deleted_ids.append(lead.id)
+            db.session.delete(lead)
+
+        db.session.commit()
+
+        # Recalculate stage counts across the whole database
+        stage_counts_raw = db.session.query(B2BLead.stage, db.func.count(B2BLead.id)).group_by(B2BLead.stage).all()
+        stage_counts = {r[0]: r[1] for r in stage_counts_raw if r[0]}
+        total_leads_count = sum(stage_counts.values())
+
+        msg = f"Successfully deleted {len(deleted_ids)} Fresh Lead{'s' if len(deleted_ids) > 1 else ''}."
+        if skipped_leads:
+            msg += f" ({len(skipped_leads)} lead{'s were' if len(skipped_leads) > 1 else ' was'} protected because only 'Fresh Lead' stage leads can be deleted)."
+
+        return jsonify({
+            'success': True,
+            'action': 'delete',
+            'count': len(deleted_ids),
+            'deleted_ids': deleted_ids,
+            'skipped_count': len(skipped_leads),
+            'message': msg,
+            'stage_counts': stage_counts,
+            'total_leads_count': total_leads_count
+        })
+
     else:
         return jsonify({'success': False, 'message': f'Unknown action: {action}'}), 400
 
@@ -850,6 +891,42 @@ def set_primary_lead_contact(lead_id, contact_id):
     db.session.commit()
 
     flash(f'⭐ Primary POC switched to "{contact.name}" ({contact.designation or "Lead POC"}). Parent lead credentials synchronized.', 'success')
+    return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
+
+@leads_bp.route('/leads/<int:lead_id>/contacts/<int:contact_id>/edit', methods=['POST'])
+@crm_login_required
+def edit_lead_contact(lead_id, contact_id):
+    lead = B2BLead.query.get_or_404(lead_id)
+    contact = B2BLeadContact.query.filter_by(id=contact_id, lead_id=lead.id).first_or_404()
+
+    name = request.form.get('name', '').strip()
+    designation = request.form.get('designation', '').strip()
+    phone = normalize_phone(request.form.get('phone', '').strip())
+    email = request.form.get('email', '').strip().lower()
+    notes = request.form.get('notes', '').strip()
+    is_primary = request.form.get('is_primary') == '1'
+
+    if not name:
+        flash('Contact name is required.', 'danger')
+        return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
+
+    contact.name = name
+    contact.designation = designation or None
+    contact.phone = phone or None
+    contact.email = email or None
+    contact.notes = notes or None
+
+    if is_primary:
+        lead.set_primary_contact(contact.id)
+    elif contact.is_primary:
+        # If this contact is already primary, synchronize updated credentials to the parent lead
+        lead.contact_name = contact.name
+        lead.phone = contact.phone
+        lead.email = contact.email
+        lead.designation = contact.designation
+
+    db.session.commit()
+    flash(f'Contact "{contact.name}" updated successfully.', 'success')
     return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
 
 @leads_bp.route('/leads/<int:lead_id>/contacts/<int:contact_id>/delete', methods=['POST'])

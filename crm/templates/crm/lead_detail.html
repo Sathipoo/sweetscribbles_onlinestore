@@ -184,6 +184,9 @@
                             {% endif %}
                         </div>
                         <div class="d-flex gap-1">
+                            <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-2 rounded-pill" data-bs-toggle="modal" data-bs-target="#editLeadContactModal_{{ contact.id }}" title="Edit POC" style="font-size: 0.7rem;">
+                                <i class="bi bi-pencil-square me-1"></i>Edit
+                            </button>
                             {% if not contact.is_primary %}
                             <form action="{{ url_for('crm_leads.set_primary_lead_contact', lead_id=lead.id, contact_id=contact.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Make {{ contact.name }} the primary contact? This synchronizes their phone/email for OTP login.');">
                                 <button type="submit" class="btn btn-outline-warning btn-sm py-0 px-2 rounded-pill" title="Make Primary POC" style="font-size: 0.7rem;">
@@ -526,6 +529,68 @@
         </div>
     </div>
 </div>
+
+{% if lead.contacts %}
+{% for contact in lead.contacts %}
+<!-- Modal: Edit Corporate Lead Contact (ID {{ contact.id }}) -->
+<div class="modal fade crm-modal" id="editLeadContactModal_{{ contact.id }}" tabindex="-1" aria-labelledby="editLeadContactModalLabel_{{ contact.id }}" aria-hidden="true">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="editLeadContactModalLabel_{{ contact.id }}" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-pencil-square text-warning me-2"></i>Edit Corporate POC
+                    </h5>
+                    <small class="text-muted">Modify POC contact details, designations, and account owner credentials.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_leads.edit_lead_contact', lead_id=lead.id, contact_id=contact.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Contact Person Name *</label>
+                        <input type="text" name="name" class="form-control crm-input" value="{{ contact.name }}" placeholder="e.g. Priyanshu Mehta" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Designation / Role</label>
+                        <input type="text" name="designation" class="form-control crm-input" value="{{ contact.designation or '' }}" placeholder="e.g. Senior Manager - Workplace Operations">
+                    </div>
+                    <div class="row g-2 mb-3">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-bold">Mobile Number</label>
+                            <input type="tel" name="phone" class="form-control crm-input" value="{{ contact.phone or '' }}" placeholder="10-digit mobile number">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-bold">Official Email</label>
+                            <input type="email" name="email" class="form-control crm-input" value="{{ contact.email or '' }}" placeholder="priyanshu@company.com">
+                        </div>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small text-muted fw-bold">Notes / Scope</label>
+                        <textarea name="notes" class="form-control crm-input" rows="2" placeholder="e.g. Point of contact for sampling delivery and pricing approval...">{{ contact.notes or '' }}</textarea>
+                    </div>
+                    <div class="form-check p-2.5 rounded-3 bg-light border">
+                        <input class="form-check-input ms-0 me-2" type="checkbox" name="is_primary" value="1" id="leadPrimaryCheck_{{ contact.id }}" {% if contact.is_primary %}checked{% endif %}>
+                        <label class="form-check-label small text-dark fw-semibold" for="leadPrimaryCheck_{{ contact.id }}">
+                            Designate as ⭐ Primary Account Owner
+                        </label>
+                        <small class="d-block text-muted" style="font-size: 0.72rem;">
+                            If checked, this contact's phone &amp; email become the primary login credentials for OTP access and outreach links.
+                        </small>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-secondary btn-sm" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm px-4 fw-medium">
+                        <i class="bi bi-check-lg me-1"></i>Save Changes
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endfor %}
+{% endif %}
 
 <script>
 function detectDetailLocation(btnElement) {
