@@ -28,7 +28,7 @@ def ensure_lead_owners_seeded():
                 {
                     'name': 'Pooja Sathish',
                     'email': 'pooja@sweetscribbles.com',
-                    'phone': '+91 99000 44556',
+                    'phone': '+91 80887 83044',
                     'role': 'Artisanal Gifting Director'
                 },
                 {

@@ -134,7 +134,7 @@ def _render_luxury_email_layout(title, preheader, body_html, cta_text=None, cta_
                                 Sweet Scribbles Confectionery & Gifting Desk
                             </p>
                             <p style="margin: 0 0 10px 0;">
-                                Pooja Sathish &bull; Bangalore, Karnataka &bull; +91 99000 00000
+                                Pooja Sathish &bull; Bangalore, Karnataka &bull; +91 80887 83044
                             </p>
                             <p style="margin: 0; font-size: 11px; color: #A0AEC0;">
                                 Direct Portal: <a href="{PORTAL_URL}" style="color: #B78628; text-decoration: underline;">{PORTAL_URL}</a>
