@@ -1,3 +1,5 @@
+import os
+import json
 import uuid
 from datetime import datetime
 from extensions import db
@@ -292,6 +294,7 @@ class CRMEmailTemplate(db.Model):
     category = db.Column(db.String(50), default='Outreach', nullable=False)  # 'Diwali & Festive', 'Sample Pitch', 'Follow-up', 'Custom'
     content_html = db.Column(db.Text, nullable=False)
     blocks_json = db.Column(db.Text, nullable=True)  # Serialized modular builder blocks
+    attachments_json = db.Column(db.Text, nullable=True)  # Serialized list of attached file objects
     default_cc = db.Column(db.String(255), default='Vishnu.govind@pikachooz.com')
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
@@ -318,6 +321,55 @@ class CRMEmailTemplate(db.Model):
     def is_visual_builder(self):
         """Returns True if template was designed using the visual block builder."""
         return bool(self.blocks_json and self.blocks_json.strip() and self.blocks_json != '[]')
+
+    @property
+    def attachments(self):
+        """Returns list of attachment metadata dictionaries."""
+        if not self.attachments_json:
+            return []
+        try:
+            loaded = json.loads(self.attachments_json)
+            return loaded if isinstance(loaded, list) else []
+        except Exception:
+            return []
+
+    def get_email_attachments(self):
+        """
+        Reads physical attachment files from disk and returns a list of
+        (filename, file_bytes, mime_type) tuples directly compatible with send_b2b_email().
+        """
+        result = []
+        project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        for att in self.attachments:
+            if not isinstance(att, dict):
+                continue
+            rel_path = att.get('file_path') or ''
+            orig_name = att.get('original_filename') or att.get('filename') or 'attachment'
+            mime_type = att.get('mime_type') or 'application/octet-stream'
+
+            if not rel_path:
+                continue
+
+            candidates = [
+                rel_path,
+                os.path.abspath(rel_path),
+                os.path.join(project_root, rel_path),
+                os.path.join(project_root, 'crm', rel_path)
+            ]
+            file_path_found = None
+            for p in candidates:
+                if os.path.exists(p) and os.path.isfile(p):
+                    file_path_found = p
+                    break
+
+            if file_path_found:
+                try:
+                    with open(file_path_found, 'rb') as f:
+                        file_bytes = f.read()
+                    result.append((orig_name, file_bytes, mime_type))
+                except Exception as e:
+                    print(f"Error reading attachment file '{file_path_found}': {e}")
+        return result
 
 
 class CRMLeadOwner(db.Model):

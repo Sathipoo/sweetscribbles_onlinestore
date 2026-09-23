@@ -636,6 +636,18 @@ def bulk_email():
     store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
     fallback_cta_url = cta_url or f"{store_base_url}/b2b/hampers"
 
+    template_id = data.get('template_id')
+    template_attachments = []
+    attachment_names = []
+    if template_id:
+        try:
+            tpl = db.session.get(CRMEmailTemplate, int(template_id))
+            if tpl:
+                template_attachments = tpl.get_email_attachments()
+                attachment_names = [a.get('original_filename') or a.get('filename') for a in tpl.attachments]
+        except Exception as e:
+            current_app.logger.warning(f"Error loading template attachments: {e}")
+
     sent_count = 0
     failed_count = 0
 
@@ -663,7 +675,8 @@ def bulk_email():
             content_html=body_rendered,
             cta_text=cta_text,
             cta_url=chosen_cta_url,
-            cc_email=effective_cc
+            cc_email=effective_cc,
+            attachments=template_attachments if template_attachments else None
         )
 
         if success:
@@ -676,7 +689,8 @@ def bulk_email():
 
             # Log sales note
             timestamp = datetime.utcnow().strftime("%d %b %Y, %I:%M %p")
-            log_msg = f"[{timestamp} - Outbound Email Sent]\nSubject: {subj_rendered}\nCC: {effective_cc}\n"
+            att_info = f"Attachments: {', '.join(attachment_names)}\n" if attachment_names else ""
+            log_msg = f"[{timestamp} - Outbound Email Sent]\nSubject: {subj_rendered}\nCC: {effective_cc}\n{att_info}"
             lead.notes = log_msg + (lead.notes or '')
         else:
             failed_count += 1

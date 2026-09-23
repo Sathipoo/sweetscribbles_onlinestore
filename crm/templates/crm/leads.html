@@ -770,6 +770,21 @@
                             </select>
                         </div>
 
+                        <!-- Template Attachments Notification -->
+                        <div id="bulkTemplateAttachmentsAlert" class="alert alert-warning py-2.5 px-3 small rounded-3 d-none mb-3">
+                            <div class="d-flex align-items-center justify-content-between">
+                                <div class="d-flex align-items-center gap-1.5">
+                                    <i class="bi bi-paperclip fs-5 text-warning"></i>
+                                    <div>
+                                        <strong class="text-dark">Attached Files:</strong>
+                                        <span id="bulkTemplateAttachmentsText" class="text-muted ms-1"></span>
+                                    </div>
+                                </div>
+                                <span class="badge bg-warning text-dark border">Will Send With Every Email</span>
+                            </div>
+                            <div id="bulkTemplateAttachmentsList" class="d-flex flex-wrap gap-1.5 mt-2"></div>
+                        </div>
+
                         <!-- CC Recipients Input -->
                         <div class="mb-3">
                             <div class="d-flex justify-content-between align-items-center mb-1">
@@ -1107,7 +1122,8 @@
         name: {{ t.name | tojson }},
         subject: {{ t.subject | tojson }},
         content_html: {{ (t.content_html or '') | tojson }},
-        default_cc: {{ (t.default_cc or 'Vishnu.govind@pikachooz.com') | tojson }}
+        default_cc: {{ (t.default_cc or 'Vishnu.govind@pikachooz.com') | tojson }},
+        attachments: {{ (t.attachments or []) | tojson }}
     },
     {% endfor %}
     {% endif %}
@@ -1973,18 +1989,43 @@ Corporate Gifting Director, Sweet Scribbles`
         }
     }
 
+    let selectedTemplateId = null;
+
     function applyEmailTemplate(templateKey) {
+        const attAlert = document.getElementById('bulkTemplateAttachmentsAlert');
+        const attText = document.getElementById('bulkTemplateAttachmentsText');
+        const attList = document.getElementById('bulkTemplateAttachmentsList');
+
         if (templateKey && templateKey.startsWith('tpl_')) {
             const tpl = SAVED_TEMPLATES[templateKey];
             if (!tpl) return;
+            selectedTemplateId = tpl.id;
             document.getElementById('emailSubjectInput').value = tpl.subject || '';
             document.getElementById('emailBodyInput').value = tpl.content_html || tpl.body || '';
             if (tpl.default_cc && document.getElementById('emailCcInput')) {
                 document.getElementById('emailCcInput').value = tpl.default_cc;
             }
+
+            // Render attachments alert
+            if (tpl.attachments && tpl.attachments.length > 0) {
+                attText.textContent = `${tpl.attachments.length} file${tpl.attachments.length > 1 ? 's' : ''}`;
+                attList.innerHTML = tpl.attachments.map(a => `
+                    <a href="/${a.file_path}" target="_blank" class="badge bg-white text-dark border text-decoration-none py-1 px-2 shadow-2xs">
+                        <i class="bi bi-file-earmark-check-fill text-warning me-1"></i>${a.original_filename || a.filename} (${a.file_size_formatted || ''})
+                    </a>
+                `).join('');
+                attAlert.classList.remove('d-none');
+            } else if (attAlert) {
+                attAlert.classList.add('d-none');
+            }
+
             updateLivePreview();
             return;
         }
+
+        selectedTemplateId = null;
+        if (attAlert) attAlert.classList.add('d-none');
+
         const tpl = EMAIL_TEMPLATES[templateKey];
         if (!tpl) return;
         document.getElementById('emailSubjectInput').value = tpl.subject;
@@ -2068,6 +2109,7 @@ Corporate Gifting Director, Sweet Scribbles`
         statusAlert.classList.add('d-none');
 
         const payload = {
+            template_id: selectedTemplateId,
             subject: subject,
             body: body,
             cc_recipients: ccRecipients,

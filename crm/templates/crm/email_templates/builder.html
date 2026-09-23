@@ -91,6 +91,41 @@
             </div>
         </div>
 
+        <!-- 2. Email Attachments Card -->
+        <div class="crm-card p-4 mb-4">
+            <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
+                <h5 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                    <i class="bi bi-paperclip text-warning me-1.5"></i>Email Attachments
+                </h5>
+                <span class="badge bg-light text-dark border px-2.5 py-1" id="attachmentCountBadge" style="font-size: 0.72rem;">
+                    {{ (template.attachments|length) if template and template.attachments else 0 }} Attached
+                </span>
+            </div>
+
+            <p class="text-muted small mb-3">
+                Attach PDF catalogs, tasting menus, price sheets, or brochures. When you send this template in bulk from the <strong>Leads Desk</strong>, every recipient automatically receives these attached files.
+            </p>
+
+            <!-- Drag & Drop Upload Zone -->
+            <div class="border border-2 border-dashed rounded-3 p-3 text-center bg-light mb-3 position-relative" id="dropArea" style="cursor: pointer; transition: all 0.2s ease;">
+                <input type="file" id="fileUploadInput" class="position-absolute top-0 start-0 w-100 h-100 opacity-0" style="cursor: pointer;" onchange="handleFileUpload(this.files)" multiple accept=".pdf,.doc,.docx,.xls,.xlsx,.ppt,.pptx,.png,.jpg,.jpeg,.csv,.txt,.zip">
+                <div class="py-2">
+                    <i class="bi bi-cloud-arrow-up-fill text-warning fs-3 d-block mb-1"></i>
+                    <div class="fw-semibold text-dark small">Click to browse or drag &amp; drop files here</div>
+                    <div class="text-muted" style="font-size: 0.72rem;">Supports PDF, Word, Excel, Images, CSV, ZIP (up to 15MB each)</div>
+                </div>
+            </div>
+
+            <!-- Upload Spinner / Feedback -->
+            <div id="uploadProgress" class="d-none alert alert-warning py-2 px-3 small d-flex align-items-center mb-3 rounded-3">
+                <div class="spinner-border spinner-border-sm text-warning me-2" role="status"></div>
+                <span id="uploadProgressText">Uploading file attachment, please wait...</span>
+            </div>
+
+            <!-- Uploaded Attachments List Container -->
+            <div id="attachmentsList" class="d-flex flex-column gap-2"></div>
+        </div>
+
         <!-- Mode Nav: Visual Block Builder vs Raw HTML -->
         <ul class="nav nav-pills mb-3" id="builderTabNav" role="tablist">
             <li class="nav-item">
@@ -283,6 +318,7 @@ let currentEditorMode = '{{ initial_mode or "visual" }}';
 let lastActiveInput = document.getElementById('tplSubject');
 let currentTemplateId = {% if template %}{{ template.id }}{% else %}null{% endif %};
 let previewDebounce = null;
+let currentAttachments = {{ (template.attachments if template and template.attachments else []) | tojson }};
 
 document.addEventListener('DOMContentLoaded', () => {
     // Track active inputs for parameter chips
@@ -336,6 +372,10 @@ document.addEventListener('DOMContentLoaded', () => {
         }
         rebuildPreview();
     }
+
+    // Initialize attachments display & drag-and-drop
+    renderAttachmentsList();
+    setupDropArea();
 });
 
 function insertParamToActiveField(param) {
@@ -551,6 +591,7 @@ async function saveTemplateToServer(redirectToList = false) {
         default_cc: defaultCc,
         content_html: contentHtml,
         blocks_json: blocks,
+        attachments: currentAttachments,
         editor_mode: currentEditorMode
     };
 
@@ -608,6 +649,146 @@ async function saveTemplateToServer(redirectToList = false) {
         if (btnSaveClose) btnSaveClose.disabled = false;
         if (activeBtn) activeBtn.innerHTML = originalText;
     }
+}
+
+// ==========================================
+// ATTACHMENT MANAGEMENT JAVASCRIPT FUNCTIONS
+// ==========================================
+
+function getFileIcon(filename) {
+    const ext = (filename || '').split('.').pop().toLowerCase();
+    if (ext === 'pdf') return '<i class="bi bi-file-earmark-pdf-fill text-danger fs-5"></i>';
+    if (['xls', 'xlsx', 'csv'].includes(ext)) return '<i class="bi bi-file-earmark-spreadsheet-fill text-success fs-5"></i>';
+    if (['doc', 'docx'].includes(ext)) return '<i class="bi bi-file-earmark-word-fill text-primary fs-5"></i>';
+    if (['ppt', 'pptx'].includes(ext)) return '<i class="bi bi-file-earmark-slides-fill text-warning fs-5"></i>';
+    if (['png', 'jpg', 'jpeg', 'gif', 'webp'].includes(ext)) return '<i class="bi bi-file-earmark-image-fill text-info fs-5"></i>';
+    if (ext === 'zip') return '<i class="bi bi-file-earmark-zip-fill text-secondary fs-5"></i>';
+    return '<i class="bi bi-file-earmark-text-fill text-dark fs-5"></i>';
+}
+
+function renderAttachmentsList() {
+    const container = document.getElementById('attachmentsList');
+    const badge = document.getElementById('attachmentCountBadge');
+    if (!container) return;
+
+    if (badge) {
+        badge.textContent = `${currentAttachments.length} Attached`;
+        badge.className = currentAttachments.length > 0 
+            ? 'badge bg-warning-subtle text-dark border border-warning px-2.5 py-1' 
+            : 'badge bg-light text-dark border px-2.5 py-1';
+    }
+
+    if (!currentAttachments || currentAttachments.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-2 text-muted small fst-italic">
+                <i class="bi bi-paperclip me-1"></i>No attachments added yet. Drag &amp; drop files above.
+            </div>`;
+        return;
+    }
+
+    container.innerHTML = currentAttachments.map((att, idx) => {
+        const icon = getFileIcon(att.original_filename || att.filename);
+        const name = att.original_filename || att.filename;
+        const sizeStr = att.file_size_formatted || (att.file_size ? `${Math.round(att.file_size/1024)} KB` : '');
+        const href = att.file_path.startsWith('/') ? att.file_path : `/${att.file_path}`;
+
+        return `
+        <div class="d-flex align-items-center justify-content-between p-2.5 bg-white rounded-3 border shadow-xs" id="attRow_${att.id}">
+            <div class="d-flex align-items-center gap-2.5 overflow-hidden me-2">
+                <div class="flex-shrink-0">${icon}</div>
+                <div class="overflow-hidden">
+                    <div class="fw-semibold text-dark small text-truncate" title="${name}">
+                        ${name}
+                    </div>
+                    <div class="text-muted" style="font-size: 0.7rem;">
+                        ${sizeStr ? `<span class="badge bg-light text-muted border py-0 px-1 me-1">${sizeStr}</span>` : ''}
+                        <span>Ready for bulk dispatch</span>
+                    </div>
+                </div>
+            </div>
+            <div class="d-flex align-items-center gap-1.5 flex-shrink-0">
+                <a href="${href}" target="_blank" class="btn btn-outline-secondary btn-sm py-0.5 px-2 rounded-pill" title="Preview / Download" style="font-size: 0.75rem;">
+                    <i class="bi bi-box-arrow-up-right me-1"></i>View
+                </a>
+                <button type="button" class="btn btn-outline-danger btn-sm py-0.5 px-1.5 rounded-circle" onclick="removeAttachment('${att.id}')" title="Remove attachment">
+                    <i class="bi bi-x-lg" style="font-size: 0.7rem;"></i>
+                </button>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+async function handleFileUpload(files) {
+    if (!files || files.length === 0) return;
+
+    const progressBox = document.getElementById('uploadProgress');
+    const progressText = document.getElementById('uploadProgressText');
+    const fileInput = document.getElementById('fileUploadInput');
+
+    if (progressBox) progressBox.classList.remove('d-none');
+
+    for (let i = 0; i < files.length; i++) {
+        const file = files[i];
+        if (progressText) progressText.textContent = `Uploading ${file.name} (${i + 1}/${files.length})...`;
+
+        const formData = new FormData();
+        formData.append('file', file);
+
+        try {
+            const res = await fetch("{{ url_for('crm_templates.upload_attachment') }}", {
+                method: 'POST',
+                headers: {
+                    'X-Requested-With': 'XMLHttpRequest'
+                },
+                body: formData
+            });
+
+            const data = await res.json();
+            if (data.success && data.attachment) {
+                currentAttachments.push(data.attachment);
+                renderAttachmentsList();
+            } else {
+                alert(`Error uploading ${file.name}: ${data.error || 'Upload failed'}`);
+            }
+        } catch (err) {
+            alert(`Network error uploading ${file.name}: ${err.message}`);
+        }
+    }
+
+    if (progressBox) progressBox.classList.add('d-none');
+    if (fileInput) fileInput.value = '';
+}
+
+function removeAttachment(attId) {
+    currentAttachments = currentAttachments.filter(a => a.id !== attId);
+    renderAttachmentsList();
+}
+
+function setupDropArea() {
+    const dropArea = document.getElementById('dropArea');
+    if (!dropArea) return;
+
+    ['dragenter', 'dragover'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.add('border-warning', 'bg-warning-subtle');
+        }, false);
+    });
+
+    ['dragleave', 'drop'].forEach(eventName => {
+        dropArea.addEventListener(eventName, (e) => {
+            e.preventDefault();
+            e.stopPropagation();
+            dropArea.classList.remove('border-warning', 'bg-warning-subtle');
+        }, false);
+    });
+
+    dropArea.addEventListener('drop', (e) => {
+        const dt = e.dataTransfer;
+        const files = dt.files;
+        handleFileUpload(files);
+    }, false);
 }
 </script>
 {% endblock %}

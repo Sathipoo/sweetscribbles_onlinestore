@@ -659,10 +659,10 @@ def send_b2b_login_otp_email(to_email, otp, contact_name="Valued Partner", cc_em
     )
 
 
-def send_crm_campaign_email(to_email, subject, recipient_name, content_html, cta_text="Explore Corporate Hampers", cta_url="https://sweetscribbles.pikachooz.com/b2b", cc_email=None):
+def send_crm_campaign_email(to_email, subject, recipient_name, content_html, cta_text="Explore Corporate Hampers", cta_url="https://sweetscribbles.pikachooz.com/b2b", cc_email=None, attachments=None):
     """
     Sends an outbound campaign or promotional email to a prospect lead or existing client.
-    Includes branded luxury template, CTA with tracking token, and automatic CC to Vishnu.govind@pikachooz.com.
+    Includes branded luxury template, CTA with tracking token, optional file attachments, and automatic CC to Vishnu.govind@pikachooz.com.
     """
     body_html = f"""
     <p style="color: #4A5568; font-size: 15px; margin-top: 0;">
@@ -683,5 +683,6 @@ def send_crm_campaign_email(to_email, subject, recipient_name, content_html, cta
             cta_text=cta_text,
             cta_url=cta_url
         ),
+        attachments=attachments,
         cc_email=cc_email
     )

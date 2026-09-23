@@ -1,12 +1,100 @@
+import os
 import json
+import uuid
+import mimetypes
 from datetime import datetime
 from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app
+from werkzeug.utils import secure_filename
 from extensions import db
 from models.b2b_crm import CRMEmailTemplate, B2BLead, CRMLeadOwner
 from crm.routes.auth import crm_login_required
 from utils.email_utils import _render_luxury_email_layout, DEFAULT_CC_EMAIL
 
 templates_bp = Blueprint('crm_templates', __name__, url_prefix='/email-templates')
+
+ALLOWED_EXTENSIONS = {'pdf', 'docx', 'doc', 'xlsx', 'xls', 'pptx', 'ppt', 'png', 'jpg', 'jpeg', 'csv', 'txt', 'zip'}
+MAX_ATTACHMENT_SIZE_BYTES = 15 * 1024 * 1024  # 15 MB
+
+
+def allowed_file(filename):
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+
+
+def format_file_size(size_bytes):
+    if size_bytes < 1024:
+        return f"{size_bytes} B"
+    elif size_bytes < 1024 * 1024:
+        return f"{size_bytes / 1024:.1f} KB"
+    else:
+        return f"{size_bytes / (1024 * 1024):.1f} MB"
+
+
+@templates_bp.route('/upload-attachment', methods=['POST'])
+@crm_login_required
+def upload_attachment():
+    """
+    Accepts an uploaded file attachment for an email template.
+    Saves file to static/uploads/email_attachments and returns attachment metadata.
+    """
+    if 'file' not in request.files:
+        return jsonify({'success': False, 'error': 'No file uploaded.'}), 400
+
+    file = request.files['file']
+    if file.filename == '':
+        return jsonify({'success': False, 'error': 'No file selected.'}), 400
+
+    if not allowed_file(file.filename):
+        exts = ", ".join(sorted(list(ALLOWED_EXTENSIONS)))
+        return jsonify({'success': False, 'error': f'Unsupported file type. Allowed: {exts}'}), 400
+
+    # Ensure upload directory exists in project root static
+    base_dir = current_app.root_path
+    if os.path.basename(base_dir) == 'crm':
+        base_dir = os.path.dirname(base_dir)
+    upload_dir = os.path.join(base_dir, 'static', 'uploads', 'email_attachments')
+    os.makedirs(upload_dir, exist_ok=True)
+
+    original_filename = file.filename
+    clean_name = secure_filename(original_filename)
+    if not clean_name:
+        clean_name = "attachment"
+
+    file_id = f"att_{uuid.uuid4().hex[:10]}"
+    saved_filename = f"{file_id}_{clean_name}"
+    save_path = os.path.join(upload_dir, saved_filename)
+
+    file.save(save_path)
+    file_size = os.path.getsize(save_path)
+
+    if file_size > MAX_ATTACHMENT_SIZE_BYTES:
+        try:
+            os.remove(save_path)
+        except Exception:
+            pass
+        return jsonify({'success': False, 'error': 'File exceeds maximum 15MB size limit.'}), 400
+
+    mime_type, _ = mimetypes.guess_type(original_filename)
+    if not mime_type:
+        mime_type = 'application/octet-stream'
+
+    rel_path = f"static/uploads/email_attachments/{saved_filename}"
+
+    attachment_meta = {
+        'id': file_id,
+        'filename': saved_filename,
+        'original_filename': original_filename,
+        'file_path': rel_path,
+        'file_size': file_size,
+        'file_size_formatted': format_file_size(file_size),
+        'mime_type': mime_type,
+        'uploaded_at': datetime.utcnow().strftime("%Y-%m-%d %H:%M:%S")
+    }
+
+    return jsonify({
+        'success': True,
+        'attachment': attachment_meta,
+        'message': f"Attached '{original_filename}' successfully!"
+    })
 
 @templates_bp.route('/')
 @crm_login_required
@@ -149,6 +237,17 @@ def save_template():
     blocks_json = data.get('blocks_json')
     editor_mode = (data.get('editor_mode') or 'visual').strip()
 
+    attachments = data.get('attachments')
+    if isinstance(attachments, str):
+        try:
+            attachments = json.loads(attachments)
+        except Exception:
+            attachments = []
+    if isinstance(attachments, list):
+        attachments_json_str = json.dumps(attachments)
+    else:
+        attachments_json_str = None
+
     if isinstance(blocks_json, dict):
         blocks_json_str = json.dumps(blocks_json)
     elif isinstance(blocks_json, str):
@@ -177,6 +276,7 @@ def save_template():
             default_cc=default_cc,
             content_html=content_html,
             blocks_json=blocks_json_str if editor_mode == 'visual' else None,
+            attachments_json=attachments_json_str,
             is_active=True
         )
         db.session.add(tpl)
@@ -188,6 +288,7 @@ def save_template():
         tpl.content_html = content_html
         if editor_mode == 'visual' and blocks_json_str:
             tpl.blocks_json = blocks_json_str
+        tpl.attachments_json = attachments_json_str
         tpl.updated_at = datetime.utcnow()
 
     db.session.commit()
@@ -207,7 +308,7 @@ def save_template():
 @crm_login_required
 def clone_template(template_id):
     """
-    Duplicates an existing template with a 'Copy of' prefix.
+    Duplicates an existing template with a 'Copy of' prefix, preserving attachments.
     """
     original = CRMEmailTemplate.query.get_or_404(template_id)
     cloned = CRMEmailTemplate(
@@ -216,6 +317,7 @@ def clone_template(template_id):
         category=original.category,
         content_html=original.content_html,
         blocks_json=original.blocks_json,
+        attachments_json=original.attachments_json,
         default_cc=original.default_cc,
         is_active=True
     )
@@ -240,7 +342,7 @@ def delete_template(template_id):
 @crm_login_required
 def api_list_templates():
     """
-    Returns JSON list of active email templates for dynamic dropdowns in modals.
+    Returns JSON list of active email templates with attachments for dynamic dropdowns in modals.
     """
     templates = CRMEmailTemplate.query.filter_by(is_active=True).order_by(CRMEmailTemplate.updated_at.desc()).all()
     res = []
@@ -252,7 +354,8 @@ def api_list_templates():
             'category': t.category,
             'default_cc': t.default_cc or DEFAULT_CC_EMAIL,
             'content_html': t.content_html,
-            'blocks_json': t.blocks_json
+            'blocks_json': t.blocks_json,
+            'attachments': t.attachments
         })
     return jsonify({'success': True, 'templates': res})
 

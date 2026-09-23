@@ -78,10 +78,15 @@
                     <div class="text-dark small fw-medium text-truncate" title="{{ tpl.subject }}">{{ tpl.subject }}</div>
                 </div>
 
-                <div class="d-flex align-items-center gap-1.5 mb-2">
+                <div class="d-flex align-items-center gap-1.5 mb-2 flex-wrap">
                     <span class="badge bg-light border text-muted small text-truncate" style="font-size: 0.7rem; max-width: 100%;" title="{{ tpl.default_cc or 'Default' }}">
                         <i class="bi bi-cc-circle me-1 text-secondary"></i>CC: {{ tpl.default_cc or 'Default' }}
                     </span>
+                    {% if tpl.attachments and tpl.attachments|length > 0 %}
+                    <span class="badge bg-warning-subtle text-dark border border-warning-subtle small text-truncate" style="font-size: 0.7rem;" title="{{ tpl.attachments|map(attribute='original_filename')|join(', ') }}">
+                        <i class="bi bi-paperclip me-1 text-warning"></i>{{ tpl.attachments|length }} {% if tpl.attachments|length == 1 %}Attachment{% else %}Attachments{% endif %}
+                    </span>
+                    {% endif %}
                 </div>
             </div>
 
@@ -138,6 +143,10 @@
                     </div>
                     <span class="badge bg-white border text-dark small">Rendered with Sample Lead Data</span>
                 </div>
+                <div id="previewModalAttachmentsBar" class="px-3 py-2 bg-white border-bottom small d-none">
+                    <span class="text-muted fw-bold me-2"><i class="bi bi-paperclip text-warning"></i>Attachments:</span>
+                    <span id="previewModalAttachmentsList"></span>
+                </div>
                 <iframe id="previewModalFrame" style="width: 100%; height: 500px; border: none;"></iframe>
             </div>
             <div class="modal-footer">
@@ -154,6 +163,10 @@ async function openPreviewModal(templateId, templateName) {
     const editBase = "{{ url_for('crm_templates.edit_template', template_id=0) }}".replace('/0/edit', '');
     document.getElementById('previewModalEditLink').href = `${editBase}/${templateId}/edit`;
 
+    const attBar = document.getElementById('previewModalAttachmentsBar');
+    const attList = document.getElementById('previewModalAttachmentsList');
+    if (attBar) attBar.classList.add('d-none');
+
     const res = await fetch("{{ url_for('crm_templates.api_list_templates') }}");
     const data = await res.json();
     if (data.success) {
@@ -163,6 +176,16 @@ async function openPreviewModal(templateId, templateName) {
                 .replace('{company_name}', 'Wipro Technologies')
                 .replace('{contact_name}', 'Ananya Sharma')
                 .replace('{city}', 'Bangalore');
+
+            // Render attachment chips if present
+            if (tpl.attachments && tpl.attachments.length > 0) {
+                attList.innerHTML = tpl.attachments.map(a => `
+                    <a href="/${a.file_path}" target="_blank" class="badge bg-light text-dark border text-decoration-none me-1.5 py-1 px-2">
+                        <i class="bi bi-file-earmark-arrow-down-fill text-warning me-1"></i>${a.original_filename || a.filename} (${a.file_size_formatted || ''})
+                    </a>
+                `).join('');
+                attBar.classList.remove('d-none');
+            }
 
             // Fetch fully styled rendered layout
             const previewRes = await fetch("{{ url_for('crm_templates.api_render_preview') }}", {
