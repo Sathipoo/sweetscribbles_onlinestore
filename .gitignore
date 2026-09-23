@@ -27,6 +27,8 @@ Thumbs.db
 static/uploads/*
 !static/uploads/.gitkeep
 !static/uploads/*.pdf
+!static/uploads/email_attachments/
+!static/uploads/email_attachments/*
 
 # Scratch & temporary artifacts
 scratch/

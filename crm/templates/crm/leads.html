@@ -2126,8 +2126,14 @@ Corporate Gifting Director, Sweet Scribbles`
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Dispatching Emails...';
         statusAlert.classList.add('d-none');
 
+        const templateSelectorVal = document.getElementById('emailTemplateSelector')?.value;
+        let tplIdToSend = selectedTemplateId;
+        if (!tplIdToSend && templateSelectorVal && templateSelectorVal.startsWith('tpl_')) {
+            tplIdToSend = parseInt(templateSelectorVal.replace('tpl_', ''));
+        }
+
         const payload = {
-            template_id: selectedTemplateId,
+            template_id: tplIdToSend,
             subject: subject,
             body: body,
             cc_recipients: ccRecipients,

@@ -3,6 +3,8 @@ import smtplib
 from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 from email.mime.application import MIMEApplication
+from email.mime.base import MIMEBase
+from email import encoders
 from datetime import datetime
 from extensions import db
 from models.b2b import B2BCommunicationLog
@@ -59,8 +61,15 @@ def send_b2b_email(to_email, subject, html_content, text_content=None, attachmen
         for att in attachments:
             if isinstance(att, tuple) and len(att) >= 2:
                 filename, file_bytes = att[0], att[1]
-                part = MIMEApplication(file_bytes, Name=filename)
-                part['Content-Disposition'] = f'attachment; filename="{filename}"'
+                mime_type = att[2] if len(att) >= 3 and att[2] else 'application/octet-stream'
+                try:
+                    maintype, subtype = mime_type.split('/', 1)
+                except Exception:
+                    maintype, subtype = 'application', 'octet-stream'
+                part = MIMEBase(maintype, subtype)
+                part.set_payload(file_bytes)
+                encoders.encode_base64(part)
+                part.add_header('Content-Disposition', f'attachment; filename="{filename}"')
                 msg.attach(part)
 
     try:
@@ -664,14 +673,31 @@ def send_crm_campaign_email(to_email, subject, recipient_name, content_html, cta
     Sends an outbound campaign or promotional email to a prospect lead or existing client.
     Includes branded luxury template, CTA with tracking token, optional file attachments, and automatic CC to Vishnu.govind@pikachooz.com.
     """
-    body_html = f"""
-    <p style="color: #4A5568; font-size: 15px; margin-top: 0;">
-        Dear {recipient_name or 'Corporate Partner'},
-    </p>
-    <div style="color: #2D3748; font-size: 15px; line-height: 1.7;">
-        {content_html}
-    </div>
-    """
+    lower_content = (content_html or '').lower()
+    has_salutation = (
+        'dear ' in lower_content or
+        'hello ' in lower_content or
+        'hi ' in lower_content or
+        'greetings' in lower_content or
+        '<div' in lower_content or
+        (recipient_name and recipient_name.lower() in lower_content)
+    )
+
+    if has_salutation:
+        body_html = f"""
+        <div style="color: #2D3748; font-size: 15px; line-height: 1.7;">
+            {content_html}
+        </div>
+        """
+    else:
+        body_html = f"""
+        <p style="color: #4A5568; font-size: 15px; margin-top: 0;">
+            Dear {recipient_name or 'Corporate Partner'},
+        </p>
+        <div style="color: #2D3748; font-size: 15px; line-height: 1.7;">
+            {content_html}
+        </div>
+        """
 
     return send_b2b_email(
         to_email=to_email,

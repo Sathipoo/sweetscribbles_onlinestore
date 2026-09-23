@@ -335,7 +335,7 @@ class CRMEmailTemplate(db.Model):
 
     def get_email_attachments(self):
         """
-        Reads physical attachment files from disk and returns a list of
+        Reads physical attachment files from disk (or remote store URL fallback) and returns a list of
         (filename, file_bytes, mime_type) tuples directly compatible with send_b2b_email().
         """
         result = []
@@ -362,13 +362,37 @@ class CRMEmailTemplate(db.Model):
                     file_path_found = p
                     break
 
+            file_bytes = None
             if file_path_found:
                 try:
                     with open(file_path_found, 'rb') as f:
                         file_bytes = f.read()
-                    result.append((orig_name, file_bytes, mime_type))
                 except Exception as e:
                     print(f"Error reading attachment file '{file_path_found}': {e}")
+            else:
+                # Fallback: attempt HTTP download if file was uploaded to storefront / GCS / remote host
+                try:
+                    import urllib.request
+                    urls_to_try = []
+                    if rel_path.startswith(('http://', 'https://')):
+                        urls_to_try.append(rel_path)
+                    else:
+                        store_base = os.environ.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com').rstrip('/')
+                        clean_rel = rel_path.lstrip('/')
+                        urls_to_try.append(f"{store_base}/{clean_rel}")
+
+                    for u in urls_to_try:
+                        req = urllib.request.Request(u, headers={'User-Agent': 'SweetScribblesCRM/1.0'})
+                        with urllib.request.urlopen(req, timeout=10) as resp:
+                            if resp.status == 200:
+                                file_bytes = resp.read()
+                                if file_bytes:
+                                    break
+                except Exception as e:
+                    print(f"Attachment '{orig_name}' not accessible locally or remotely: {e}")
+
+            if file_bytes:
+                result.append((orig_name, file_bytes, mime_type))
         return result
 
 
