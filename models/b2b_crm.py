@@ -53,6 +53,7 @@ class B2BLead(db.Model):
     events = db.relationship('B2BEngagementEvent', backref='lead', lazy=True, order_by="desc(B2BEngagementEvent.created_at)", cascade="all, delete-orphan")
     converted_client = db.relationship('B2BClient', foreign_keys=[converted_client_id], backref='source_lead', lazy=True)
     contacts = db.relationship('B2BLeadContact', backref='lead', lazy=True, order_by="desc(B2BLeadContact.is_primary)", cascade="all, delete-orphan")
+    calendar_events = db.relationship('CRMCalendarEvent', backref='lead', lazy=True, order_by="asc(CRMCalendarEvent.start_time)", cascade="all, delete-orphan")
 
     def __repr__(self):
         return f"<B2BLead {self.company_name} ({self.contact_name}) - Stage: {self.stage} (Score: {self.priority_score})>"
@@ -341,4 +342,92 @@ class CRMLeadOwner(db.Model):
     @property
     def assigned_leads_count(self):
         return B2BLead.query.filter_by(assigned_to=self.name).count()
+
+
+class CRMCalendarEvent(db.Model):
+    """
+    Calendar event: Client Meeting, Order Delivery Deadline, Hamper Sampling, Office Event, or Follow-up.
+    Supports RFC 5545 iCalendar generation, Google Calendar linking, and live WebCal feed subscription.
+    """
+    __tablename__ = 'crm_calendar_events'
+
+    id = db.Column(db.Integer, primary_key=True)
+    lead_id = db.Column(db.Integer, db.ForeignKey('b2b_leads.id'), nullable=True, index=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('b2b_orders.id'), nullable=True, index=True)
+
+    title = db.Column(db.String(200), nullable=False)
+    # 'client_meeting', 'delivery_deadline', 'sampling_delivery', 'office_event', 'follow_up', 'general'
+    event_type = db.Column(db.String(50), default='client_meeting', index=True)
+    is_all_day = db.Column(db.Boolean, default=False)
+
+    start_time = db.Column(db.DateTime, nullable=False, index=True)
+    end_time = db.Column(db.DateTime, nullable=False)
+    duration_minutes = db.Column(db.Integer, default=45)
+
+    # 'google_meet', 'client_office', 'sweet_scribbles_studio', 'phone_call', 'dispatch_hub', 'other'
+    location_type = db.Column(db.String(50), default='google_meet')
+    location_details = db.Column(db.String(255), nullable=True)
+
+    meeting_notes = db.Column(db.Text, nullable=True)
+    organizer_name = db.Column(db.String(100), default='Sweet Scribbles Corporate')
+    organizer_email = db.Column(db.String(120), default='pooja.sathish@pikachooz.com')
+    assigned_to = db.Column(db.String(100), nullable=True)  # Lead owner or team member in charge
+
+    attendee_emails = db.Column(db.Text, nullable=True)  # Comma-separated list of recipient emails
+    attendee_names = db.Column(db.Text, nullable=True)
+
+    # 'scheduled', 'in_progress', 'completed', 'rescheduled', 'cancelled'
+    status = db.Column(db.String(30), default='scheduled', index=True)
+    # 'normal', 'high', 'critical'
+    priority = db.Column(db.String(20), default='normal')
+
+    ics_uid = db.Column(db.String(100), unique=True, index=True, default=lambda: f"ss_event_{uuid.uuid4().hex[:16]}@sweetscribbles.com")
+    email_sent = db.Column(db.Boolean, default=False)
+    email_sent_at = db.Column(db.DateTime, nullable=True)
+
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<CRMCalendarEvent #{self.id} '{self.title}' ({self.event_type}) - {self.start_time} [{self.status}]>"
+
+    @property
+    def attendee_email_list(self):
+        if not self.attendee_emails:
+            return []
+        return [e.strip() for e in self.attendee_emails.split(',') if e.strip()]
+
+    @property
+    def event_badge_class(self):
+        classes = {
+            'client_meeting': 'badge-event-meeting',
+            'delivery_deadline': 'badge-event-delivery',
+            'sampling_delivery': 'badge-event-sampling',
+            'office_event': 'badge-event-office',
+            'follow_up': 'badge-event-followup',
+            'general': 'badge-event-general'
+        }
+        return classes.get(self.event_type, 'badge-event-general')
+
+    @property
+    def event_type_display(self):
+        labels = {
+            'client_meeting': '🤝 Client Meeting',
+            'delivery_deadline': '📦 Delivery Deadline',
+            'sampling_delivery': '🎁 Sampling Delivery',
+            'office_event': '🏢 Office & Team Event',
+            'follow_up': '⏰ Follow-up Reminder',
+            'general': '📌 General Event'
+        }
+        return labels.get(self.event_type, self.event_type.replace('_', ' ').title())
+
+    @property
+    def status_badge_class(self):
+        return {
+            'scheduled': 'bg-primary text-white',
+            'in_progress': 'bg-warning text-dark',
+            'completed': 'bg-success text-white',
+            'rescheduled': 'bg-info text-white',
+            'cancelled': 'bg-secondary text-white'
+        }.get(self.status, 'bg-light text-dark')
 

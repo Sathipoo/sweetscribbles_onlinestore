@@ -36,6 +36,9 @@
                 <a href="{{ url_for('crm_leads.list_leads') }}" class="crm-nav-link text-decoration-none {% if 'crm_leads' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-kanban me-1.5 text-info"></i>Leads Pipeline
                 </a>
+                <a href="{{ url_for('crm_calendar.view_calendar') }}" class="crm-nav-link text-decoration-none {% if 'crm_calendar' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-calendar3 me-1.5 text-warning"></i>Calendar
+                </a>
                 <a href="{{ url_for('crm_campaigns.list_campaigns') }}" class="crm-nav-link text-decoration-none {% if 'crm_campaigns' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-send-check me-1.5 text-primary"></i>Outreach &amp; Campaigns
                 </a>

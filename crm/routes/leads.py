@@ -3,13 +3,14 @@ import io
 import re
 import json
 from datetime import datetime
-from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, Response
+from flask import Blueprint, render_template, request, redirect, url_for, flash, jsonify, current_app, Response, session
 from extensions import db
 from models.b2b import B2BClient, B2BClientContact
-from models.b2b_crm import B2BLead, B2BEngagementEvent, CRMEmailTemplate, B2BLeadContact, CRMLeadOwner
+from models.b2b_crm import B2BLead, B2BEngagementEvent, CRMEmailTemplate, B2BLeadContact, CRMLeadOwner, CRMCalendarEvent
 from crm.routes.auth import crm_login_required
 from utils.otp_utils import normalize_phone
 from utils.email_utils import send_crm_campaign_email, DEFAULT_CC_EMAIL
+from utils.calendar_utils import generate_google_calendar_link, dispatch_calendar_invitations_and_sync, DEFAULT_TEAM_AUTO_SYNC
 
 leads_bp = Blueprint('crm_leads', __name__)
 
@@ -738,6 +739,54 @@ def bulk_action():
             lead.updated_at = now
             if new_stage == 'meeting_scheduled':
                 lead.update_score(30, 'Meeting scheduled (bulk)')
+                meeting_date_str = (data.get('meeting_date') or '').strip()
+                if meeting_date_str:
+                    try:
+                        from datetime import timedelta
+                        start_time_str = (data.get('meeting_time') or '11:00').strip()
+                        dt_combined = f"{meeting_date_str} {start_time_str}"
+                        start_dt = datetime.strptime(dt_combined, "%Y-%m-%d %H:%M")
+                        end_dt = start_dt + timedelta(minutes=45)
+                        notes = (data.get('meeting_notes') or f"Meeting scheduled with {lead.company_name}").strip()
+
+                        team_sync_raw = data.get('team_sync')
+                        if isinstance(team_sync_raw, list):
+                            team_sync = team_sync_raw
+                        elif isinstance(team_sync_raw, str):
+                            team_sync = [e.strip() for e in team_sync_raw.split(',') if e.strip()]
+                        else:
+                            team_sync = list(DEFAULT_TEAM_AUTO_SYNC)
+
+                        attendees = list(set(team_sync + ([lead.email] if lead.email else [])))
+
+                        ev = CRMCalendarEvent(
+                            lead_id=lead.id,
+                            title=f"Corporate Gifting Discussion - {lead.company_name}",
+                            event_type='client_meeting',
+                            start_time=start_dt,
+                            end_time=end_dt,
+                            duration_minutes=45,
+                            meeting_notes=notes,
+                            organizer_name=session.get('crm_user', 'Sweet Scribbles Corporate'),
+                            organizer_email=current_app.config.get('SENDER_EMAIL', 'pooja.sathish@pikachooz.com'),
+                            assigned_to=lead.assigned_to or session.get('crm_user', 'Sales Operations'),
+                            attendee_emails=", ".join(attendees) if attendees else None,
+                            status='scheduled',
+                            priority='high'
+                        )
+                        db.session.add(ev)
+                        if data.get('send_invites') in [True, '1', 'true', 'on', None]:
+                            store_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
+                            dispatch_calendar_invitations_and_sync(
+                                event=ev,
+                                team_emails=team_sync,
+                                client_emails=[lead.email] if lead.email else [],
+                                store_base_url=store_url
+                            )
+                            ev.email_sent = True
+                            ev.email_sent_at = datetime.utcnow()
+                    except Exception:
+                        pass
             elif new_stage == 'qualified':
                 lead.update_score(40, 'Qualified prospect (bulk)')
             elif new_stage == 'prospect':
@@ -1098,9 +1147,139 @@ def lead_detail(lead_id):
         sources=all_sources,
         owners=all_owners,
         registered_owners=registered_owners,
+        default_team_sync=DEFAULT_TEAM_AUTO_SYNC,
         tracking_link=tracking_link,
         store_base_url=store_url
     )
+
+@leads_bp.route('/leads/<int:lead_id>/schedule-meeting', methods=['POST'])
+@crm_login_required
+def schedule_meeting(lead_id):
+    """
+    Schedules a corporate meeting for a lead.
+    - Captures meeting date, start time, duration, location/Google Meet, notes/agenda.
+    - Creates CRMCalendarEvent linked to the lead.
+    - Advances lead.stage to 'meeting_scheduled'.
+    - Elevates priority score (+30) and appends structured audit note.
+    - Dispatches calendar invites and auto-syncs into vishnu.govind@pikachooz.com and sathishkumar.dm@pikachooz.com.
+    """
+    from datetime import timedelta
+    lead = B2BLead.query.get_or_404(lead_id)
+    is_ajax = request.headers.get('X-Requested-With') == 'XMLHttpRequest' or request.is_json
+    data = request.get_json(silent=True) or request.form
+
+    title = data.get('title', '').strip() or f"Corporate Gifting Discussion - {lead.company_name}"
+    meeting_date_str = data.get('meeting_date', '').strip()
+    start_time_str = data.get('start_time', '11:00').strip()
+    duration_minutes = int(data.get('duration_minutes', 45) or 45)
+
+    if not meeting_date_str:
+        msg = "Please select a meeting date."
+        return jsonify({'success': False, 'message': msg}), 400 if is_ajax else flash(msg, 'danger')
+
+    try:
+        dt_combined = f"{meeting_date_str} {start_time_str}"
+        start_dt = datetime.strptime(dt_combined, "%Y-%m-%d %H:%M")
+        end_dt = start_dt + timedelta(minutes=duration_minutes)
+    except Exception as e:
+        msg = f"Invalid date/time format: {str(e)}"
+        return jsonify({'success': False, 'message': msg}), 400 if is_ajax else flash(msg, 'danger')
+
+    location_type = data.get('location_type', 'google_meet').strip()
+    location_details = data.get('location_details', '').strip()
+    meeting_notes = data.get('meeting_notes', '').strip()
+    assigned_to = data.get('assigned_to', '').strip() or lead.assigned_to or session.get('crm_user', 'Sales Operations')
+
+    # Team auto-sync recipients (Vishnu & Sathish by default)
+    team_sync_selected = []
+    if hasattr(data, 'getlist'):
+        team_sync_selected = data.getlist('team_sync[]') or data.getlist('team_sync')
+    elif isinstance(data.get('team_sync'), list):
+        team_sync_selected = data.get('team_sync')
+
+    if not team_sync_selected and not data.get('team_sync_custom_off'):
+        team_sync_selected = list(DEFAULT_TEAM_AUTO_SYNC)
+
+    # Client POC emails
+    client_emails = []
+    if lead.email:
+        client_emails.append(lead.email)
+    if hasattr(data, 'getlist'):
+        client_emails.extend(data.getlist('poc_emails[]') or data.getlist('poc_emails'))
+    
+    additional_attendees_raw = data.get('additional_attendees', '')
+    if additional_attendees_raw:
+        client_emails.extend([e.strip() for e in additional_attendees_raw.split(',') if '@' in e])
+
+    all_attendees = list(set([e.strip() for e in (team_sync_selected + client_emails) if e and e.strip()]))
+
+    event = CRMCalendarEvent(
+        lead_id=lead.id,
+        title=title,
+        event_type='client_meeting',
+        is_all_day=False,
+        start_time=start_dt,
+        end_time=end_dt,
+        duration_minutes=duration_minutes,
+        location_type=location_type,
+        location_details=location_details,
+        meeting_notes=meeting_notes,
+        organizer_name=session.get('crm_user', 'Sweet Scribbles Corporate'),
+        organizer_email=current_app.config.get('SENDER_EMAIL', 'pooja.sathish@pikachooz.com'),
+        assigned_to=assigned_to,
+        attendee_emails=", ".join(all_attendees) if all_attendees else None,
+        status='scheduled',
+        priority='high'
+    )
+    db.session.add(event)
+
+    # Advance lead stage to meeting_scheduled
+    old_stage = lead.stage
+    lead.stage = 'meeting_scheduled'
+    lead.update_score(30, f"Meeting booked: '{title}' on {start_dt.strftime('%d %b %Y, %I:%M %p')}")
+    
+    timestamp = datetime.utcnow().strftime("%d %b %Y, %I:%M %p")
+    meeting_log = (
+        f"[{timestamp} - Meeting Scheduled]\n"
+        f"Session: {title}\n"
+        f"Date & Time: {start_dt.strftime('%A, %d %B %Y at %I:%M %p')}\n"
+        f"Location / Mode: {location_details or location_type}\n"
+        f"Attendees: {', '.join(all_attendees)}\n"
+        f"Agenda / Notes: {meeting_notes}\n\n"
+    )
+    lead.notes = meeting_log + (lead.notes or '')
+    lead.updated_at = datetime.utcnow()
+    db.session.commit()
+
+    # Dispatch calendar invite and auto-sync to team emails
+    send_invites = data.get('send_invites') in [True, '1', 'true', 'on', None]
+    if send_invites and all_attendees:
+        try:
+            store_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
+            dispatch_calendar_invitations_and_sync(
+                event=event,
+                team_emails=team_sync_selected,
+                client_emails=client_emails,
+                store_base_url=store_url
+            )
+            event.email_sent = True
+            event.email_sent_at = datetime.utcnow()
+            db.session.commit()
+        except Exception:
+            pass
+
+    msg = f"Meeting scheduled with {lead.company_name} on {start_dt.strftime('%d %b %Y at %I:%M %p')} and synced to calendar!"
+    if is_ajax:
+        return jsonify({
+            'success': True,
+            'message': msg,
+            'event_id': event.id,
+            'lead_stage': lead.stage,
+            'google_calendar_url': generate_google_calendar_link(event)
+        })
+
+    flash(msg, 'success')
+    return redirect(url_for('crm_leads.lead_detail', lead_id=lead.id))
 
 @leads_bp.route('/leads/<int:lead_id>/update-stage', methods=['POST'])
 @crm_login_required

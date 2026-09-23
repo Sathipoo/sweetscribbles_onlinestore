@@ -141,9 +141,14 @@
 
             <!-- Update Stage Form (11 Marketing Funnel Stages) -->
             <form action="{{ url_for('crm_leads.update_stage', lead_id=lead.id) }}" method="POST" class="mt-4 pt-3 border-top">
-                <label class="form-label small text-muted fw-bold">Update Pipeline Funnel Stage</label>
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small text-muted fw-bold mb-0">Update Pipeline Funnel Stage</label>
+                    <button type="button" class="btn btn-sm btn-outline-warning rounded-pill py-0 px-2 fw-medium" data-bs-toggle="modal" data-bs-target="#scheduleMeetingModal" style="font-size: 0.72rem;">
+                        <i class="bi bi-calendar-plus me-1"></i>Schedule Meeting
+                    </button>
+                </div>
                 <div class="input-group input-group-sm mb-2">
-                    <select name="stage" class="form-select crm-input">
+                    <select name="stage" class="form-select crm-input" onchange="if(this.value==='meeting_scheduled'){ const m=new bootstrap.Modal(document.getElementById('scheduleMeetingModal')); m.show(); }">
                         {% for st, label, badge in stages %}
                             <option value="{{ st }}" {% if lead.stage == st %}selected{% endif %}>{{ label }}</option>
                         {% endfor %}
@@ -153,6 +158,74 @@
                 <input type="text" name="call_notes" class="form-control form-control-sm crm-input mt-1" placeholder="Optional brief call / transition note...">
             </form>
         </div>
+
+        <!-- Scheduled Meetings & Calendar Milestones Card -->
+        {% if lead.calendar_events %}
+        <div class="crm-card p-4 mb-4 border-start border-4 border-warning">
+            <div class="d-flex justify-content-between align-items-center mb-3 border-bottom pb-2">
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">
+                        📅 Scheduled Meetings &amp; Milestones ({{ lead.calendar_events|length }})
+                    </h6>
+                    <small class="text-muted" style="font-size: 0.72rem;">Linked to Google Calendar &amp; Executive Team</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-2.5 py-0.5" data-bs-toggle="modal" data-bs-target="#scheduleMeetingModal" style="font-size: 0.75rem;">
+                    <i class="bi bi-plus-lg me-1"></i>Book Session
+                </button>
+            </div>
+
+            <div class="d-flex flex-column gap-2.5">
+                {% for ev in lead.calendar_events %}
+                <div class="p-3 rounded-3 border bg-light">
+                    <div class="d-flex justify-content-between align-items-start mb-1">
+                        <div>
+                            <span class="badge {{ ev.event_badge_class }} mb-1" style="font-size: 0.7rem;">{{ ev.event_type_display }}</span>
+                            <strong class="d-block text-dark">{{ ev.title }}</strong>
+                        </div>
+                        <span class="badge {{ ev.status_badge_class }}" style="font-size: 0.65rem;">{{ ev.status.upper() }}</span>
+                    </div>
+
+                    <div class="small text-muted mb-2">
+                        <i class="bi bi-clock me-1"></i>{{ ev.start_time|datetime_fmt }} &bull; {{ ev.duration_minutes }} mins<br>
+                        <i class="bi bi-geo-alt me-1"></i>{{ ev.location_details or ev.location_type }}
+                    </div>
+
+                    {% if ev.meeting_notes %}
+                    <div class="p-2 rounded-2 bg-white border small text-dark mb-2" style="font-size: 0.75rem; white-space: pre-line;">
+                        {{ ev.meeting_notes }}
+                    </div>
+                    {% endif %}
+
+                    <div class="d-flex flex-wrap gap-1.5 align-items-center">
+                        {% set start_dt_utc = ev.start_time.strftime('%Y%m%dT%H%M%SZ') %}
+                        {% set end_dt_utc = ev.end_time.strftime('%Y%m%dT%H%M%SZ') %}
+                        {% set gcal_link = "https://calendar.google.com/calendar/render?action=TEMPLATE&text=" ~ ev.title|urlencode ~ "&dates=" ~ start_dt_utc ~ "/" ~ end_dt_utc ~ "&details=" ~ (ev.meeting_notes or '')|urlencode ~ "&location=" ~ (ev.location_details or '')|urlencode %}
+                        <a href="{{ gcal_link }}" target="_blank" class="btn btn-outline-primary btn-sm py-0 px-2 rounded-pill" style="font-size: 0.7rem;">
+                            <i class="bi bi-google me-1"></i>Google Cal
+                        </a>
+                        {% if ev.location_details and ev.location_details.startswith('http') %}
+                        <a href="{{ ev.location_details }}" target="_blank" class="btn btn-outline-success btn-sm py-0 px-2 rounded-pill" style="font-size: 0.7rem;">
+                            <i class="bi bi-camera-video-fill me-1"></i>Join Meet
+                        </a>
+                        {% endif %}
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+        </div>
+        {% elif lead.stage == 'meeting_scheduled' %}
+        <div class="crm-card p-3 mb-4 bg-warning-subtle border-warning">
+            <div class="d-flex justify-content-between align-items-center">
+                <div>
+                    <h6 class="fw-bold text-dark mb-0">📅 Stage: Meeting Scheduled</h6>
+                    <small class="text-muted" style="font-size: 0.72rem;">No calendar session attached yet.</small>
+                </div>
+                <button type="button" class="btn btn-sm btn-dark rounded-pill px-3 py-1" data-bs-toggle="modal" data-bs-target="#scheduleMeetingModal">
+                    <i class="bi bi-calendar-plus me-1"></i>Schedule Now
+                </button>
+            </div>
+        </div>
+        {% endif %}
 
         <!-- Corporate Contacts & POC Directory Card -->
         <div class="crm-card p-4 mb-4">
@@ -592,7 +665,166 @@
 {% endfor %}
 {% endif %}
 
+<!-- Modal: Schedule Meeting for this Lead -->
+<div class="modal fade crm-modal" id="scheduleMeetingModal" tabindex="-1" aria-labelledby="scheduleMeetingModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="scheduleMeetingModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-calendar-event text-warning me-2"></i>Schedule Meeting with {{ lead.company_name }}
+                    </h5>
+                    <small class="text-muted">Books the session, advances stage to 'Meeting Scheduled', adds to Google Calendar, and sends invites.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form action="{{ url_for('crm_leads.schedule_meeting', lead_id=lead.id) }}" method="POST">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <!-- Meeting Title -->
+                        <div class="col-md-8">
+                            <label class="form-label small text-muted fw-bold">Meeting Title / Agenda *</label>
+                            <input type="text" name="title" class="form-control crm-input" value="Corporate Gifting Discussion - {{ lead.company_name }}" required>
+                        </div>
+
+                        <!-- Lead Owner / Host -->
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">Session Host</label>
+                            <select name="assigned_to" class="form-select crm-input">
+                                {% for owner in registered_owners %}
+                                <option value="{{ owner.name }}" {% if owner.name == lead.assigned_to %}selected{% endif %}>{{ owner.name }}</option>
+                                {% endfor %}
+                                <option value="Sales Operations">Sales Operations</option>
+                            </select>
+                        </div>
+
+                        <!-- Date & Time -->
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">Meeting Date *</label>
+                            <input type="date" name="meeting_date" class="form-control crm-input" required id="leadMeetingDateInput">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">Start Time (IST)</label>
+                            <input type="time" name="start_time" class="form-control crm-input" value="11:00">
+                        </div>
+
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">Duration</label>
+                            <select name="duration_minutes" class="form-select crm-input">
+                                <option value="15">15 minutes (Quick Catch-up)</option>
+                                <option value="30">30 minutes</option>
+                                <option value="45" selected>45 minutes (Standard Demo)</option>
+                                <option value="60">60 minutes (1 Hour)</option>
+                                <option value="90">90 minutes</option>
+                            </select>
+                        </div>
+
+                        <!-- Mode / Location -->
+                        <div class="col-md-5">
+                            <label class="form-label small text-muted fw-bold">Meeting Mode</label>
+                            <select name="location_type" class="form-select crm-input" onchange="const loc=document.getElementById('leadMeetLocInput'); if(this.value==='google_meet'){ loc.placeholder='e.g. https://meet.google.com/abc-defg-hij'; } else if(this.value==='client_office'){ loc.placeholder='Client Office Address'; } else { loc.placeholder='Location Details'; }">
+                                <option value="google_meet" selected>📹 Google Meet (Video Call)</option>
+                                <option value="client_office">🏢 Client Office (In-Person)</option>
+                                <option value="sweet_scribbles_studio">✨ Sweet Scribbles Studio</option>
+                                <option value="phone_call">📞 Phone Call</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-7">
+                            <label class="form-label small text-muted fw-bold">Meeting Link or Location Details</label>
+                            <input type="text" name="location_details" id="leadMeetLocInput" class="form-control crm-input" placeholder="e.g. https://meet.google.com/abc-defg-hij">
+                        </div>
+
+                        <!-- Notes / Requirements -->
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Discussion Notes &amp; Hamper Requirements</label>
+                            <textarea name="meeting_notes" class="form-control crm-input" rows="3" placeholder="Expected box volumes, gifting budget range, customized branding requests..."></textarea>
+                        </div>
+
+                        <!-- Core Team Auto-Sync Section (Vishnu & Sathish) -->
+                        <div class="col-12">
+                            <div class="p-3 rounded-3 bg-light border">
+                                <label class="form-label small text-dark fw-bold mb-1">
+                                    <i class="bi bi-google text-danger me-1"></i>Auto-Sync &amp; Add to Google Calendar:
+                                </label>
+                                <p class="text-muted small mb-2" style="font-size: 0.72rem;">
+                                    Google Calendar will automatically add this meeting directly onto the executive team's calendars:
+                                </p>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="team_sync" value="vishnu.govind@pikachooz.com" id="leadSyncVishnu" checked>
+                                        <label class="form-check-label small fw-medium" for="leadSyncVishnu">
+                                            Vishnu Govind <span class="text-muted">(vishnu.govind@pikachooz.com)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="team_sync" value="sathishkumar.dm@pikachooz.com" id="leadSyncSathish" checked>
+                                        <label class="form-check-label small fw-medium" for="leadSyncSathish">
+                                            Sathish Kumar <span class="text-muted">(sathishkumar.dm@pikachooz.com)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="team_sync" value="pooja.sathish@pikachooz.com" id="leadSyncPooja" checked>
+                                        <label class="form-check-label small fw-medium" for="leadSyncPooja">
+                                            Pooja Sathish <span class="text-muted">(pooja.sathish@pikachooz.com)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Client POC Attendees -->
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Client Attendees &amp; Invitations</label>
+                            {% if lead.email %}
+                            <div class="form-check mb-1">
+                                <input class="form-check-input" type="checkbox" name="poc_emails" value="{{ lead.email }}" id="pocMainCheck" checked>
+                                <label class="form-check-label small text-dark fw-medium" for="pocMainCheck">
+                                    Primary Contact: {{ lead.contact_name }} &lt;{{ lead.email }}&gt;
+                                </label>
+                            </div>
+                            {% endif %}
+
+                            {% for contact in lead.contacts %}
+                                {% if contact.email and contact.email != lead.email %}
+                                <div class="form-check mb-1">
+                                    <input class="form-check-input" type="checkbox" name="poc_emails" value="{{ contact.email }}" id="pocContact_{{ contact.id }}" checked>
+                                    <label class="form-check-label small text-dark" for="pocContact_{{ contact.id }}">
+                                        {{ contact.name }} ({{ contact.designation or 'POC' }}) &lt;{{ contact.email }}&gt;
+                                    </label>
+                                </div>
+                                {% endif %}
+                            {% endfor %}
+
+                            <input type="text" name="additional_attendees" class="form-control crm-input form-control-sm mt-2" placeholder="Additional attendee emails (comma-separated)...">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold">
+                        <i class="bi bi-calendar-check me-1"></i>Book &amp; Sync Calendar
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
 <script>
+document.addEventListener('DOMContentLoaded', () => {
+    const meetingDateInp = document.getElementById('leadMeetingDateInput');
+    if (meetingDateInp && !meetingDateInp.value) {
+        const tomorrow = new Date();
+        tomorrow.setDate(tomorrow.getDate() + 1);
+        const yyyy = tomorrow.getFullYear();
+        const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+        const dd = String(tomorrow.getDate()).padStart(2, '0');
+        meetingDateInp.value = `${yyyy}-${mm}-${dd}`;
+    }
+});
+
 function detectDetailLocation(btnElement) {
     if (!navigator.geolocation) {
         alert("Geolocation is not supported by your browser.");

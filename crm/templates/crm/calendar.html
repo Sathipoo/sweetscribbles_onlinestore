@@ -1,0 +1,1285 @@
+{% extends "crm_base.html" %}
+
+{% block title %}Executive Calendar &amp; Delivery Milestones | Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-3 px-lg-4 py-4">
+
+    <!-- Header & Action Controls -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <span class="badge badge-gold px-2.5 py-1 rounded-pill small">OPERATIONS &amp; CLIENTS</span>
+                <span class="text-muted small">&bull; Real-time Executive Schedule</span>
+            </div>
+            <h3 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                📅 Calendar &amp; Delivery Milestones
+            </h3>
+        </div>
+
+        <div class="d-flex flex-wrap align-items-center gap-2">
+            <!-- View Mode Switcher -->
+            <div class="btn-group btn-group-sm p-1 rounded-pill bg-white border shadow-sm" role="group">
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-medium btn-dark" id="btnViewMonth" onclick="switchCalendarView('month')">
+                    <i class="bi bi-calendar3 me-1"></i>Month
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-medium btn-light text-secondary" id="btnViewWeek" onclick="switchCalendarView('week')">
+                    <i class="bi bi-calendar-week me-1"></i>Week
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-3 fw-medium btn-light text-secondary" id="btnViewAgenda" onclick="switchCalendarView('agenda')">
+                    <i class="bi bi-list-task me-1"></i>Agenda
+                </button>
+            </div>
+
+            <!-- WebCal Subscribe Button -->
+            <button type="button" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm fw-medium" data-bs-toggle="modal" data-bs-target="#calendarSubscribeModal">
+                <i class="bi bi-broadcast me-1 text-primary"></i>Sync to Phone / Mac
+            </button>
+
+            <!-- Add Event Button -->
+            <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3.5 shadow-sm fw-bold" onclick="openAddEventModal()">
+                <i class="bi bi-plus-lg me-1"></i>Schedule Event / Meeting
+            </button>
+        </div>
+    </div>
+
+    <!-- 4 KPI Summary Cards -->
+    <div class="row g-3 mb-4">
+        <div class="col-6 col-md-3">
+            <div class="crm-card p-3 border-start border-4 border-warning">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-medium d-block mb-1">CLIENT MEETINGS</span>
+                        <h4 class="fw-bold text-dark mb-0">{{ upcoming_meetings }}</h4>
+                    </div>
+                    <span class="badge bg-warning-subtle text-warning p-2 rounded-circle fs-6">🤝</span>
+                </div>
+                <small class="text-muted" style="font-size: 0.72rem;">Scheduled client pitches &amp; demos</small>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="crm-card p-3 border-start border-4 border-danger">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-medium d-block mb-1">DELIVERY DEADLINES</span>
+                        <h4 class="fw-bold text-danger mb-0">{{ delivery_deadlines }}</h4>
+                    </div>
+                    <span class="badge bg-danger-subtle text-danger p-2 rounded-circle fs-6">📦</span>
+                </div>
+                <small class="text-muted" style="font-size: 0.72rem;">Bulk order dispatch cut-offs</small>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="crm-card p-3 border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-medium d-block mb-1">SAMPLING DISPATCHES</span>
+                        <h4 class="fw-bold text-success mb-0">{{ samplings_count }}</h4>
+                    </div>
+                    <span class="badge bg-success-subtle text-success p-2 rounded-circle fs-6">🎁</span>
+                </div>
+                <small class="text-muted" style="font-size: 0.72rem;">Tasting box deliveries to POCs</small>
+            </div>
+        </div>
+
+        <div class="col-6 col-md-3">
+            <div class="crm-card p-3 border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-start">
+                    <div>
+                        <span class="text-muted small fw-medium d-block mb-1">OFFICE &amp; TEAM EVENTS</span>
+                        <h4 class="fw-bold text-primary mb-0">{{ office_events }}</h4>
+                    </div>
+                    <span class="badge bg-primary-subtle text-primary p-2 rounded-circle fs-6">🏢</span>
+                </div>
+                <small class="text-muted" style="font-size: 0.72rem;">All-hands, reviews &amp; holidays</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Interactive Filter Toolbar & Navigation Bar -->
+    <div class="crm-card p-3 mb-4">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <!-- Calendar Navigation Arrows & Title -->
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle p-1.5" onclick="navigateCalendar(-1)" title="Previous">
+                    <i class="bi bi-chevron-left"></i>
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="navigateCalendar(0)" title="Current Day">
+                    Today
+                </button>
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-circle p-1.5" onclick="navigateCalendar(1)" title="Next">
+                    <i class="bi bi-chevron-right"></i>
+                </button>
+                <h5 class="fw-bold text-dark mb-0 ms-2" id="calendarDisplayTitle" style="font-family: 'Playfair Display', serif; min-width: 190px;">
+                    September 2026
+                </h5>
+            </div>
+
+            <!-- Category Filter Pills -->
+            <div class="d-flex flex-wrap align-items-center gap-1.5">
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 filter-pill active" data-type="all" onclick="setCategoryFilter('all', this)">
+                    All
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 filter-pill" data-type="client_meeting" onclick="setCategoryFilter('client_meeting', this)">
+                    <span class="badge-dot bg-warning me-1"></span>Meetings
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 filter-pill" data-type="delivery_deadline" onclick="setCategoryFilter('delivery_deadline', this)">
+                    <span class="badge-dot bg-danger me-1"></span>Deadlines
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 filter-pill" data-type="sampling_delivery" onclick="setCategoryFilter('sampling_delivery', this)">
+                    <span class="badge-dot bg-success me-1"></span>Samplings
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 filter-pill" data-type="office_event" onclick="setCategoryFilter('office_event', this)">
+                    <span class="badge-dot bg-primary me-1"></span>Office
+                </button>
+                <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 filter-pill" data-type="follow_up" onclick="setCategoryFilter('follow_up', this)">
+                    <span class="badge-dot bg-info me-1"></span>Follow-ups
+                </button>
+            </div>
+
+            <!-- Owner Filter & Search -->
+            <div class="d-flex align-items-center gap-2">
+                <select id="calendarOwnerFilter" class="form-select form-select-sm crm-input rounded-pill" style="max-width: 170px;" onchange="fetchCalendarEvents()">
+                    <option value="" selected>👤 All Team Members</option>
+                    {% for owner in owners %}
+                    <option value="{{ owner.name }}">{{ owner.name }}</option>
+                    {% endfor %}
+                    <option value="__unassigned__">Unassigned</option>
+                </select>
+
+                <div class="input-group input-group-sm" style="max-width: 200px;">
+                    <span class="input-group-text bg-white border-end-0"><i class="bi bi-search text-muted"></i></span>
+                    <input type="text" id="calendarSearchInput" class="form-control crm-input border-start-0 ps-0" placeholder="Search event / lead..." oninput="debounceCalendarSearch()">
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- ================= CALENDAR VIEWS CONTAINER ================= -->
+    <div id="calendarViewsContainer">
+        <!-- MONTH VIEW (Grid) -->
+        <div id="monthViewWrapper" class="crm-card p-3 shadow-sm">
+            <!-- Day of Week Header -->
+            <div class="row g-1 text-center fw-bold small text-muted border-bottom pb-2 mb-1">
+                <div class="col calendar-header-col">MON</div>
+                <div class="col calendar-header-col">TUE</div>
+                <div class="col calendar-header-col">WED</div>
+                <div class="col calendar-header-col">THU</div>
+                <div class="col calendar-header-col">FRI</div>
+                <div class="col calendar-header-col text-primary">SAT</div>
+                <div class="col calendar-header-col text-danger">SUN</div>
+            </div>
+
+            <!-- Month Days Grid (Injected via JS) -->
+            <div id="monthGridContainer" class="d-flex flex-column gap-1">
+                <!-- Dynamically rendered 5-6 week rows -->
+            </div>
+        </div>
+
+        <!-- WEEK VIEW (7 Multi-column timeline) -->
+        <div id="weekViewWrapper" class="crm-card p-3 shadow-sm d-none">
+            <div id="weekGridContainer" class="row g-2">
+                <!-- Dynamically rendered 7 day cards for the week -->
+            </div>
+        </div>
+
+        <!-- AGENDA / LIST VIEW -->
+        <div id="agendaViewWrapper" class="crm-card p-4 shadow-sm d-none">
+            <h6 class="fw-bold text-dark border-bottom pb-2 mb-3" style="font-family: 'Playfair Display', serif;">
+                📋 Upcoming Milestones &amp; Scheduled Sessions
+            </h6>
+            <div id="agendaListContainer" class="d-flex flex-column gap-3">
+                <!-- Dynamically rendered agenda cards -->
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<!-- ================= MODALS ================= -->
+
+<!-- Modal: Schedule Event / Meeting -->
+<div class="modal fade crm-modal" id="addCalendarEventModal" tabindex="-1" aria-labelledby="addCalendarEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <div>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="addCalendarEventModalLabel" style="font-family: 'Playfair Display', serif;">
+                        <i class="bi bi-calendar-plus text-warning me-2"></i>Schedule Event / Meeting
+                    </h5>
+                    <small class="text-muted">Create client meetings, order delivery deadlines, sampling box dispatches, or office events.</small>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <form id="addEventForm" onsubmit="submitAddEvent(event)">
+                <div class="modal-body p-4">
+                    <div class="row g-3">
+                        <!-- Event Type Selector -->
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Event Category *</label>
+                            <div class="d-flex flex-wrap gap-2">
+                                <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 category-radio-btn active">
+                                    <input type="radio" name="event_type" value="client_meeting" class="d-none" checked onchange="handleEventTypeChange(this.value)">
+                                    🤝 Client Meeting
+                                </label>
+                                <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 category-radio-btn">
+                                    <input type="radio" name="event_type" value="delivery_deadline" class="d-none" onchange="handleEventTypeChange(this.value)">
+                                    📦 Delivery Deadline
+                                </label>
+                                <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 category-radio-btn">
+                                    <input type="radio" name="event_type" value="sampling_delivery" class="d-none" onchange="handleEventTypeChange(this.value)">
+                                    🎁 Sampling Delivery
+                                </label>
+                                <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 category-radio-btn">
+                                    <input type="radio" name="event_type" value="office_event" class="d-none" onchange="handleEventTypeChange(this.value)">
+                                    🏢 Office &amp; Team Event
+                                </label>
+                                <label class="btn btn-outline-secondary btn-sm rounded-pill px-3 category-radio-btn">
+                                    <input type="radio" name="event_type" value="follow_up" class="d-none" onchange="handleEventTypeChange(this.value)">
+                                    ⏰ Follow-up
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Title -->
+                        <div class="col-md-8">
+                            <label class="form-label small text-muted fw-bold">Title / Milestone Summary *</label>
+                            <input type="text" name="title" id="addEventTitle" class="form-control crm-input" placeholder="e.g. Diwali Hamper Discussion - Swiggy" required>
+                        </div>
+
+                        <!-- Priority -->
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">Priority</label>
+                            <select name="priority" class="form-select crm-input">
+                                <option value="normal" selected>Normal Priority</option>
+                                <option value="high">High Priority</option>
+                                <option value="critical">🚨 Critical Deadline</option>
+                                <option value="low">Low Priority</option>
+                            </select>
+                        </div>
+
+                        <!-- Linked Lead (for Client Meetings, Samplings, Follow-ups) -->
+                        <div class="col-md-6" id="leadSelectWrapper">
+                            <label class="form-label small text-muted fw-bold">Link to Corporate Lead / Prospect</label>
+                            <select name="lead_id" id="addEventLeadSelect" class="form-select crm-input" onchange="onLeadSelected(this)">
+                                <option value="">-- Standalone (No Lead Linked) --</option>
+                                {% for l in leads %}
+                                <option value="{{ l.id }}" data-contact="{{ l.contact_name }}" data-email="{{ l.email }}" data-phone="{{ l.phone }}">
+                                    {{ l.company_name }} ({{ l.contact_name }})
+                                </option>
+                                {% endfor %}
+                            </select>
+                            <small class="text-muted" style="font-size: 0.72rem;">Meetings automatically advance lead to 'Meeting Scheduled'.</small>
+                        </div>
+
+                        <!-- Assigned Lead Owner -->
+                        <div class="col-md-6">
+                            <label class="form-label small text-muted fw-bold">Event Host / Responsible Member</label>
+                            <select name="assigned_to" class="form-select crm-input">
+                                {% for owner in owners %}
+                                <option value="{{ owner.name }}" {% if owner.name == current_user %}selected{% endif %}>{{ owner.name }} ({{ owner.role }})</option>
+                                {% endfor %}
+                                <option value="Sales Operations">Sales Operations</option>
+                            </select>
+                        </div>
+
+                        <!-- Date & Time Settings -->
+                        <div class="col-md-4">
+                            <label class="form-label small text-muted fw-bold">Event Date *</label>
+                            <input type="date" name="event_date" id="addEventDate" class="form-control crm-input" required>
+                        </div>
+
+                        <div class="col-md-4" id="startTimeWrapper">
+                            <label class="form-label small text-muted fw-bold">Start Time</label>
+                            <input type="time" name="start_time" id="addEventStartTime" class="form-control crm-input" value="11:00">
+                        </div>
+
+                        <div class="col-md-4" id="durationWrapper">
+                            <label class="form-label small text-muted fw-bold">Duration</label>
+                            <select name="duration_minutes" class="form-select crm-input">
+                                <option value="15">15 minutes (Quick Catch-up)</option>
+                                <option value="30">30 minutes</option>
+                                <option value="45" selected>45 minutes (Standard Demo)</option>
+                                <option value="60">60 minutes (1 Hour)</option>
+                                <option value="90">90 minutes</option>
+                            </select>
+                        </div>
+
+                        <!-- All-Day Toggle -->
+                        <div class="col-12">
+                            <div class="form-check form-switch p-2 rounded-3 bg-light border">
+                                <input class="form-check-input ms-0 me-2" type="checkbox" name="is_all_day" id="addEventIsAllDay" onchange="toggleAllDay(this.checked)">
+                                <label class="form-check-label small text-dark fw-medium" for="addEventIsAllDay">
+                                    All-Day Milestone / Deadline (No specific time slot)
+                                </label>
+                            </div>
+                        </div>
+
+                        <!-- Location / Mode -->
+                        <div class="col-md-5">
+                            <label class="form-label small text-muted fw-bold">Meeting Mode / Location</label>
+                            <select name="location_type" id="addEventLocationType" class="form-select crm-input" onchange="onLocationTypeChange(this.value)">
+                                <option value="google_meet" selected>📹 Google Meet (Video Call)</option>
+                                <option value="client_office">🏢 Client Office (In-Person)</option>
+                                <option value="sweet_scribbles_studio">✨ Sweet Scribbles Studio</option>
+                                <option value="phone_call">📞 Phone Call</option>
+                                <option value="dispatch_hub">🚚 Dispatch &amp; Fulfillment Hub</option>
+                                <option value="other">Other / Custom</option>
+                            </select>
+                        </div>
+
+                        <div class="col-md-7">
+                            <label class="form-label small text-muted fw-bold">Meeting Link or Physical Address</label>
+                            <input type="text" name="location_details" id="addEventLocationDetails" class="form-control crm-input" placeholder="e.g. https://meet.google.com/abc-defg-hij">
+                        </div>
+
+                        <!-- Notes / Scope -->
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Meeting Notes / Agenda / Hamper Details</label>
+                            <textarea name="meeting_notes" id="addEventNotes" class="form-control crm-input" rows="3" placeholder="Specify hamper requirements, budget preferences, or key discussion points..."></textarea>
+                        </div>
+
+                        <!-- Core Team Auto-Sync Section (Vishnu & Sathish) -->
+                        <div class="col-12">
+                            <div class="p-3 rounded-3 bg-light border">
+                                <label class="form-label small text-dark fw-bold mb-1">
+                                    <i class="bi bi-google text-danger me-1"></i>Auto-Sync &amp; Add to Google Calendar:
+                                </label>
+                                <p class="text-muted small mb-2" style="font-size: 0.75rem;">
+                                    When checked, an RFC 5545 calendar invite (.ics) is sent via Gmail. Google Calendar automatically adds the event directly into their calendars:
+                                </p>
+                                <div class="d-flex flex-wrap gap-3">
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="team_sync" value="vishnu.govind@pikachooz.com" id="syncVishnu" checked>
+                                        <label class="form-check-label small fw-medium" for="syncVishnu">
+                                            Vishnu Govind <span class="text-muted">(vishnu.govind@pikachooz.com)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="team_sync" value="sathishkumar.dm@pikachooz.com" id="syncSathish" checked>
+                                        <label class="form-check-label small fw-medium" for="syncSathish">
+                                            Sathish Kumar <span class="text-muted">(sathishkumar.dm@pikachooz.com)</span>
+                                        </label>
+                                    </div>
+                                    <div class="form-check">
+                                        <input class="form-check-input" type="checkbox" name="team_sync" value="pooja.sathish@pikachooz.com" id="syncPooja" checked>
+                                        <label class="form-check-label small fw-medium" for="syncPooja">
+                                            Pooja Sathish <span class="text-muted">(pooja.sathish@pikachooz.com)</span>
+                                        </label>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Additional Attendees -->
+                        <div class="col-12">
+                            <label class="form-label small text-muted fw-bold">Additional Client or Colleague Emails (comma-separated)</label>
+                            <input type="text" name="additional_attendees" class="form-control crm-input" placeholder="e.g. client.finance@company.com, colleague@sweetscribbles.com">
+                        </div>
+                    </div>
+                </div>
+                <div class="modal-footer border-top">
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-crm-gold btn-sm rounded-pill px-4 fw-bold" id="btnSubmitAddEvent">
+                        <i class="bi bi-calendar-check me-1"></i>Confirm &amp; Schedule
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: View & Manage Calendar Event -->
+<div class="modal fade crm-modal" id="viewCalendarEventModal" tabindex="-1" aria-labelledby="viewCalendarEventModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <div>
+                    <span id="viewEventBadge" class="badge bg-warning text-dark mb-1">🤝 Client Meeting</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="viewEventTitle" style="font-family: 'Playfair Display', serif;">
+                        Event Title
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div class="d-flex flex-column gap-3">
+                    <!-- Date & Time Card -->
+                    <div class="p-3 rounded-3 bg-light border d-flex align-items-center gap-3">
+                        <div class="text-center p-2 rounded-3 bg-white border shadow-sm" style="min-width: 60px;">
+                            <span class="text-muted d-block small fw-bold" id="viewEventMonthText">SEP</span>
+                            <h4 class="fw-bold text-dark mb-0" id="viewEventDayText">25</h4>
+                        </div>
+                        <div>
+                            <h6 class="fw-bold text-dark mb-0" id="viewEventDateFull">Friday, 25 September 2026</h6>
+                            <small class="text-muted" id="viewEventTimeFull">11:00 AM - 11:45 AM (45 mins)</small>
+                        </div>
+                    </div>
+
+                    <!-- Linked Lead Details -->
+                    <div id="viewEventLeadBox" class="p-3 rounded-3 border bg-white d-none">
+                        <div class="d-flex justify-content-between align-items-start mb-1">
+                            <span class="text-muted small fw-bold">LINKED CLIENT DOSSIER</span>
+                            <span class="badge bg-light text-muted border small" id="viewEventLeadStage">Stage</span>
+                        </div>
+                        <h6 class="fw-bold text-dark mb-1" id="viewEventLeadCompany">Company Name</h6>
+                        <small class="text-muted d-block mb-2" id="viewEventLeadContact">Contact: Alice &bull; alice@company.com</small>
+                        <a href="#" id="viewEventLeadLink" class="btn btn-outline-warning btn-sm py-0.5 px-2.5 rounded-pill text-dark fw-medium" style="font-size: 0.72rem;">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Open Full Lead Dossier
+                        </a>
+                    </div>
+
+                    <!-- Location / Google Meet -->
+                    <div class="small">
+                        <span class="text-muted fw-bold d-block mb-1">📍 Location / Meeting Link:</span>
+                        <div id="viewEventLocation" class="text-dark">Google Meet</div>
+                    </div>
+
+                    <!-- Notes -->
+                    <div class="small" id="viewEventNotesWrapper">
+                        <span class="text-muted fw-bold d-block mb-1">📝 Agenda &amp; Requirements:</span>
+                        <div id="viewEventNotes" class="p-2.5 rounded-3 bg-light border text-dark" style="white-space: pre-line;"></div>
+                    </div>
+
+                    <!-- Attendees -->
+                    <div class="small" id="viewEventAttendeesWrapper">
+                        <span class="text-muted fw-bold d-block mb-1">👥 Synchronized Attendees:</span>
+                        <div id="viewEventAttendees" class="text-muted small"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top d-flex justify-content-between">
+                <div>
+                    <button type="button" class="btn btn-outline-danger btn-sm rounded-pill px-2.5" id="btnDeleteEvent" onclick="executeDeleteCurrentEvent()" title="Delete Event">
+                        <i class="bi bi-trash"></i>
+                    </button>
+                    <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-3 ms-1" id="btnToggleComplete" onclick="executeToggleCurrentStatus()">
+                        <i class="bi bi-check2-circle me-1"></i><span id="btnToggleCompleteText">Mark Completed</span>
+                    </button>
+                </div>
+                <div class="d-flex gap-1.5">
+                    <a href="#" id="btnViewGoogleCalendar" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3">
+                        <i class="bi bi-google me-1"></i>Google Cal
+                    </a>
+                    <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal: WebCal / iCal Live Subscription -->
+<div class="modal fade crm-modal" id="calendarSubscribeModal" tabindex="-1" aria-labelledby="calendarSubscribeModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header border-bottom">
+                <h5 class="modal-title fw-bold text-dark mb-0" id="calendarSubscribeModalLabel" style="font-family: 'Playfair Display', serif;">
+                    <i class="bi bi-broadcast text-primary me-2"></i>Live 2-Way Calendar Subscription
+                </h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <p class="small text-muted mb-3">
+                    Subscribe once, and all current and future <strong>Client Meetings</strong>, <strong>Delivery Deadlines</strong>, and <strong>Office Events</strong> in Sweet Scribbles CRM will automatically sync to your personal Google Calendar, Apple Calendar (Mac/iPhone), or Outlook.
+                </p>
+
+                <label class="form-label small text-muted fw-bold">Live Calendar Subscription Feed URL</label>
+                <div class="input-group input-group-sm mb-3">
+                    <input type="text" id="subscribeUrlInput" class="form-control crm-input font-monospace small" value="{{ feed_url }}" readonly>
+                    <button type="button" class="btn btn-outline-warning" onclick="copySubscribeUrl()">
+                        <i class="bi bi-clipboard me-1"></i>Copy URL
+                    </button>
+                </div>
+
+                <div class="accordion accordion-flush small border rounded-3" id="subscribeInstructionsAccordion">
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2 text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#instrGCal">
+                                📅 How to add to Google Calendar
+                            </button>
+                        </h2>
+                        <div id="instrGCal" class="accordion-collapse collapse p-3 text-muted">
+                            1. Open <a href="https://calendar.google.com" target="_blank">Google Calendar</a> in your browser.<br>
+                            2. On the left sidebar, click the <strong>+</strong> next to <em>Other calendars</em>.<br>
+                            3. Select <strong>From URL</strong>.<br>
+                            4. Paste the copied URL and click <strong>Add calendar</strong>.
+                        </div>
+                    </div>
+                    <div class="accordion-item">
+                        <h2 class="accordion-header">
+                            <button class="accordion-button collapsed py-2 text-dark fw-bold" type="button" data-bs-toggle="collapse" data-bs-target="#instrApple">
+                                🍏 How to add to Apple Calendar (Mac / iPhone)
+                            </button>
+                        </h2>
+                        <div id="instrApple" class="accordion-collapse collapse p-3 text-muted">
+                            1. Open the <strong>Calendar</strong> app on Mac.<br>
+                            2. In the top menu bar, click <strong>File &rarr; New Calendar Subscription...</strong><br>
+                            3. Paste the URL and click <strong>Subscribe</strong>.<br>
+                            4. Set auto-refresh to <em>Every hour</em>.
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top">
+                <button type="button" class="btn btn-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+/* Executive Calendar Styles */
+.calendar-header-col {
+    font-size: 0.75rem;
+    letter-spacing: 0.5px;
+    padding: 6px 0;
+}
+
+.calendar-week-row {
+    display: flex;
+    gap: 4px;
+}
+
+.calendar-day-cell {
+    flex: 1 1 0;
+    min-height: 120px;
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 6px;
+    display: flex;
+    flex-direction: column;
+    cursor: pointer;
+    transition: all 0.15s ease;
+    overflow: hidden;
+}
+
+.calendar-day-cell:hover {
+    border-color: #b48324;
+    box-shadow: 0 2px 8px rgba(180, 131, 36, 0.15);
+}
+
+.calendar-day-cell.other-month {
+    background: #f8fafc;
+    opacity: 0.55;
+}
+
+.calendar-day-cell.today-cell {
+    background: #fffbeb;
+    border-color: #f59e0b;
+    border-width: 2px;
+}
+
+.day-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 4px;
+}
+
+.day-num {
+    font-size: 0.8rem;
+    font-weight: 700;
+    color: #334155;
+}
+
+.today-cell .day-num {
+    background: #b48324;
+    color: #ffffff;
+    border-radius: 50%;
+    width: 20px;
+    height: 20px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.72rem;
+}
+
+/* Event Chips */
+.event-chips-list {
+    display: flex;
+    flex-direction: column;
+    gap: 3px;
+    overflow-y: auto;
+    max-height: 90px;
+}
+
+.event-chip {
+    font-size: 0.68rem;
+    padding: 2px 5px;
+    border-radius: 4px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    border: 1px solid rgba(0, 0, 0, 0.05);
+    cursor: pointer;
+    font-weight: 500;
+    transition: transform 0.1s ease;
+}
+
+.event-chip:hover {
+    transform: scale(1.02);
+}
+
+.badge-event-meeting { background: #fef3c7; color: #92400e; border-color: #fde68a; }
+.badge-event-delivery { background: #fee2e2; color: #991b1b; border-color: #fca5a5; font-weight: 600; }
+.badge-event-sampling { background: #dcfce7; color: #166534; border-color: #bbf7d0; }
+.badge-event-office { background: #ede9fe; color: #5b21b6; border-color: #ddd6fe; }
+.badge-event-followup { background: #e0f2fe; color: #075985; border-color: #bae6fd; }
+.badge-event-general { background: #f1f5f9; color: #334155; border-color: #cbd5e1; }
+
+.event-completed {
+    opacity: 0.6;
+    text-decoration: line-through;
+}
+
+.badge-dot {
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    display: inline-block;
+}
+
+.filter-pill {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+    font-size: 0.75rem;
+    transition: all 0.15s ease;
+}
+
+.filter-pill:hover, .filter-pill.active {
+    background: #1e293b;
+    color: #ffffff;
+    border-color: #1e293b;
+}
+
+.category-radio-btn.active {
+    background: #1e293b !important;
+    color: #ffffff !important;
+    border-color: #1e293b !important;
+}
+
+/* Agenda Cards */
+.agenda-card {
+    background: #ffffff;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    padding: 14px 18px;
+    transition: all 0.2s ease;
+}
+
+.agenda-card:hover {
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.05);
+}
+</style>
+
+<script>
+// State Management
+let currentDate = new Date(); // Tracks displayed month/year
+let activeCalendarView = 'month'; // 'month', 'week', 'agenda'
+let activeCategoryFilter = 'all';
+let allEventsCache = [];
+let currentlyViewingEventId = null;
+let searchDebounceTimer = null;
+
+document.addEventListener('DOMContentLoaded', () => {
+    fetchCalendarEvents();
+});
+
+// Fetch events from API
+async function fetchCalendarEvents() {
+    const owner = document.getElementById('calendarOwnerFilter').value;
+    const query = document.getElementById('calendarSearchInput').value;
+
+    const url = new URL("{{ url_for('crm_calendar.get_events_json') }}", window.location.origin);
+    if (activeCategoryFilter && activeCategoryFilter !== 'all') {
+        url.searchParams.set('type', activeCategoryFilter);
+    }
+    if (owner) {
+        url.searchParams.set('owner', owner);
+    }
+    if (query) {
+        url.searchParams.set('q', query);
+    }
+
+    try {
+        const res = await fetch(url);
+        const data = await res.json();
+        if (data.success) {
+            allEventsCache = data.events;
+            renderCurrentView();
+        }
+    } catch (err) {
+        console.error("Failed to load calendar events:", err);
+    }
+}
+
+function renderCurrentView() {
+    updateDisplayTitle();
+    if (activeCalendarView === 'month') {
+        renderMonthGrid();
+    } else if (activeCalendarView === 'week') {
+        renderWeekGrid();
+    } else if (activeCalendarView === 'agenda') {
+        renderAgendaList();
+    }
+}
+
+function updateDisplayTitle() {
+    const months = [
+        "January", "February", "March", "April", "May", "June",
+        "July", "August", "September", "October", "November", "December"
+    ];
+    const titleEl = document.getElementById('calendarDisplayTitle');
+    if (activeCalendarView === 'month') {
+        titleEl.textContent = `${months[currentDate.getMonth()]} ${currentDate.getFullYear()}`;
+    } else if (activeCalendarView === 'week') {
+        const startOfWeek = getStartOfWeek(currentDate);
+        const endOfWeek = new Date(startOfWeek);
+        endOfWeek.setDate(endOfWeek.getDate() + 6);
+        titleEl.textContent = `${startOfWeek.getDate()} ${months[startOfWeek.getMonth()].slice(0, 3)} - ${endOfWeek.getDate()} ${months[endOfWeek.getMonth()].slice(0, 3)} ${endOfWeek.getFullYear()}`;
+    } else {
+        titleEl.textContent = `Agenda (${months[currentDate.getMonth()]} ${currentDate.getFullYear()})`;
+    }
+}
+
+function getStartOfWeek(d) {
+    const date = new Date(d);
+    const day = date.getDay();
+    const diff = date.getDate() - day + (day === 0 ? -6 : 1); // Monday is start of week
+    return new Date(date.setDate(diff));
+}
+
+// Month Grid Rendering
+function renderMonthGrid() {
+    const container = document.getElementById('monthGridContainer');
+    container.innerHTML = '';
+
+    const year = currentDate.getFullYear();
+    const month = currentDate.getMonth();
+
+    const firstDayOfMonth = new Date(year, month, 1);
+    const lastDayOfMonth = new Date(year, month + 1, 0);
+
+    let startDayOfWeek = firstDayOfMonth.getDay();
+    startDayOfWeek = startDayOfWeek === 0 ? 6 : startDayOfWeek - 1; // 0 for Monday, 6 for Sunday
+
+    const totalDays = lastDayOfMonth.getDate();
+    const prevMonthLastDay = new Date(year, month, 0).getDate();
+
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    let currentDayCounter = 1;
+    let nextMonthDayCounter = 1;
+
+    for (let row = 0; row < 6; row++) {
+        const weekRow = document.createElement('div');
+        weekRow.className = 'calendar-week-row';
+
+        let hasCurrentMonthDays = false;
+
+        for (let col = 0; col < 7; col++) {
+            const cell = document.createElement('div');
+            cell.className = 'calendar-day-cell';
+
+            let cellDateStr = '';
+            let isCurrentMonth = true;
+
+            if (row === 0 && col < startDayOfWeek) {
+                // Previous month days
+                const prevDay = prevMonthLastDay - (startDayOfWeek - col - 1);
+                cell.classList.add('other-month');
+                isCurrentMonth = false;
+                const prevM = month === 0 ? 12 : month;
+                const prevY = month === 0 ? year - 1 : year;
+                cellDateStr = `${prevY}-${String(prevM).padStart(2, '0')}-${String(prevDay).padStart(2, '0')}`;
+                cell.innerHTML = `<div class="day-header"><span class="day-num">${prevDay}</span></div>`;
+            } else if (currentDayCounter <= totalDays) {
+                // Current month days
+                hasCurrentMonthDays = true;
+                cellDateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(currentDayCounter).padStart(2, '0')}`;
+                if (cellDateStr === todayStr) {
+                    cell.classList.add('today-cell');
+                }
+                cell.innerHTML = `<div class="day-header"><span class="day-num">${currentDayCounter}</span></div>`;
+                currentDayCounter++;
+            } else {
+                // Next month days
+                cell.classList.add('other-month');
+                isCurrentMonth = false;
+                const nextM = month + 2 > 12 ? 1 : month + 2;
+                const nextY = month + 2 > 12 ? year + 1 : year;
+                cellDateStr = `${nextY}-${String(nextM).padStart(2, '0')}-${String(nextMonthDayCounter).padStart(2, '0')}`;
+                cell.innerHTML = `<div class="day-header"><span class="day-num">${nextMonthDayCounter}</span></div>`;
+                nextMonthDayCounter++;
+            }
+
+            // Click on day cell to schedule on that date
+            const clickDate = cellDateStr;
+            cell.onclick = (e) => {
+                if (e.target.closest('.event-chip')) return;
+                openAddEventModal(clickDate);
+            };
+
+            // Render Event Chips matching this date
+            const dayEvents = allEventsCache.filter(ev => ev.date_str === cellDateStr);
+            if (dayEvents.length > 0) {
+                const chipsList = document.createElement('div');
+                chipsList.className = 'event-chips-list';
+
+                dayEvents.forEach(ev => {
+                    const chip = document.createElement('div');
+                    chip.className = `event-chip ${ev.badge_class} ${ev.status === 'completed' ? 'event-completed' : ''}`;
+                    const icon = getCategoryIcon(ev.event_type);
+                    chip.innerHTML = `<span>${icon}</span> <span>${escapeHtml(ev.title)}</span>`;
+                    chip.title = `${ev.title} (${ev.start_time_str})`;
+                    chip.onclick = (e) => {
+                        e.stopPropagation();
+                        openViewEventModal(ev.id);
+                    };
+                    chipsList.appendChild(chip);
+                });
+
+                cell.appendChild(chipsList);
+            }
+
+            weekRow.appendChild(cell);
+        }
+
+        if (row > 3 && !hasCurrentMonthDays) {
+            break; // Omit empty trailing rows
+        }
+        container.appendChild(weekRow);
+    }
+}
+
+// Week Grid Rendering
+function renderWeekGrid() {
+    const container = document.getElementById('weekGridContainer');
+    container.innerHTML = '';
+
+    const startOfWeek = getStartOfWeek(currentDate);
+    const dayNames = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+    const today = new Date();
+    const todayStr = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, '0')}-${String(today.getDate()).padStart(2, '0')}`;
+
+    for (let i = 0; i < 7; i++) {
+        const d = new Date(startOfWeek);
+        d.setDate(d.getDate() + i);
+
+        const dateStr = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+        const isToday = (dateStr === todayStr);
+
+        const col = document.createElement('div');
+        col.className = 'col';
+
+        const dayEvents = allEventsCache.filter(ev => ev.date_str === dateStr);
+
+        let eventsHtml = '';
+        if (dayEvents.length === 0) {
+            eventsHtml = '<div class="text-center py-4 text-muted opacity-50 small">No events</div>';
+        } else {
+            dayEvents.forEach(ev => {
+                eventsHtml += `
+                    <div class="agenda-card p-2 mb-2 ${ev.badge_class} ${ev.status === 'completed' ? 'event-completed' : ''}" style="cursor: pointer;" onclick="openViewEventModal(${ev.id})">
+                        <div class="d-flex justify-content-between align-items-center mb-1">
+                            <span class="badge bg-white text-dark small py-0.5 px-1.5">${ev.start_time_str}</span>
+                            <span class="badge ${ev.status_badge_class} py-0 px-1" style="font-size: 0.65rem;">${ev.status}</span>
+                        </div>
+                        <strong class="d-block text-truncate small">${escapeHtml(ev.title)}</strong>
+                        ${ev.lead ? `<small class="text-muted d-block text-truncate" style="font-size: 0.7rem;">🏢 ${escapeHtml(ev.lead.company_name)}</small>` : ''}
+                    </div>
+                `;
+            });
+        }
+
+        col.innerHTML = `
+            <div class="crm-card p-2.5 h-100 ${isToday ? 'border-warning border-2 bg-light' : ''}" style="min-height: 380px;">
+                <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-2">
+                    <div>
+                        <span class="small fw-bold text-dark d-block">${dayNames[i]}</span>
+                        <small class="text-muted" style="font-size: 0.72rem;">${d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}</small>
+                    </div>
+                    <button type="button" class="btn btn-outline-secondary btn-sm py-0 px-1.5 rounded-circle" onclick="openAddEventModal('${dateStr}')" title="Add event on this day">
+                        <i class="bi bi-plus"></i>
+                    </button>
+                </div>
+                <div class="d-flex flex-column gap-1.5">${eventsHtml}</div>
+            </div>
+        `;
+        container.appendChild(col);
+    }
+}
+
+// Agenda List Rendering
+function renderAgendaList() {
+    const container = document.getElementById('agendaListContainer');
+    container.innerHTML = '';
+
+    if (allEventsCache.length === 0) {
+        container.innerHTML = `
+            <div class="text-center py-5 text-muted">
+                <i class="bi bi-calendar-x fs-1 d-block mb-2 text-warning opacity-75"></i>
+                <h6 class="fw-bold">No Events Found</h6>
+                <p class="small mb-3">No scheduled meetings, delivery cut-offs, or office milestones match the active filters.</p>
+                <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3" onclick="openAddEventModal()">
+                    <i class="bi bi-plus-lg me-1"></i>Create New Event
+                </button>
+            </div>
+        `;
+        return;
+    }
+
+    allEventsCache.forEach(ev => {
+        const item = document.createElement('div');
+        item.className = `agenda-card d-flex flex-wrap justify-content-between align-items-center gap-3 ${ev.status === 'completed' ? 'opacity-75' : ''}`;
+
+        const icon = getCategoryIcon(ev.event_type);
+        const leadSnippet = ev.lead ? `
+            <span class="badge bg-light text-dark border px-2 py-1">
+                <i class="bi bi-building me-1"></i>${escapeHtml(ev.lead.company_name)}
+            </span>
+        ` : '';
+
+        item.innerHTML = `
+            <div class="d-flex align-items-center gap-3">
+                <div class="text-center p-2 rounded-3 bg-light border" style="min-width: 65px;">
+                    <span class="text-muted d-block small fw-bold">${new Date(ev.start).toLocaleDateString('en-US', { month: 'short' }).toUpperCase()}</span>
+                    <h5 class="fw-bold text-dark mb-0">${new Date(ev.start).getDate()}</h5>
+                </div>
+                <div>
+                    <div class="d-flex flex-wrap align-items-center gap-1.5 mb-1">
+                        <span class="badge ${ev.badge_class}">${icon} ${ev.event_type_display}</span>
+                        <span class="badge ${ev.status_badge_class}">${ev.status.toUpperCase()}</span>
+                        ${leadSnippet}
+                        ${ev.priority === 'critical' ? '<span class="badge bg-danger text-white">🚨 CRITICAL</span>' : ''}
+                    </div>
+                    <h6 class="fw-bold text-dark mb-1 ${ev.status === 'completed' ? 'text-decoration-line-through' : ''}">${escapeHtml(ev.title)}</h6>
+                    <small class="text-muted d-block">
+                        <i class="bi bi-clock me-1"></i>${ev.start_time_str} &bull; 
+                        <i class="bi bi-geo-alt me-1"></i>${escapeHtml(ev.location_details || ev.location_type || 'Sweet Scribbles')} &bull;
+                        <i class="bi bi-person me-1"></i>Owner: ${escapeHtml(ev.assigned_to)}
+                    </small>
+                </div>
+            </div>
+
+            <div class="d-flex align-items-center gap-2">
+                <button type="button" class="btn btn-outline-success btn-sm rounded-pill px-2.5" onclick="quickToggleComplete(${ev.id})" title="${ev.status === 'completed' ? 'Reopen' : 'Mark Completed'}">
+                    <i class="bi bi-check2"></i> ${ev.status === 'completed' ? 'Reopen' : 'Done'}
+                </button>
+                <a href="${ev.google_calendar_url}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-2.5" title="Add to Google Calendar">
+                    <i class="bi bi-google"></i>
+                </a>
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" onclick="openViewEventModal(${ev.id})">
+                    Details
+                </button>
+            </div>
+        `;
+        container.appendChild(item);
+    });
+}
+
+function getCategoryIcon(type) {
+    const map = {
+        'client_meeting': '🤝',
+        'delivery_deadline': '📦',
+        'sampling_delivery': '🎁',
+        'office_event': '🏢',
+        'follow_up': '⏰',
+        'general': '📌'
+    };
+    return map[type] || '📅';
+}
+
+function switchCalendarView(viewMode) {
+    activeCalendarView = viewMode;
+    document.getElementById('btnViewMonth').className = `btn btn-sm rounded-pill px-3 fw-medium ${viewMode === 'month' ? 'btn-dark' : 'btn-light text-secondary'}`;
+    document.getElementById('btnViewWeek').className = `btn btn-sm rounded-pill px-3 fw-medium ${viewMode === 'week' ? 'btn-dark' : 'btn-light text-secondary'}`;
+    document.getElementById('btnViewAgenda').className = `btn btn-sm rounded-pill px-3 fw-medium ${viewMode === 'agenda' ? 'btn-dark' : 'btn-light text-secondary'}`;
+
+    document.getElementById('monthViewWrapper').classList.toggle('d-none', viewMode !== 'month');
+    document.getElementById('weekViewWrapper').classList.toggle('d-none', viewMode !== 'week');
+    document.getElementById('agendaViewWrapper').classList.toggle('d-none', viewMode !== 'agenda');
+
+    renderCurrentView();
+}
+
+function navigateCalendar(direction) {
+    if (direction === 0) {
+        currentDate = new Date();
+    } else {
+        if (activeCalendarView === 'month' || activeCalendarView === 'agenda') {
+            currentDate.setMonth(currentDate.getMonth() + direction);
+        } else if (activeCalendarView === 'week') {
+            currentDate.setDate(currentDate.getDate() + (direction * 7));
+        }
+    }
+    renderCurrentView();
+}
+
+function setCategoryFilter(type, btn) {
+    activeCategoryFilter = type;
+    document.querySelectorAll('.filter-pill').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    fetchCalendarEvents();
+}
+
+function debounceCalendarSearch() {
+    clearTimeout(searchDebounceTimer);
+    searchDebounceTimer = setTimeout(() => {
+        fetchCalendarEvents();
+    }, 300);
+}
+
+// Open Add Event Modal
+function openAddEventModal(defaultDateStr = null) {
+    const form = document.getElementById('addEventForm');
+    form.reset();
+
+    const d = defaultDateStr ? new Date(defaultDateStr) : new Date();
+    const dateInput = document.getElementById('addEventDate');
+    const yyyy = d.getFullYear();
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    const dd = String(d.getDate()).padStart(2, '0');
+    dateInput.value = `${yyyy}-${mm}-${dd}`;
+
+    document.getElementById('addEventIsAllDay').checked = false;
+    toggleAllDay(false);
+
+    // Default category radio
+    handleEventTypeChange('client_meeting');
+    const firstRadio = form.querySelector('input[name="event_type"][value="client_meeting"]');
+    if (firstRadio) {
+        firstRadio.checked = true;
+        firstRadio.closest('label').classList.add('active');
+    }
+
+    const modal = new bootstrap.Modal(document.getElementById('addCalendarEventModal'));
+    modal.show();
+}
+
+function handleEventTypeChange(val) {
+    document.querySelectorAll('.category-radio-btn').forEach(btn => {
+        const inp = btn.querySelector('input');
+        if (inp.value === val) {
+            btn.classList.add('active');
+        } else {
+            btn.classList.remove('active');
+        }
+    });
+
+    const leadWrapper = document.getElementById('leadSelectWrapper');
+    const titleInp = document.getElementById('addEventTitle');
+
+    if (val === 'delivery_deadline') {
+        if (!titleInp.value) titleInp.placeholder = "e.g. Bulk Hamper Dispatch Cut-off - Google India";
+    } else if (val === 'sampling_delivery') {
+        if (!titleInp.value) titleInp.placeholder = "e.g. Sampling Box Handover to Swiggy";
+    } else if (val === 'office_event') {
+        if (!titleInp.value) titleInp.placeholder = "e.g. Diwali Collection Kitchen Tasting & Team Review";
+    } else {
+        if (!titleInp.value) titleInp.placeholder = "e.g. Corporate Gifting Discussion - Swiggy";
+    }
+}
+
+function onLeadSelected(selectEl) {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    const titleInp = document.getElementById('addEventTitle');
+    if (opt && opt.value) {
+        const company = opt.textContent.split('(')[0].trim();
+        const eventType = document.querySelector('input[name="event_type"]:checked').value;
+        if (eventType === 'client_meeting') {
+            titleInp.value = `Corporate Gifting Discussion - ${company}`;
+        } else if (eventType === 'delivery_deadline') {
+            titleInp.value = `Hamper Delivery Deadline - ${company}`;
+        } else if (eventType === 'sampling_delivery') {
+            titleInp.value = `Sampling Box Dispatch - ${company}`;
+        }
+    }
+}
+
+function toggleAllDay(isAllDay) {
+    document.getElementById('startTimeWrapper').style.display = isAllDay ? 'none' : 'block';
+    document.getElementById('durationWrapper').style.display = isAllDay ? 'none' : 'block';
+}
+
+function onLocationTypeChange(type) {
+    const locInp = document.getElementById('addEventLocationDetails');
+    if (type === 'google_meet') {
+        locInp.placeholder = "e.g. https://meet.google.com/abc-defg-hij";
+    } else if (type === 'client_office') {
+        locInp.placeholder = "e.g. Swiggy Headquarters, Tower A, Embassy Tech Village, Bangalore";
+    } else if (type === 'sweet_scribbles_studio') {
+        locInp.placeholder = "Sweet Scribbles Creative Studio, Bangalore";
+    } else if (type === 'dispatch_hub') {
+        locInp.placeholder = "Central Packaging & Logistics Hub, Bangalore";
+    } else {
+        locInp.placeholder = "Location or contact number";
+    }
+}
+
+// Submit Add Event via AJAX
+async function submitAddEvent(e) {
+    e.preventDefault();
+    const form = document.getElementById('addEventForm');
+    const formData = new FormData(form);
+    const btn = document.getElementById('btnSubmitAddEvent');
+    const origHtml = btn.innerHTML;
+
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-1"></span>Saving...';
+
+    try {
+        const res = await fetch("{{ url_for('crm_calendar.add_event') }}", {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" },
+            body: formData
+        });
+        const data = await res.json();
+        if (data.success) {
+            const modalEl = document.getElementById('addCalendarEventModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            fetchCalendarEvents();
+        } else {
+            alert(data.message || "Failed to schedule event.");
+        }
+    } catch (err) {
+        alert("Error saving event: " + err.message);
+    } finally {
+        btn.disabled = false;
+        btn.innerHTML = origHtml;
+    }
+}
+
+// Open View Event Modal
+function openViewEventModal(eventId) {
+    const ev = allEventsCache.find(e => e.id === eventId);
+    if (!ev) return;
+
+    currentlyViewingEventId = ev.id;
+    document.getElementById('viewEventTitle').textContent = ev.title;
+    
+    const badge = document.getElementById('viewEventBadge');
+    badge.className = `badge ${ev.badge_class} mb-1`;
+    badge.textContent = `${getCategoryIcon(ev.event_type)} ${ev.event_type_display}`;
+
+    const d = new Date(ev.start);
+    document.getElementById('viewEventMonthText').textContent = d.toLocaleDateString('en-US', { month: 'short' }).toUpperCase();
+    document.getElementById('viewEventDayText').textContent = d.getDate();
+    document.getElementById('viewEventDateFull').textContent = d.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' });
+    document.getElementById('viewEventTimeFull').textContent = ev.is_all_day ? 'All-Day Event / Cut-off' : `${ev.start_time_str} - ${ev.end_time_str} (${ev.duration_minutes} mins)`;
+
+    // Linked Lead
+    const leadBox = document.getElementById('viewEventLeadBox');
+    if (ev.lead) {
+        leadBox.classList.remove('d-none');
+        document.getElementById('viewEventLeadCompany').textContent = ev.lead.company_name;
+        document.getElementById('viewEventLeadContact').textContent = `POC: ${ev.lead.contact_name} ${ev.lead.email ? '• ' + ev.lead.email : ''} ${ev.lead.phone ? '• ' + ev.lead.phone : ''}`;
+        document.getElementById('viewEventLeadStage').textContent = ev.lead.stage_display;
+        document.getElementById('viewEventLeadLink').href = ev.lead.url;
+    } else {
+        leadBox.classList.add('d-none');
+    }
+
+    // Location
+    document.getElementById('viewEventLocation').innerHTML = ev.location_details ? 
+        (ev.location_details.startsWith('http') ? `<a href="${ev.location_details}" target="_blank" class="fw-medium text-primary">${ev.location_details}</a>` : escapeHtml(ev.location_details)) :
+        escapeHtml(ev.location_type || 'Sweet Scribbles Studio');
+
+    // Notes
+    const notesEl = document.getElementById('viewEventNotes');
+    if (ev.notes) {
+        document.getElementById('viewEventNotesWrapper').style.display = 'block';
+        notesEl.textContent = ev.notes;
+    } else {
+        document.getElementById('viewEventNotesWrapper').style.display = 'none';
+    }
+
+    // Attendees
+    const attendeesEl = document.getElementById('viewEventAttendees');
+    if (ev.attendee_emails) {
+        document.getElementById('viewEventAttendeesWrapper').style.display = 'block';
+        attendeesEl.innerHTML = ev.attendee_emails.split(',').map(a => `<span class="badge bg-light text-dark border me-1 mb-1">${escapeHtml(a.trim())}</span>`).join('');
+    } else {
+        document.getElementById('viewEventAttendeesWrapper').style.display = 'none';
+    }
+
+    // Status Toggle Button text
+    document.getElementById('btnToggleCompleteText').textContent = ev.status === 'completed' ? 'Reopen Event' : 'Mark Completed';
+    document.getElementById('btnViewGoogleCalendar').href = ev.google_calendar_url;
+
+    const modal = new bootstrap.Modal(document.getElementById('viewCalendarEventModal'));
+    modal.show();
+}
+
+async function quickToggleComplete(eventId) {
+    try {
+        const res = await fetch(`/crm/calendar/events/${eventId}/toggle-status`, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        const data = await res.json();
+        if (data.success) {
+            fetchCalendarEvents();
+        }
+    } catch (err) {
+        alert("Failed to update status: " + err.message);
+    }
+}
+
+async function executeToggleCurrentStatus() {
+    if (!currentlyViewingEventId) return;
+    await quickToggleComplete(currentlyViewingEventId);
+    const modalEl = document.getElementById('viewCalendarEventModal');
+    const modal = bootstrap.Modal.getInstance(modalEl);
+    if (modal) modal.hide();
+}
+
+async function executeDeleteCurrentEvent() {
+    if (!currentlyViewingEventId) return;
+    if (!confirm("Are you sure you want to delete this event?")) return;
+
+    try {
+        const res = await fetch(`/crm/calendar/events/${currentlyViewingEventId}/delete`, {
+            method: "POST",
+            headers: { "X-Requested-With": "XMLHttpRequest" }
+        });
+        const data = await res.json();
+        if (data.success) {
+            const modalEl = document.getElementById('viewCalendarEventModal');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            if (modal) modal.hide();
+            fetchCalendarEvents();
+        }
+    } catch (err) {
+        alert("Failed to delete event: " + err.message);
+    }
+}
+
+function copySubscribeUrl() {
+    const input = document.getElementById('subscribeUrlInput');
+    input.select();
+    navigator.clipboard.writeText(input.value);
+    alert("Live Calendar Subscription URL copied! You can now paste this in Google Calendar or Apple Calendar.");
+}
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str)
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+}
+</script>
+{% endblock %}

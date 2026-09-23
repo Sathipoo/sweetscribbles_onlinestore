@@ -536,11 +536,43 @@
             <div class="modal-body p-4">
                 <div class="mb-3">
                     <label class="form-label small text-muted fw-bold">Select New Funnel Stage *</label>
-                    <select id="bulkNewStageSelect" class="form-select crm-input">
+                    <select id="bulkNewStageSelect" class="form-select crm-input" onchange="toggleBulkMeetingFields(this.value)">
                         {% for st_key, st_label, st_badge in stages %}
                         <option value="{{ st_key }}">{{ st_label }}</option>
                         {% endfor %}
                     </select>
+                </div>
+
+                <!-- Optional Meeting Scheduling Fields (revealed when Meeting Scheduled selected) -->
+                <div id="bulkMeetingScheduleFields" class="p-3 rounded-3 bg-light border mb-3 d-none">
+                    <div class="d-flex align-items-center gap-1.5 mb-2 text-warning fw-bold small">
+                        <i class="bi bi-calendar-event"></i> Meeting Details &amp; Google Calendar Linking
+                    </div>
+                    <div class="row g-2 mb-2">
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-bold">Meeting Date *</label>
+                            <input type="date" id="bulkMeetingDate" class="form-control crm-input form-control-sm">
+                        </div>
+                        <div class="col-6">
+                            <label class="form-label small text-muted fw-bold">Start Time</label>
+                            <input type="time" id="bulkMeetingTime" class="form-control crm-input form-control-sm" value="11:00">
+                        </div>
+                    </div>
+                    <div class="mb-2">
+                        <label class="form-label small text-muted fw-bold">Meeting Notes / Agenda</label>
+                        <input type="text" id="bulkMeetingNotes" class="form-control crm-input form-control-sm" placeholder="e.g. Corporate Gifting Presentation &amp; Sample Curation">
+                    </div>
+                    <div class="d-flex flex-wrap gap-2 pt-1 border-top">
+                        <span class="small text-muted fw-bold me-1">Auto-Sync to:</span>
+                        <div class="form-check form-check-inline small mb-0">
+                            <input class="form-check-input" type="checkbox" id="bulkSyncVishnu" value="vishnu.govind@pikachooz.com" checked>
+                            <label class="form-check-label" for="bulkSyncVishnu">Vishnu G.</label>
+                        </div>
+                        <div class="form-check form-check-inline small mb-0">
+                            <input class="form-check-input" type="checkbox" id="bulkSyncSathish" value="sathishkumar.dm@pikachooz.com" checked>
+                            <label class="form-check-label" for="bulkSyncSathish">Sathish K.</label>
+                        </div>
+                    </div>
                 </div>
                 <div class="alert alert-light border small text-muted mb-0">
                     <i class="bi bi-info-circle me-1 text-primary"></i>
@@ -1271,6 +1303,25 @@ Corporate Gifting Director, Sweet Scribbles`
         modal.show();
     }
 
+    function toggleBulkMeetingFields(stageVal) {
+        const fields = document.getElementById('bulkMeetingScheduleFields');
+        if (!fields) return;
+        if (stageVal === 'meeting_scheduled') {
+            fields.classList.remove('d-none');
+            const dateInp = document.getElementById('bulkMeetingDate');
+            if (dateInp && !dateInp.value) {
+                const tomorrow = new Date();
+                tomorrow.setDate(tomorrow.getDate() + 1);
+                const yyyy = tomorrow.getFullYear();
+                const mm = String(tomorrow.getMonth() + 1).padStart(2, '0');
+                const dd = String(tomorrow.getDate()).padStart(2, '0');
+                dateInp.value = `${yyyy}-${mm}-${dd}`;
+            }
+        } else {
+            fields.classList.add('d-none');
+        }
+    }
+
     async function executeBulkChangeStage() {
         const newStage = document.getElementById('bulkNewStageSelect').value;
         const btn = document.getElementById('btnExecuteBulkStage');
@@ -1280,6 +1331,29 @@ Corporate Gifting Director, Sweet Scribbles`
         const origHtml = btn.innerHTML;
         btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status"></span>Updating...';
 
+        const payload = {
+            action: "change_stage",
+            lead_ids: selectedLeadIds,
+            new_stage: newStage
+        };
+
+        if (newStage === 'meeting_scheduled') {
+            const mDate = document.getElementById('bulkMeetingDate') ? document.getElementById('bulkMeetingDate').value : '';
+            if (mDate) {
+                payload.meeting_date = mDate;
+                payload.meeting_time = document.getElementById('bulkMeetingTime').value;
+                payload.meeting_notes = document.getElementById('bulkMeetingNotes').value;
+                const teamSync = [];
+                if (document.getElementById('bulkSyncVishnu') && document.getElementById('bulkSyncVishnu').checked) {
+                    teamSync.push('vishnu.govind@pikachooz.com');
+                }
+                if (document.getElementById('bulkSyncSathish') && document.getElementById('bulkSyncSathish').checked) {
+                    teamSync.push('sathishkumar.dm@pikachooz.com');
+                }
+                payload.team_sync = teamSync;
+            }
+        }
+
         try {
             const response = await fetch("{{ url_for('crm_leads.bulk_action') }}", {
                 method: "POST",
@@ -1287,11 +1361,7 @@ Corporate Gifting Director, Sweet Scribbles`
                     "Content-Type": "application/json",
                     "X-Requested-With": "XMLHttpRequest"
                 },
-                body: JSON.stringify({
-                    action: "change_stage",
-                    lead_ids: selectedLeadIds,
-                    new_stage: newStage
-                })
+                body: JSON.stringify(payload)
             });
 
             const data = await response.json();
