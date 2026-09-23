@@ -651,6 +651,8 @@ def bulk_email():
     sent_count = 0
     failed_count = 0
 
+    sig_gif_tag = f'<div style="margin-top: 14px;"><img src="{store_base_url}/static/gifs/pika_ss_signature.gif" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" /></div>'
+
     for lead in targets:
         personal_link = f"{store_base_url}/b2b?trk={lead.tracking_token}"
         chosen_cta_url = personal_link if include_outreach_link else fallback_cta_url
@@ -662,7 +664,9 @@ def bulk_email():
         body_rendered = body_rendered.replace('{city}', lead.city or '')
         body_rendered = body_rendered.replace('{designation}', lead.designation or '')
         body_rendered = body_rendered.replace('{outreach_link}', personal_link)
-        body_rendered = body_rendered.replace('\n', '<br>')
+        body_rendered = body_rendered.replace('{signature_gif}', sig_gif_tag)
+        if '<p' not in body_rendered and '<div' not in body_rendered:
+            body_rendered = body_rendered.replace('\n', '<br>')
 
         subj_rendered = subject
         subj_rendered = subj_rendered.replace('{contact_name}', lead.contact_name or 'Corporate Partner')

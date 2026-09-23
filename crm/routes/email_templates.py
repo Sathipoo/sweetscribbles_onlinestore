@@ -152,6 +152,7 @@ def new_template():
     """
     Opens the visual email builder for a fresh template with pre-configured starter blocks.
     """
+    store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
     starter_blocks = {
         'banner_tag': 'Diwali & Festive Gifting 2026',
         'headline': 'Exclusive Festive Corporate Hampers for {company_name}',
@@ -170,6 +171,8 @@ def new_template():
         'cta_url': '{outreach_link}',
         'signoff_name': 'Vishnu Govind',
         'signoff_title': 'Corporate Gifting Director, Sweet Scribbles',
+        'include_gif': True,
+        'gif_url': f'{store_base_url}/static/gifs/pika_ss_signature.gif',
         'theme_color': '#b48324'
     }
 
@@ -179,7 +182,8 @@ def new_template():
         starter_blocks=starter_blocks,
         default_cc=DEFAULT_CC_EMAIL,
         initial_mode='visual',
-        is_new=True
+        is_new=True,
+        store_base_url=store_base_url
     )
 
 @templates_bp.route('/<int:template_id>/edit')
@@ -208,6 +212,7 @@ def edit_template(template_id):
             blocks = {}
 
     initial_mode = 'visual' if has_valid_blocks else 'code'
+    store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
 
     return render_template(
         'crm/email_templates/builder.html',
@@ -215,7 +220,8 @@ def edit_template(template_id):
         starter_blocks=blocks,
         default_cc=tpl.default_cc or DEFAULT_CC_EMAIL,
         initial_mode=initial_mode,
-        is_new=False
+        is_new=False,
+        store_base_url=store_base_url
     )
 
 @templates_bp.route('/save', methods=['POST'])
@@ -380,10 +386,15 @@ def api_render_preview():
     }
 
     # Interpolate variables
+    store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
+    sig_gif_tag = f'<div style="margin-top: 14px;"><img src="{store_base_url}/static/gifs/pika_ss_signature.gif" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" /></div>'
+
     for k, v in sample_lead.items():
         subject = subject.replace(f"{{{k}}}", str(v))
         body_html = body_html.replace(f"{{{k}}}", str(v))
         cta_url = cta_url.replace(f"{{{k}}}", str(v))
+
+    body_html = body_html.replace('{signature_gif}', sig_gif_tag)
 
     full_html = _render_luxury_email_layout(
         title=subject,

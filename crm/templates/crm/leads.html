@@ -821,6 +821,9 @@
                                 <span class="param-chip text-warning fw-bold"
                                     onclick="insertParam('{outreach_link}')"><i class="bi bi-link-45deg"></i>
                                     {outreach_link}</span>
+                                <span class="param-chip text-danger fw-bold"
+                                    onclick="insertParam('{signature_gif}')"><i class="bi bi-file-earmark-play-fill"></i>
+                                    {signature_gif}</span>
                             </div>
                         </div>
 
@@ -2072,16 +2075,31 @@ Corporate Gifting Director, Sweet Scribbles`
 
         const storeBase = "{{ store_base_url }}";
         const sampleLink = `${storeBase}/b2b?trk=sample-token`;
+        const sigGifTag = `<div style="margin-top: 14px;"><img src="${storeBase}/static/gifs/pika_ss_signature.gif" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" /></div>`;
 
         const previewBody = body
             .replaceAll('{contact_name}', sampleName)
             .replaceAll('{company_name}', sampleCompany)
             .replaceAll('{city}', sampleCity)
             .replaceAll('{designation}', sampleDesignation)
-            .replaceAll('{outreach_link}', sampleLink);
+            .replaceAll('{outreach_link}', sampleLink)
+            .replaceAll('{signature_gif}', sigGifTag);
 
         document.getElementById('previewSubject').textContent = previewSubject;
-        document.getElementById('previewBodyRendered').textContent = previewBody;
+        
+        const previewContainer = document.getElementById('previewBodyRendered');
+        const hasHtmlTags = /<[a-z][\s\S]*>/i.test(previewBody);
+        if (hasHtmlTags) {
+            previewContainer.style.whiteSpace = 'normal';
+            if (!previewBody.includes('<p') && !previewBody.includes('<div')) {
+                previewContainer.innerHTML = previewBody.replace(/\n/g, '<br>');
+            } else {
+                previewContainer.innerHTML = previewBody;
+            }
+        } else {
+            previewContainer.style.whiteSpace = 'pre-line';
+            previewContainer.textContent = previewBody;
+        }
         document.getElementById('previewTo').textContent = `${sampleName} <${sampleEmail}>`;
 
         const ccVal = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : "Vishnu.govind@pikachooz.com";

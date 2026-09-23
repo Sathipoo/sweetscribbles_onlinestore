@@ -87,6 +87,7 @@
                     <span class="param-chip" onclick="insertParamToActiveField('{city}')"><i class="bi bi-geo-alt"></i> {city}</span>
                     <span class="param-chip" onclick="insertParamToActiveField('{designation}')"><i class="bi bi-briefcase"></i> {designation}</span>
                     <span class="param-chip text-warning fw-bold" onclick="insertParamToActiveField('{outreach_link}')"><i class="bi bi-link-45deg"></i> {outreach_link}</span>
+                    <span class="param-chip text-danger fw-bold" onclick="insertParamToActiveField('{signature_gif}')"><i class="bi bi-file-earmark-play-fill"></i> {signature_gif}</span>
                 </div>
             </div>
         </div>
@@ -254,7 +255,7 @@
                         </h2>
                         <div id="collapseSignoff" class="accordion-collapse collapse" data-bs-parent="#blocksAccordion">
                             <div class="accordion-body p-3">
-                                <div class="row g-2">
+                                <div class="row g-2 mb-3">
                                     <div class="col-6">
                                         <label class="form-label small text-muted">Sender Name</label>
                                         <input type="text" id="blkSignoffName" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_name|default('Vishnu Govind')|e }}" oninput="rebuildPreview()">
@@ -262,6 +263,21 @@
                                     <div class="col-6">
                                         <label class="form-label small text-muted">Sender Title</label>
                                         <input type="text" id="blkSignoffTitle" class="form-control form-control-sm crm-input" value="{{ starter_blocks.signoff_title|default('Corporate Gifting Director, Sweet Scribbles')|e }}" oninput="rebuildPreview()">
+                                    </div>
+                                </div>
+
+                                <!-- Animated Brand Signature GIF Option -->
+                                <div class="p-3 bg-light rounded-3 border">
+                                    <div class="form-check form-switch mb-2">
+                                        <input class="form-check-input" type="checkbox" role="switch" id="blkIncludeGif" {% if starter_blocks.include_gif is not defined or starter_blocks.include_gif %}checked{% endif %} onchange="toggleGifPreview(); rebuildPreview();">
+                                        <label class="form-check-label fw-semibold small text-dark" for="blkIncludeGif">
+                                            Include Animated Brand Signature (GIF)
+                                        </label>
+                                    </div>
+                                    <input type="hidden" id="blkGifUrl" value="{{ starter_blocks.gif_url|default((store_base_url or 'https://sweetscribbles.pikachooz.com') ~ '/static/gifs/pika_ss_signature.gif')|e }}">
+                                    <div id="signatureGifPreview" class="pt-1" {% if starter_blocks.include_gif is defined and not starter_blocks.include_gif %}style="display: none;"{% endif %}>
+                                        <div class="small text-muted mb-1" style="font-size: 0.72rem;">Live GIF Signature Asset:</div>
+                                        <img src="{{ starter_blocks.gif_url|default('/static/gifs/pika_ss_signature.gif')|e }}" alt="Sweet Scribbles Signature GIF" class="border rounded bg-white p-1" style="max-width: 220px; height: auto;">
                                     </div>
                                 </div>
                             </div>
@@ -428,8 +444,18 @@ function getBlocksData() {
         cta_text: document.getElementById('blkCtaText')?.value || '',
         cta_url: document.getElementById('blkCtaUrl')?.value || '{outreach_link}',
         signoff_name: document.getElementById('blkSignoffName')?.value || '',
-        signoff_title: document.getElementById('blkSignoffTitle')?.value || ''
+        signoff_title: document.getElementById('blkSignoffTitle')?.value || '',
+        include_gif: document.getElementById('blkIncludeGif') ? document.getElementById('blkIncludeGif').checked : true,
+        gif_url: document.getElementById('blkGifUrl')?.value || '{{ (store_base_url or "https://sweetscribbles.pikachooz.com") }}/static/gifs/pika_ss_signature.gif'
     };
+}
+
+function toggleGifPreview() {
+    const isChecked = document.getElementById('blkIncludeGif')?.checked;
+    const previewDiv = document.getElementById('signatureGifPreview');
+    if (previewDiv) {
+        previewDiv.style.display = isChecked ? 'block' : 'none';
+    }
 }
 
 function compileBlocksToHtml(blocks) {
@@ -445,6 +471,11 @@ function compileBlocksToHtml(blocks) {
             ${blocks.highlight_3 ? `<div style="color: #451a03; font-size: 14px;">${blocks.highlight_3}</div>` : ''}
         </div>`;
     }
+
+    const gifHtml = (blocks.include_gif && blocks.gif_url) ? `
+        <div style="margin-top: 14px;">
+            <img src="${blocks.gif_url}" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" />
+        </div>` : '';
 
     return `
     <div style="text-align: center; margin-bottom: 24px;">
@@ -468,6 +499,7 @@ function compileBlocksToHtml(blocks) {
         Warm regards,<br>
         <strong style="color: #0f172a; font-size: 14px;">${blocks.signoff_name || ''}</strong><br>
         ${blocks.signoff_title || ''}
+        ${gifHtml}
     </div>`;
 }
 
