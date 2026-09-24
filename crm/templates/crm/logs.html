@@ -1,0 +1,557 @@
+{% extends 'crm_base.html' %}
+
+{% block title %}Clickstream &amp; Telemetry Logs - Sweet Scribbles CRM{% endblock %}
+
+{% block content %}
+<div class="container-fluid px-0">
+
+    <!-- Header & Action Bar -->
+    <div class="d-flex flex-wrap justify-content-between align-items-center gap-3 mb-4">
+        <div>
+            <div class="d-flex align-items-center gap-2 mb-1">
+                <h2 class="fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                    Clickstream &amp; Activity Logs
+                </h2>
+                <span class="badge bg-dark text-warning border border-warning rounded-pill px-2.5 py-1 small">
+                    <i class="bi bi-cpu me-1"></i>TELEMETRY RADAR
+                </span>
+            </div>
+            <p class="text-muted small mb-0">
+                Granular behavioral audit trail of prospect storefront journeys, corporate hamper clicks, budget slider adjustments, and session logins.
+            </p>
+        </div>
+        <div class="d-flex align-items-center gap-2">
+            <!-- CSV Export with current filters -->
+            <a href="{{ url_for('crm_logs.export_logs_csv', date_preset=date_preset, start_date=start_date, end_date=end_date, lead_id=current_lead_id, audience=audience, event_type=event_type, high_intent='1' if high_intent else '0', q=search_query) }}" 
+               class="btn btn-sm btn-outline-success rounded-pill px-3 shadow-sm fw-medium"
+               title="Export filtered records to CSV">
+                <i class="bi bi-file-earmark-spreadsheet me-1.5"></i>Export CSV
+            </a>
+            <!-- Reset Filters -->
+            {% if date_preset != 'all' or current_lead_id or audience != 'all' or event_type != 'all' or high_intent or search_query %}
+            <a href="{{ url_for('crm_logs.view_logs') }}" class="btn btn-sm btn-outline-danger rounded-pill px-3 shadow-sm">
+                <i class="bi bi-x-circle me-1"></i>Reset Filters
+            </a>
+            {% endif %}
+            <!-- Quick Refresh -->
+            <a href="javascript:window.location.reload();" class="btn btn-sm btn-outline-secondary rounded-pill px-3 shadow-sm text-secondary">
+                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+            </a>
+        </div>
+    </div>
+
+    <!-- 4 KPI Summary Cards (Scoped to Active Filters) -->
+    <div class="row g-3 mb-4">
+        <div class="col-xl-3 col-sm-6">
+            <div class="crm-card p-3 h-100 border-start border-4 border-primary">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small fw-semibold text-uppercase">Events Captured</span>
+                    <i class="bi bi-activity text-primary fs-5"></i>
+                </div>
+                <h3 class="fw-bold text-dark mb-0">{{ total_events_count }}</h3>
+                <small class="text-muted">Total matching interactions</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="crm-card p-3 h-100 border-start border-4 border-success">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small fw-semibold text-uppercase">Identified Leads</span>
+                    <i class="bi bi-person-check-fill text-success fs-5"></i>
+                </div>
+                <h3 class="fw-bold text-success mb-0">{{ unique_leads_count }}</h3>
+                <small class="text-muted">Unique CRM prospects active</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="crm-card p-3 h-100 border-start border-4 border-warning">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small fw-semibold text-uppercase">🔥 High-Intent Actions</span>
+                    <i class="bi bi-fire text-warning fs-5"></i>
+                </div>
+                <h3 class="fw-bold text-dark mb-0">{{ high_intent_count }}</h3>
+                <small class="text-muted">Sliders, CTAs &amp; OTP Logins</small>
+            </div>
+        </div>
+
+        <div class="col-xl-3 col-sm-6">
+            <div class="crm-card p-3 h-100 border-start border-4 border-secondary">
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <span class="text-muted small fw-semibold text-uppercase">Anonymous Visitors</span>
+                    <i class="bi bi-incognito text-secondary fs-5"></i>
+                </div>
+                <h3 class="fw-bold text-secondary mb-0">{{ anonymous_count }}</h3>
+                <small class="text-muted">Unclaimed browsing sessions</small>
+            </div>
+        </div>
+    </div>
+
+    <!-- Exclusive Lead Dossier Banner (Appears when viewing a specific lead) -->
+    {% if selected_lead %}
+    <div class="crm-card p-3 mb-4 border-warning" style="background: linear-gradient(135deg, rgba(254, 243, 199, 0.4) 0%, rgba(255, 255, 255, 0.9) 100%);">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-3">
+            <div class="d-flex align-items-center gap-3">
+                <div class="rounded-circle bg-warning bg-opacity-25 d-flex align-items-center justify-content-center text-dark fw-bold fs-4" style="width: 52px; height: 52px;">
+                    <i class="bi bi-person-badge"></i>
+                </div>
+                <div>
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
+                        <h4 class="fw-bold text-dark mb-0">{{ selected_lead.contact_name }}</h4>
+                        <span class="badge bg-dark text-white rounded-pill px-2.5 py-1">{{ selected_lead.company_name }}</span>
+                        <span class="badge bg-warning text-dark rounded-pill px-2.5 py-1 fw-bold">
+                            {{ selected_lead.priority_score }} INTENT PTS
+                        </span>
+                        <span class="badge bg-light text-secondary border rounded-pill px-2.5 py-1">
+                            STAGE: {{ selected_lead.stage|upper }}
+                        </span>
+                    </div>
+                    <div class="text-muted small mt-1 d-flex flex-wrap align-items-center gap-3">
+                        {% if selected_lead.phone %}
+                        <span><i class="bi bi-telephone me-1 text-primary"></i>{{ selected_lead.phone }}</span>
+                        {% endif %}
+                        {% if selected_lead.email %}
+                        <span><i class="bi bi-envelope me-1 text-info"></i>{{ selected_lead.email }}</span>
+                        {% endif %}
+                        {% if selected_lead.city %}
+                        <span><i class="bi bi-geo-alt me-1 text-danger"></i>{{ selected_lead.city }}</span>
+                        {% endif %}
+                        <span><i class="bi bi-clock-history me-1"></i>Last Active: {{ selected_lead.last_active_at|time_ago }}</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Exclusive Actions -->
+            <div class="d-flex align-items-center gap-2">
+                {% if selected_lead.phone %}
+                <a href="tel:{{ selected_lead.phone }}" class="btn btn-sm btn-crm-call rounded-pill px-3">
+                    <i class="bi bi-telephone-fill me-1"></i>Call Now
+                </a>
+                <a href="https://wa.me/91{{ selected_lead.phone[-10:] }}" target="_blank" class="btn btn-sm btn-outline-success rounded-pill px-3">
+                    <i class="bi bi-whatsapp me-1"></i>WhatsApp
+                </a>
+                {% endif %}
+                <a href="{{ url_for('crm_leads.list_leads') }}?highlight={{ selected_lead.id }}" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                    <i class="bi bi-kanban me-1"></i>View in Pipeline
+                </a>
+                <a href="{{ url_for('crm_logs.view_logs') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-3" title="Exit exclusive lead mode">
+                    <i class="bi bi-x-lg me-1"></i>Show All Leads
+                </a>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+
+    <!-- Filter Control Console Card -->
+    <div class="crm-card p-3 mb-4">
+        <form method="GET" action="{{ url_for('crm_logs.view_logs') }}" id="logsFilterForm" class="row g-3 align-items-end">
+            <!-- Hidden preset field -->
+            <input type="hidden" name="date_preset" id="datePresetInput" value="{{ date_preset }}">
+
+            <!-- 1. Lead / Prospect Selector Dropdown -->
+            <div class="col-lg-3 col-md-6">
+                <label class="form-label small fw-bold text-muted mb-1">PROSPECT / AUDIENCE FILTER</label>
+                <select name="lead_id" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                    <option value="" {% if not current_lead_id and audience == 'all' %}selected{% endif %}>
+                        👥 All Traffic (Leads + Anonymous)
+                    </option>
+                    <optgroup label="Audience Category">
+                        <option value="" data-audience="leads" {% if audience == 'leads' %}selected{% endif %}>
+                            ⭐ Identified Leads Only
+                        </option>
+                        <option value="" data-audience="anonymous" {% if audience == 'anonymous' %}selected{% endif %}>
+                            🕵️ Anonymous Visitors Only
+                        </option>
+                    </optgroup>
+                    <optgroup label="Specific Lead Exclusive">
+                        {% for l in all_leads %}
+                        <option value="{{ l.id }}" {% if current_lead_id == l.id %}selected{% endif %}>
+                            {{ l.company_name }} — {{ l.contact_name }} ({{ l.priority_score }} pts)
+                        </option>
+                        {% endfor %}
+                    </optgroup>
+                </select>
+            </div>
+
+            <!-- 2. Event Type Filter -->
+            <div class="col-lg-2 col-md-4">
+                <label class="form-label small fw-bold text-muted mb-1">EVENT TYPE</label>
+                <select name="event_type" class="form-select form-select-sm rounded-pill" onchange="this.form.submit()">
+                    <option value="all" {% if event_type == 'all' %}selected{% endif %}>All Event Types</option>
+                    <option value="login" {% if event_type == 'login' %}selected{% endif %}>🔑 Corporate Logins</option>
+                    <option value="product_view" {% if event_type == 'product_view' %}selected{% endif %}>🎁 Product / Hamper Views</option>
+                    <option value="slider_change" {% if event_type == 'slider_change' %}selected{% endif %}>📊 Budget / Qty Sliders</option>
+                    <option value="cta_click" {% if event_type == 'cta_click' %}selected{% endif %}>⚡ CTA Clicks</option>
+                    <option value="page_view" {% if event_type == 'page_view' %}selected{% endif %}>👁️ Page Views</option>
+                </select>
+            </div>
+
+            <!-- 3. Full-Text Search Input -->
+            <div class="col-lg-3 col-md-5">
+                <label class="form-label small fw-bold text-muted mb-1">KEYWORD / ELEMENT / IP SEARCH</label>
+                <div class="input-group input-group-sm">
+                    <span class="input-group-text bg-white border-end-0 rounded-start-pill text-muted">
+                        <i class="bi bi-search"></i>
+                    </span>
+                    <input type="text" name="q" value="{{ search_query }}" class="form-control border-start-0 rounded-end-pill" placeholder="Search company, URL, hamper, IP...">
+                </div>
+            </div>
+
+            <!-- 4. High-Intent Quick Toggle & Submit Button -->
+            <div class="col-lg-4 col-md-6 d-flex align-items-center justify-content-between gap-2">
+                <div class="form-check form-switch mb-0">
+                    <input class="form-check-input" type="checkbox" name="high_intent" value="1" id="highIntentSwitch" {% if high_intent %}checked{% endif %} onchange="this.form.submit()">
+                    <label class="form-check-label small fw-bold text-danger" for="highIntentSwitch">
+                        🔥 High-Intent Only
+                    </label>
+                </div>
+
+                <div class="d-flex gap-2">
+                    <button type="submit" class="btn btn-sm btn-dark rounded-pill px-3">
+                        <i class="bi bi-funnel me-1"></i>Apply Filters
+                    </button>
+                    {% if date_preset != 'all' or current_lead_id or audience != 'all' or event_type != 'all' or high_intent or search_query %}
+                    <a href="{{ url_for('crm_logs.view_logs') }}" class="btn btn-sm btn-outline-secondary rounded-pill px-2.5" title="Clear All">
+                        <i class="bi bi-arrow-counterclockwise"></i>
+                    </a>
+                    {% endif %}
+                </div>
+            </div>
+
+            <!-- 5. Date Quick Range Pills & Custom Date Selectors -->
+            <div class="col-12 pt-2 border-top">
+                <div class="d-flex flex-wrap align-items-center justify-content-between gap-3">
+                    <div class="d-flex flex-wrap align-items-center gap-1.5">
+                        <span class="small text-muted fw-bold me-2">DATE RANGE:</span>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 {% if date_preset == 'all' %}btn-primary text-white fw-bold{% else %}btn-outline-secondary text-secondary{% endif %}" onclick="selectDatePreset('all')">
+                            All Time
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 {% if date_preset == 'today' %}btn-primary text-white fw-bold{% else %}btn-outline-secondary text-secondary{% endif %}" onclick="selectDatePreset('today')">
+                            Today
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 {% if date_preset == 'yesterday' %}btn-primary text-white fw-bold{% else %}btn-outline-secondary text-secondary{% endif %}" onclick="selectDatePreset('yesterday')">
+                            Yesterday
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 {% if date_preset == '7d' %}btn-primary text-white fw-bold{% else %}btn-outline-secondary text-secondary{% endif %}" onclick="selectDatePreset('7d')">
+                            Last 7 Days
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 {% if date_preset == '30d' %}btn-primary text-white fw-bold{% else %}btn-outline-secondary text-secondary{% endif %}" onclick="selectDatePreset('30d')">
+                            Last 30 Days
+                        </button>
+                        <button type="button" class="btn btn-sm rounded-pill px-2.5 py-1 {% if date_preset == 'custom' %}btn-primary text-white fw-bold{% else %}btn-outline-secondary text-secondary{% endif %}" onclick="toggleCustomDates()">
+                            Custom Range...
+                        </button>
+                    </div>
+
+                    <!-- Custom Date Range Form (Toggled) -->
+                    <div id="customDateRangeBox" class="d-flex align-items-center gap-2 {% if date_preset != 'custom' %}d-none{% endif %}">
+                        <input type="date" name="start_date" value="{{ start_date }}" class="form-control form-control-sm rounded-pill" style="width: 145px;" placeholder="Start Date">
+                        <span class="small text-muted">to</span>
+                        <input type="date" name="end_date" value="{{ end_date }}" class="form-control form-control-sm rounded-pill" style="width: 145px;" placeholder="End Date">
+                        <button type="submit" class="btn btn-sm btn-outline-primary rounded-pill px-2.5">Go</button>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <!-- Telemetry Log Stream Table Card -->
+    <div class="crm-card p-0 overflow-hidden shadow-sm mb-4">
+        <div class="table-responsive">
+            <table class="table crm-table align-middle mb-0">
+                <thead class="bg-light">
+                    <tr>
+                        <th class="ps-3" style="width: 170px;">Timestamp</th>
+                        <th style="width: 220px;">Prospect / Visitor</th>
+                        <th style="width: 160px;">Event Type</th>
+                        <th>Action &amp; Forensic Details</th>
+                        <th>Page &amp; Target</th>
+                        <th class="text-center" style="width: 90px;">Metadata</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {% if events %}
+                        {% for ev in events %}
+                        <tr class="hover-row">
+                            <!-- Timestamp -->
+                            <td class="ps-3 text-nowrap">
+                                <div class="fw-semibold text-dark small">
+                                    {{ ev.created_at.strftime('%d %b %Y') }}
+                                </div>
+                                <div class="text-muted" style="font-size: 0.75rem;">
+                                    <i class="bi bi-clock me-1"></i>{{ ev.created_at.strftime('%I:%M:%S %p') }}
+                                </div>
+                            </td>
+
+                            <!-- Prospect / Lead Pillar -->
+                            <td>
+                                {% if ev.lead_id %}
+                                    <div class="d-flex align-items-start gap-1.5">
+                                        <div>
+                                            <a href="{{ url_for('crm_logs.view_logs') }}?lead_id={{ ev.lead_id }}" 
+                                               class="fw-bold text-dark text-decoration-none d-block small"
+                                               title="Filter clickstream exclusively for this prospect">
+                                                {{ ev.display_name }}
+                                                <i class="bi bi-box-arrow-in-up-right ms-1 text-muted" style="font-size: 0.7rem;"></i>
+                                            </a>
+                                            <div class="text-muted small" style="font-size: 0.78rem;">
+                                                {{ ev.company_name }}
+                                            </div>
+                                            {% if ev.score is not none %}
+                                            <span class="badge bg-light text-dark border rounded-pill mt-0.5" style="font-size: 0.68rem;">
+                                                Score: {{ ev.score }} pts
+                                            </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                {% elif ev.client_id %}
+                                    <div>
+                                        <span class="fw-bold text-success small d-block">{{ ev.display_name }}</span>
+                                        <small class="badge bg-success bg-opacity-10 text-success rounded-pill px-2 py-0.5" style="font-size: 0.68rem;">
+                                            Existing Client ({{ ev.company_name }})
+                                        </small>
+                                    </div>
+                                {% else %}
+                                    <div>
+                                        <span class="badge bg-secondary bg-opacity-10 text-secondary rounded-pill px-2 py-0.5 small fw-semibold">
+                                            <i class="bi bi-incognito me-1"></i>Anonymous
+                                        </span>
+                                        {% if ev.visitor_id %}
+                                        <div class="text-muted font-monospace mt-0.5" style="font-size: 0.7rem;" title="{{ ev.visitor_id }}">
+                                            {{ ev.visitor_id[:16] }}...
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                {% endif %}
+                            </td>
+
+                            <!-- Event Type Badge -->
+                            <td>
+                                <span class="badge bg-{{ ev.badge_class }} rounded-pill px-2.5 py-1 small fw-semibold">
+                                    <i class="bi {{ ev.icon }} me-1"></i>{{ ev.event_type }}
+                                </span>
+                            </td>
+
+                            <!-- Action Summary & Forensic Details -->
+                            <td>
+                                <div class="text-dark fw-medium small mb-0.5">
+                                    {{ ev.action_summary }}
+                                </div>
+                                <div class="d-flex align-items-center gap-2 flex-wrap text-muted" style="font-size: 0.75rem;">
+                                    {% if ev.ip_address %}
+                                    <span><i class="bi bi-hdd-network me-0.5"></i>IP: {{ ev.ip_address }}</span>
+                                    {% endif %}
+                                    {% if ev.element_identifier %}
+                                    <span>&bull; Element: <code>{{ ev.element_identifier }}</code></span>
+                                    {% endif %}
+                                </div>
+                            </td>
+
+                            <!-- Page URL & Title -->
+                            <td>
+                                <div class="text-dark small text-truncate" style="max-width: 250px;" title="{{ ev.page_url }}">
+                                    {% if ev.page_url %}
+                                    <a href="{{ ev.page_url }}" target="_blank" class="text-secondary text-decoration-none">
+                                        <i class="bi bi-link-45deg me-0.5 text-primary"></i>{{ ev.page_url }}
+                                    </a>
+                                    {% else %}
+                                    <span class="text-muted">—</span>
+                                    {% endif %}
+                                </div>
+                                {% if ev.page_title %}
+                                <div class="text-muted text-truncate" style="max-width: 250px; font-size: 0.72rem;" title="{{ ev.page_title }}">
+                                    {{ ev.page_title }}
+                                </div>
+                                {% endif %}
+                            </td>
+
+                            <!-- Metadata Inspector Button -->
+                            <td class="text-center">
+                                <button type="button" 
+                                        class="btn btn-sm btn-outline-secondary rounded-pill px-2 py-0.5" 
+                                        style="font-size: 0.75rem;"
+                                        data-bs-toggle="modal" 
+                                        data-bs-target="#metadataInspectModal"
+                                        data-event-id="{{ ev.id }}"
+                                        data-event-type="{{ ev.event_type }}"
+                                        data-event-time="{{ ev.created_at.strftime('%d %b %Y, %I:%M:%S %p UTC') }}"
+                                        data-lead-name="{{ ev.display_name }}"
+                                        data-page-url="{{ ev.page_url or '' }}"
+                                        data-ip="{{ ev.ip_address or '' }}"
+                                        data-visitor="{{ ev.visitor_id or '' }}"
+                                        data-meta="{{ ev.meta_json_str|e }}">
+                                    <i class="bi bi-code-slash me-1"></i>JSON
+                                </button>
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    {% else %}
+                        <tr>
+                            <td colspan="6" class="text-center py-5">
+                                <div class="text-muted">
+                                    <i class="bi bi-filter-circle fs-1 d-block mb-2 text-secondary opacity-50"></i>
+                                    <h5 class="fw-bold text-dark">No clickstream events match your filters</h5>
+                                    <p class="small mb-3">Try widening your date range, clearing the lead selection, or toggling off High-Intent.</p>
+                                    <a href="{{ url_for('crm_logs.view_logs') }}" class="btn btn-sm btn-primary rounded-pill px-3">
+                                        Reset to All Logs
+                                    </a>
+                                </div>
+                            </td>
+                        </tr>
+                    {% endif %}
+                </tbody>
+            </table>
+        </div>
+
+        <!-- Pagination Controls -->
+        {% if pagination.pages > 1 %}
+        <div class="d-flex flex-wrap justify-content-between align-items-center p-3 border-top bg-light gap-2">
+            <span class="small text-muted">
+                Showing <strong>{{ ((pagination.page - 1) * pagination.per_page) + 1 }}</strong> to 
+                <strong>{{ [pagination.page * pagination.per_page, pagination.total]|min }}</strong> of 
+                <strong>{{ pagination.total }}</strong> events
+            </span>
+
+            <nav aria-label="Clickstream logs pagination">
+                <ul class="pagination pagination-sm mb-0">
+                    <li class="page-item {% if not pagination.has_prev %}disabled{% endif %}">
+                        <a class="page-link rounded-start-pill" href="{{ url_for('crm_logs.view_logs', page=pagination.prev_num, date_preset=date_preset, start_date=start_date, end_date=end_date, lead_id=current_lead_id, audience=audience, event_type=event_type, high_intent='1' if high_intent else '0', q=search_query) }}">
+                            &laquo; Prev
+                        </a>
+                    </li>
+
+                    {% for p in pagination.iter_pages(left_edge=1, right_edge=1, left_current=2, right_current=2) %}
+                        {% if p %}
+                            <li class="page-item {% if p == pagination.page %}active{% endif %}">
+                                <a class="page-link" href="{{ url_for('crm_logs.view_logs', page=p, date_preset=date_preset, start_date=start_date, end_date=end_date, lead_id=current_lead_id, audience=audience, event_type=event_type, high_intent='1' if high_intent else '0', q=search_query) }}">
+                                    {{ p }}
+                                </a>
+                            </li>
+                        {% else %}
+                            <li class="page-item disabled"><span class="page-link">…</span></li>
+                        {% endif %}
+                    {% endfor %}
+
+                    <li class="page-item {% if not pagination.has_next %}disabled{% endif %}">
+                        <a class="page-link rounded-end-pill" href="{{ url_for('crm_logs.view_logs', page=pagination.next_num, date_preset=date_preset, start_date=start_date, end_date=end_date, lead_id=current_lead_id, audience=audience, event_type=event_type, high_intent='1' if high_intent else '0', q=search_query) }}">
+                            Next &raquo;
+                        </a>
+                    </li>
+                </ul>
+            </nav>
+        </div>
+        {% endif %}
+    </div>
+
+</div>
+
+<!-- Telemetry Metadata Inspection Modal -->
+<div class="modal fade" id="metadataInspectModal" tabindex="-1" aria-labelledby="metadataModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content rounded-4 border-0 shadow">
+            <div class="modal-header border-bottom py-3 px-4 bg-light">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-dark text-warning rounded-pill px-2.5 py-1">
+                        <i class="bi bi-cpu me-1"></i>EVENT #<span id="modalEventId"></span>
+                    </span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" id="metadataModalLabel">
+                        Telemetry Forensic Inspector
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <!-- Event Header Info -->
+                <div class="row g-2 mb-3 p-3 bg-light rounded-3 border">
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">PROSPECT / VISITOR</small>
+                        <span id="modalLeadName" class="fw-bold text-dark"></span>
+                    </div>
+                    <div class="col-sm-6">
+                        <small class="text-muted d-block">TIMESTAMP</small>
+                        <span id="modalTimestamp" class="small text-dark font-monospace"></span>
+                    </div>
+                    <div class="col-sm-6 mt-2">
+                        <small class="text-muted d-block">PAGE URL</small>
+                        <span id="modalPageUrl" class="small text-truncate d-block text-primary"></span>
+                    </div>
+                    <div class="col-sm-6 mt-2">
+                        <small class="text-muted d-block">IP &amp; VISITOR ID</small>
+                        <span id="modalIp" class="small font-monospace text-secondary"></span>
+                    </div>
+                </div>
+
+                <!-- Parsed Metadata JSON -->
+                <div class="d-flex justify-content-between align-items-center mb-1">
+                    <label class="form-label small fw-bold text-muted mb-0">RAW TELEMETRY PAYLOAD (JSON)</label>
+                    <button type="button" class="btn btn-sm btn-link text-decoration-none p-0 text-primary small" onclick="copyModalJson()">
+                        <i class="bi bi-clipboard me-1"></i>Copy JSON
+                    </button>
+                </div>
+                <pre class="bg-dark text-light p-3 rounded-3 small font-monospace mb-0" style="max-height: 320px; overflow-y: auto;" id="modalMetaCode"></pre>
+            </div>
+            <div class="modal-footer border-top py-2 px-4 bg-light">
+                <button type="button" class="btn btn-sm btn-secondary rounded-pill px-4" data-bs-dismiss="modal">Close</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+function selectDatePreset(preset) {
+    document.getElementById('datePresetInput').value = preset;
+    if (preset !== 'custom') {
+        document.getElementById('logsFilterForm').submit();
+    } else {
+        toggleCustomDates();
+    }
+}
+
+function toggleCustomDates() {
+    const box = document.getElementById('customDateRangeBox');
+    box.classList.remove('d-none');
+    document.getElementById('datePresetInput').value = 'custom';
+}
+
+// Handle audience selection options inside the lead select
+document.querySelector('select[name="lead_id"]').addEventListener('change', function(e) {
+    const selectedOption = this.options[this.selectedIndex];
+    const audienceAttr = selectedOption.getAttribute('data-audience');
+    if (audienceAttr) {
+        let form = document.getElementById('logsFilterForm');
+        let hiddenAudience = document.createElement('input');
+        hiddenAudience.type = 'hidden';
+        hiddenAudience.name = 'audience';
+        hiddenAudience.value = audienceAttr;
+        form.appendChild(hiddenAudience);
+        this.value = '';
+    }
+});
+
+// Populate Metadata Inspection Modal
+const metadataModal = document.getElementById('metadataInspectModal');
+if (metadataModal) {
+    metadataModal.addEventListener('show.bs.modal', function (event) {
+        const button = event.relatedTarget;
+        document.getElementById('modalEventId').textContent = button.getAttribute('data-event-id');
+        document.getElementById('modalLeadName').textContent = button.getAttribute('data-lead-name');
+        document.getElementById('modalTimestamp').textContent = button.getAttribute('data-event-time');
+        document.getElementById('modalPageUrl').textContent = button.getAttribute('data-page-url') || '—';
+        
+        const ip = button.getAttribute('data-ip') || 'Unknown IP';
+        const vid = button.getAttribute('data-visitor') || '';
+        document.getElementById('modalIp').textContent = `${ip} ${vid ? '• ' + vid.substring(0, 16) + '...' : ''}`;
+
+        const rawJson = button.getAttribute('data-meta') || '{}';
+        document.getElementById('modalMetaCode').textContent = rawJson;
+    });
+}
+
+function copyModalJson() {
+    const code = document.getElementById('modalMetaCode').textContent;
+    navigator.clipboard.writeText(code).then(() => {
+        alert('Telemetry JSON copied to clipboard!');
+    });
+}
+</script>
+{% endblock %}

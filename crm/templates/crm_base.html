@@ -45,6 +45,9 @@
                 <a href="{{ url_for('crm_clients.list_clients') }}" class="crm-nav-link text-decoration-none {% if 'crm_clients' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-building-check me-1.5 text-success"></i>Existing Clients Hub
                 </a>
+                <a href="{{ url_for('crm_logs.view_logs') }}" class="crm-nav-link text-decoration-none {% if 'crm_logs' in request.endpoint %}active{% endif %}">
+                    <i class="bi bi-journal-text me-1.5 text-danger"></i>Activity Logs
+                </a>
                 <a href="{{ url_for('crm_settings.lead_owners') }}" class="crm-nav-link text-decoration-none {% if 'crm_settings' in request.endpoint or 'crm_templates' in request.endpoint %}active{% endif %}">
                     <i class="bi bi-gear-fill me-1.5 text-secondary"></i>Settings
                 </a>

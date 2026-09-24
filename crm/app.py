@@ -24,6 +24,7 @@ def create_crm_app(config_class=CRMConfig):
     from crm.routes.email_templates import templates_bp
     from crm.routes.settings import settings_bp
     from crm.routes.calendar import calendar_bp
+    from crm.routes.logs import logs_bp
 
     crm_app.register_blueprint(auth_bp, url_prefix='/auth')
     crm_app.register_blueprint(dashboard_bp)
@@ -33,6 +34,7 @@ def create_crm_app(config_class=CRMConfig):
     crm_app.register_blueprint(templates_bp)
     crm_app.register_blueprint(settings_bp)
     crm_app.register_blueprint(calendar_bp)
+    crm_app.register_blueprint(logs_bp, url_prefix='/logs')
 
     # Template formatting filters
     @crm_app.template_filter('inr')
