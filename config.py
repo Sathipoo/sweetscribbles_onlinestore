@@ -6,8 +6,25 @@ load_dotenv()
 class Config:
     SECRET_KEY = os.environ.get('SECRET_KEY', 'dev-key')
     SQLALCHEMY_DATABASE_URI = os.environ.get('DATABASE_URL')
-    if SQLALCHEMY_DATABASE_URI and SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
-        SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+    if SQLALCHEMY_DATABASE_URI:
+        if SQLALCHEMY_DATABASE_URI.startswith("postgres://"):
+            SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgres://", "postgresql://", 1)
+        
+        # Ensure driver compatibility between psycopg (v3) and psycopg2 (v2)
+        if SQLALCHEMY_DATABASE_URI.startswith("postgresql+psycopg://"):
+            try:
+                import psycopg
+            except ImportError:
+                SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgresql+psycopg://", "postgresql+psycopg2://", 1)
+        elif SQLALCHEMY_DATABASE_URI.startswith("postgresql://"):
+            try:
+                import psycopg2
+            except ImportError:
+                try:
+                    import psycopg
+                    SQLALCHEMY_DATABASE_URI = SQLALCHEMY_DATABASE_URI.replace("postgresql://", "postgresql+psycopg://", 1)
+                except ImportError:
+                    pass
     SQLALCHEMY_TRACK_MODIFICATIONS = False
     
     # Engine Options to prevent timeouts on remote DB connections
