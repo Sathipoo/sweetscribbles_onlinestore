@@ -35,9 +35,42 @@
                         <a href="#catalogue" class="btn btn-outline-light btn-lg px-4 py-3 fw-bold rounded-pill">
                             Explore Boxes
                         </a>
-                        <a href="{{ url_for('b2b.login') }}" class="btn btn-link text-white text-decoration-none d-flex align-items-center gap-2">
-                            <span>Client Portal Login</span> <i class="bi bi-arrow-right"></i>
-                        </a>
+                    </div>
+
+                    <!-- Highlighted Corporate Client Portal Callout Box -->
+                    <div class="pt-1">
+                        <div class="p-3 rounded-4 d-inline-flex flex-wrap align-items-center justify-content-between gap-3 shadow-lg" 
+                             style="background: rgba(255, 255, 255, 0.08); backdrop-filter: blur(12px); border: 1.5px solid rgba(240, 202, 130, 0.5); max-width: 580px;">
+                            <div class="d-flex align-items-center gap-3">
+                                <div class="rounded-circle d-flex align-items-center justify-content-center text-dark fw-bold shadow-sm" 
+                                     style="width: 44px; height: 44px; background: linear-gradient(135deg, #ffd700 0%, #ffaa00 100%); flex-shrink: 0;">
+                                    <i class="bi bi-shield-lock-fill fs-5"></i>
+                                </div>
+                                <div>
+                                    <div class="d-flex align-items-center gap-2">
+                                        <strong class="text-white small text-uppercase" style="letter-spacing: 0.5px;">Already a Client or Prospect?</strong>
+                                        <span class="badge rounded-pill text-dark fw-bold" style="background: #f0c978; font-size: 0.68rem;">OTP LOGIN</span>
+                                    </div>
+                                    <span class="text-light opacity-80 d-block" style="font-size: 0.82rem;">
+                                        Access your workspace, review quotes, track orders &amp; invoices.
+                                    </span>
+                                </div>
+                            </div>
+                            <div>
+                                {% if session.get('b2b_client_id') or session.get('b2b_lead_id') %}
+                                <a href="{{ url_for('b2b.portal') }}" class="btn btn-sm fw-bold rounded-pill px-3.5 py-2 text-dark shadow-sm d-inline-flex align-items-center gap-1.5" style="background: #ffd700; border: 1px solid #d4af37;" data-telemetry-cta="hero_corporate_workspace">
+                                    <i class="bi bi-building-check"></i>
+                                    <span>Go to Workspace</span>
+                                    <i class="bi bi-arrow-right"></i>
+                                </a>
+                                {% else %}
+                                <a href="{{ url_for('b2b.login') }}" class="btn btn-sm fw-bold rounded-pill px-3.5 py-2 text-dark shadow-sm d-inline-flex align-items-center gap-1.5" style="background: #ffd700; border: 1px solid #d4af37;" data-telemetry-cta="hero_client_portal_login">
+                                    <i class="bi bi-box-arrow-in-right"></i>
+                                    <span>Client Portal Login</span>
+                                </a>
+                                {% endif %}
+                            </div>
+                        </div>
                     </div>
                 </div>
                 
