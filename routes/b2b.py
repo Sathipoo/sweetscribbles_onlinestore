@@ -1,13 +1,15 @@
 import os
+import io
 import time
 from datetime import datetime, timedelta
-from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, flash, session, current_app, jsonify, send_file
 from extensions import db
-from models.b2b import B2BClient, B2BOrder, B2BProduct, B2BProductImage, B2BProductShowcase, B2BTestimonial, B2BTestimonialImage
+from models.b2b import B2BClient, B2BOrder, B2BOrderItem, B2BProduct, B2BProductImage, B2BProductShowcase, B2BTestimonial, B2BTestimonialImage
 from models.b2b_crm import B2BLead, B2BEngagementEvent, CRMCampaignRecipient
 from utils.otp_utils import generate_otp, send_b2b_enquiry_otp, send_msg91_otp, normalize_phone, format_phone_for_msg91
 from utils.gcp_storage import upload_file
 from utils.email_utils import send_welcome_onboarding_email, send_b2b_login_otp_email
+from utils.quotation_pdf import generate_quotation_pdf
 
 b2b_bp = Blueprint('b2b', __name__)
 
@@ -619,9 +621,31 @@ def record_telemetry():
 @b2b_bp.route('/portal')
 @b2b_auth_required
 def portal(client):
-    orders = client.orders
+    from routes.b2b_admin import get_b2b_product_options
+    
+    if isinstance(client, B2BLead):
+        if client.converted_client:
+            orders = client.converted_client.orders
+        else:
+            orders = []
+    else:
+        orders = client.orders
+        
     active_order = orders[0] if orders else None
-    return render_template('b2b/portal.html', client=client, orders=orders, active_order=active_order)
+    product_options = get_b2b_product_options()
+    
+    gift_box_options = [opt for opt in product_options if opt.get('category') != 'Hampers & Gift Sets']
+    hamper_options = [opt for opt in product_options if opt.get('category') == 'Hampers & Gift Sets']
+
+    return render_template(
+        'b2b/portal.html',
+        client=client,
+        orders=orders,
+        active_order=active_order,
+        product_options=product_options,
+        gift_box_options=gift_box_options,
+        hamper_options=hamper_options
+    )
 
 # --- Upload Brand Logo or Message in Portal ---
 @b2b_bp.route('/portal/upload-asset', methods=['POST'])
@@ -717,10 +741,42 @@ def request_revision(client, order_id):
         
     return redirect(url_for('b2b.portal'))
 
-# --- 1-Click Repeat Enquiry from Client Portal ---
+# --- Download / View Quotation PDF in Client Portal ---
+@b2b_bp.route('/portal/orders/<int:order_id>/quotation-pdf')
+@b2b_auth_required
+def client_quotation_pdf(client, order_id):
+    if isinstance(client, B2BLead):
+        effective_client_id = client.converted_client_id
+    else:
+        effective_client_id = client.id
+
+    if not effective_client_id:
+        flash('Quotation PDF not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    order = B2BOrder.query.filter_by(id=order_id, client_id=effective_client_id).first()
+    if not order:
+        flash('Quotation PDF not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    pdf_bytes = generate_quotation_pdf(order)
+    filename = f"Quotation-{order.order_number}.pdf"
+    as_attachment = request.args.get('download', '0') == '1'
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+# --- Enhanced Multi-Item Corporate Batch Enquiry from Client Portal ---
 @b2b_bp.route('/portal/new-enquiry', methods=['POST'])
 @b2b_auth_required
 def new_portal_enquiry(client):
+    from routes.b2b_admin import get_b2b_product_options
+
     # If the user is a prospect lead, convert to active client automatically
     if isinstance(client, B2BLead):
         lead = client
@@ -743,36 +799,138 @@ def new_portal_enquiry(client):
         session.pop('b2b_lead_id', None)
         client = actual_client
 
-    box_type = request.form.get('box_type', 'Signature DIYA Box')
-    try:
-        box_count = int(request.form.get('box_count', 50))
-    except (ValueError, TypeError):
-        box_count = 50
-    custom_occasion = request.form.get('custom_occasion', 'Festive Gifting').strip()
-    custom_message = request.form.get('custom_message', '').strip()
+    all_options_map = {opt['opt_id']: opt for opt in get_b2b_product_options()}
+
+    # Support multi-item submission
+    opt_ids = request.form.getlist('product_opt_id[]') or request.form.getlist('product_opt_id')
+    quantities = request.form.getlist('quantity[]') or request.form.getlist('quantity')
     
+    custom_occasion = request.form.get('custom_occasion', '').strip()
+    if not custom_occasion:
+        custom_occasion = 'Festive Corporate Gifting'
+    custom_message = request.form.get('custom_message', '').strip()
+    eta_date = request.form.get('eta_date', '').strip()
+
+    items_to_create = []
+    total_boxes = 0
+    subtotal = 0.0
+
+    if opt_ids:
+        for idx, opt_id in enumerate(opt_ids):
+            opt_id = opt_id.strip()
+            if not opt_id:
+                continue
+
+            try:
+                qty = int(quantities[idx]) if idx < len(quantities) else 50
+            except (ValueError, TypeError):
+                qty = 50
+            qty = max(1, qty)
+
+            opt_info = all_options_map.get(opt_id)
+            if opt_info:
+                p_id = opt_info.get('product_id')
+                name = opt_info.get('name')
+                cat = opt_info.get('category', 'Festive & Corporate Gift Boxes')
+                desc = opt_info.get('desc', '')
+                price = float(opt_info.get('price', 0.0))
+            else:
+                p_id = None
+                name = opt_id
+                cat = 'Corporate Gifting'
+                desc = ''
+                price = 0.0
+
+            line_total = round(qty * price, 2)
+            subtotal += line_total
+            total_boxes += qty
+
+            items_to_create.append({
+                'product_id': p_id,
+                'name': name,
+                'category': cat,
+                'description': desc,
+                'quantity': qty,
+                'unit_price': price,
+                'total_price': line_total
+            })
+
+    # Fallback to single box selection if no multi-item fields passed
+    if not items_to_create:
+        box_type = request.form.get('box_type', 'Signature DIYA Box')
+        try:
+            qty = max(10, int(request.form.get('box_count', 50)))
+        except (ValueError, TypeError):
+            qty = 50
+        
+        matched_opt = next((o for o in all_options_map.values() if o['name'].lower() == box_type.lower() or o['box_type'].lower() == box_type.lower()), None)
+        p_id = matched_opt['product_id'] if matched_opt else None
+        cat = matched_opt['category'] if matched_opt else 'Corporate Gift Box'
+        desc = matched_opt['desc'] if matched_opt else 'Handcrafted corporate curation'
+        price = float(matched_opt['price']) if matched_opt else 0.0
+        line_total = round(qty * price, 2)
+        subtotal = line_total
+        total_boxes = qty
+
+        items_to_create.append({
+            'product_id': p_id,
+            'name': matched_opt['name'] if matched_opt else box_type,
+            'category': cat,
+            'description': desc,
+            'quantity': qty,
+            'unit_price': price,
+            'total_price': line_total
+        })
+
+    taxable_val = subtotal
+    gst_tax = round(taxable_val * 0.05, 2)
+    total_amount = round(taxable_val + gst_tax, 2)
+    advance_req = round(total_amount * 0.5, 2)
+    primary_box_type = items_to_create[0]['name'] if items_to_create else 'Corporate Curation'
+
     order = B2BOrder(
         order_number=B2BOrder.generate_order_number(),
         client_id=client.id,
-        box_type=box_type,
-        box_count=max(10, box_count),
+        box_type=primary_box_type,
+        box_count=total_boxes,
+        subtotal_amount=subtotal,
+        discount_amount=0.0,
+        discount_percent=0.0,
+        advance_percent=50.0,
+        total_amount=total_amount,
+        advance_amount_required=advance_req,
+        quoted_price_per_box=round(subtotal / total_boxes, 2) if total_boxes > 0 else 0.0,
         custom_occasion=custom_occasion,
         custom_message=custom_message,
+        eta_date=eta_date,
         stage='enquiry'
     )
     db.session.add(order)
     db.session.flush()
-    
+
+    for itm in items_to_create:
+        order_item = B2BOrderItem(
+            order_id=order.id,
+            product_id=itm['product_id'],
+            item_name=itm['name'],
+            item_category=itm['category'],
+            description=itm['description'],
+            quantity=itm['quantity'],
+            unit_price=itm['unit_price'],
+            total_price=itm['total_price']
+        )
+        db.session.add(order_item)
+
     order.add_log(
-        action_title="Festive Batch Requested via Portal",
+        action_title="Corporate Batch Enquiry Submitted via Portal",
         to_stage='enquiry',
         actor=f"Client ({client.contact_name})",
-        details=f"Occasion: {custom_occasion}, Box: {box_type}, Qty: {box_count}"
+        details=f"Occasion: {custom_occasion} | {len(items_to_create)} curated styles ({total_boxes} total boxes) | Est. ₹{total_amount:,.2f}"
     )
-    
+
     db.session.commit()
-    
-    flash(f'New corporate gifting enquiry (#{order.order_number}) submitted successfully!', 'success')
+
+    flash(f'New corporate batch enquiry (#{order.order_number}) with {len(items_to_create)} curated styles ({total_boxes} boxes) submitted successfully! Our gifting team is preparing your custom proposal.', 'success')
     return redirect(url_for('b2b.portal'))
 
 
