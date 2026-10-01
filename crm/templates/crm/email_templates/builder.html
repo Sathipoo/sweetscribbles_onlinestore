@@ -28,6 +28,9 @@
             </button>
         </div>
 
+        <button type="button" class="btn btn-outline-primary btn-sm rounded-pill px-3 fw-bold shadow-sm" id="btnOpenTestEmailModal" onclick="openTestEmailModal()">
+            <i class="bi bi-send-fill me-1 text-primary"></i>Send Test Email
+        </button>
         <button type="button" class="btn btn-crm-gold btn-sm rounded-pill px-3 fw-bold shadow-sm" id="btnSaveTemplate" onclick="saveTemplateToServer(false)">
             <i class="bi bi-floppy-fill me-1"></i>Save Template
         </button>
@@ -305,13 +308,18 @@
     <!-- Right Column: Real-time Split-Screen Live Preview -->
     <div class="col-lg-6">
         <div class="crm-card p-3 sticky-top" style="top: 80px; z-index: 10;">
-            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom">
+            <div class="d-flex justify-content-between align-items-center mb-2 pb-2 border-bottom flex-wrap gap-2">
                 <div class="d-flex align-items-center gap-2">
                     <span class="badge bg-light border text-dark fw-bold">Live Split-Screen Preview</span>
                     <span id="previewDeviceLabel" class="badge bg-secondary text-white" style="font-size: 0.68rem;">Desktop Mode</span>
                 </div>
-                <div class="small text-muted">
-                    Testing as: <strong>Ananya Sharma @ Wipro Technologies (Bangalore)</strong>
+                <div class="d-flex align-items-center gap-2">
+                    <div class="small text-muted d-none d-sm-inline">
+                        Testing as: <strong>Ananya Sharma @ Wipro Technologies (Bangalore)</strong>
+                    </div>
+                    <button type="button" class="btn btn-outline-primary btn-sm py-0.5 px-2.5 rounded-pill fw-semibold" style="font-size: 0.75rem;" onclick="openTestEmailModal()">
+                        <i class="bi bi-send-fill me-1 text-primary"></i>Send Test Email
+                    </button>
                 </div>
             </div>
 
@@ -324,6 +332,112 @@
             <!-- Screen simulator container -->
             <div class="d-flex justify-content-center bg-light p-2 rounded-3 border" style="min-height: 540px;">
                 <iframe id="previewIframe" style="width: 100%; max-width: 620px; height: 580px; border: 1px solid #cbd5e1; border-radius: 8px; background: #ffffff; transition: max-width 0.25s ease;" frameborder="0"></iframe>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Test Email Dispatch Modal -->
+<div class="modal fade" id="testEmailModal" tabindex="-1" aria-labelledby="testEmailModalLabel" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered modal-lg">
+        <div class="modal-content shadow-lg border-0 rounded-4">
+            <div class="modal-header border-bottom py-3 px-4 bg-light">
+                <div class="d-flex align-items-center gap-2">
+                    <div class="rounded-circle bg-primary-subtle text-primary d-flex align-items-center justify-content-center" style="width: 36px; height: 36px;">
+                        <i class="bi bi-send-fill fs-6"></i>
+                    </div>
+                    <div>
+                        <h5 class="modal-title fw-bold text-dark mb-0" id="testEmailModalLabel">Send Test Email</h5>
+                        <p class="text-muted small mb-0">Verify your layout, personalized dynamic tokens, and attachments in your real inbox</p>
+                    </div>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body p-4">
+                <div id="testEmailModalAlert" class="alert d-none py-2 px-3 small rounded-3 mb-3"></div>
+
+                <!-- Recipient & CC Fields -->
+                <div class="row g-3 mb-3">
+                    <div class="col-md-7">
+                        <label class="form-label small fw-bold text-dark mb-1">
+                            Send Test To (Email Address) *
+                        </label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-white border-end-0 text-muted"><i class="bi bi-envelope-at-fill text-primary"></i></span>
+                            <input type="email" id="testEmailTo" class="form-control crm-input border-start-0 ps-1" value="vishnu.govind@pikachooz.com" placeholder="name@domain.com">
+                        </div>
+                        <div class="form-text small text-muted" style="font-size: 0.76rem;">Default test recipient (editable to any test inbox address).</div>
+                    </div>
+                    <div class="col-md-5">
+                        <label class="form-label small fw-bold text-dark mb-1">
+                            CC Addresses (Optional)
+                        </label>
+                        <input type="text" id="testEmailCc" class="form-control crm-input" placeholder="e.g. colleague@pikachooz.com">
+                        <div class="form-text small text-muted" style="font-size: 0.76rem;">Auto-populated from template CC settings.</div>
+                    </div>
+                </div>
+
+                <!-- Dynamic Variable Test Values -->
+                <div class="p-3 bg-light rounded-3 border mb-3">
+                    <div class="d-flex justify-content-between align-items-center mb-2 flex-wrap gap-1">
+                        <span class="fw-bold small text-dark"><i class="bi bi-sliders2 me-1 text-primary"></i>Populate Dynamic Variables ({tokens})</span>
+                        <span class="badge bg-white border text-secondary small fw-normal">Substituted live in Subject &amp; Body</span>
+                    </div>
+
+                    <div class="row g-2">
+                        <div class="col-sm-6 col-md-4">
+                            <label class="form-label text-muted mb-1" style="font-size: 0.74rem;">{contact_name}</label>
+                            <input type="text" id="testVarContact" class="form-control form-control-sm crm-input" value="Vishnu Govind" oninput="updateTestSubjectPreview()">
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="form-label text-muted mb-1" style="font-size: 0.74rem;">{company_name}</label>
+                            <input type="text" id="testVarCompany" class="form-control form-control-sm crm-input" value="Pikachooz" oninput="updateTestSubjectPreview()">
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="form-label text-muted mb-1" style="font-size: 0.74rem;">{city}</label>
+                            <input type="text" id="testVarCity" class="form-control form-control-sm crm-input" value="Bangalore" oninput="updateTestSubjectPreview()">
+                        </div>
+                        <div class="col-sm-6 col-md-4">
+                            <label class="form-label text-muted mb-1" style="font-size: 0.74rem;">{designation}</label>
+                            <input type="text" id="testVarDesignation" class="form-control form-control-sm crm-input" value="Corporate Partner" oninput="updateTestSubjectPreview()">
+                        </div>
+                        <div class="col-sm-6 col-md-8">
+                            <label class="form-label text-muted mb-1" style="font-size: 0.74rem;">{outreach_link}</label>
+                            <input type="text" id="testVarLink" class="form-control form-control-sm crm-input font-monospace" value="https://sweetscribbles.pikachooz.com/b2b?trk=test-preview" oninput="updateTestSubjectPreview()">
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Live Rendered Outbound Subject Preview -->
+                <div class="mb-3 p-2.5 bg-white border rounded-3">
+                    <div class="small text-muted fw-bold mb-1" style="font-size: 0.74rem;">
+                        <i class="bi bi-eye text-primary me-1"></i>Rendered Subject Line (with [TEST] prefix):
+                    </div>
+                    <div id="testSubjectPreviewText" class="fw-semibold text-dark small" style="font-size: 0.85rem; font-family: monospace;">
+                        [TEST] ...
+                    </div>
+                </div>
+
+                <!-- Template Attachments Inclusion -->
+                <div class="p-3 bg-light rounded-3 border">
+                    <div class="form-check form-switch mb-1">
+                        <input class="form-check-input" type="checkbox" role="switch" id="testEmailIncludeAttachments" checked>
+                        <label class="form-check-label fw-semibold small text-dark" for="testEmailIncludeAttachments">
+                            Include Template Attachments (<span id="testAttachmentCountBadge" class="fw-bold text-primary">0</span> files)
+                        </label>
+                    </div>
+                    <div id="testAttachmentsPreviewList" class="small text-muted ms-4 pt-1" style="font-size: 0.75rem;">
+                        <!-- Injected dynamically on open -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer border-top py-2.5 px-4 bg-light d-flex justify-content-between">
+                <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">
+                    Cancel
+                </button>
+                <button type="button" class="btn btn-primary btn-sm rounded-pill px-4 fw-bold shadow-sm" id="btnDoSendTestEmail" onclick="sendTestEmailNow()">
+                    <i class="bi bi-send-fill me-1"></i>Send Test Email Now
+                </button>
             </div>
         </div>
     </div>
@@ -821,6 +935,171 @@ function setupDropArea() {
         const files = dt.files;
         handleFileUpload(files);
     }, false);
+}
+
+// ==========================================
+// TEST EMAIL DISPATCH JAVASCRIPT FUNCTIONS
+// ==========================================
+
+function escapeHtml(str) {
+    if (!str) return '';
+    return String(str).replace(/[&<>"']/g, function(m) {
+        return {'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;'}[m];
+    });
+}
+
+function openTestEmailModal() {
+    // Populate CC from template default CC
+    const tplCc = document.getElementById('tplDefaultCc')?.value?.trim() || '';
+    const testCcInput = document.getElementById('testEmailCc');
+    if (testCcInput) {
+        testCcInput.value = tplCc;
+    }
+
+    // Update attachments count & list in modal
+    const countBadge = document.getElementById('testAttachmentCountBadge');
+    const listEl = document.getElementById('testAttachmentsPreviewList');
+    if (countBadge) countBadge.textContent = currentAttachments.length;
+    if (listEl) {
+        if (currentAttachments.length === 0) {
+            listEl.innerHTML = '<span class="fst-italic text-muted">No files attached to this template.</span>';
+        } else {
+            listEl.innerHTML = currentAttachments.map(a => 
+                `<span class="badge bg-white text-dark border me-1 mb-1 py-1 px-2"><i class="bi bi-paperclip me-1 text-primary"></i>${escapeHtml(a.original_filename || a.filename)}</span>`
+            ).join('');
+        }
+    }
+
+    // Reset modal alert state
+    const alertBox = document.getElementById('testEmailModalAlert');
+    if (alertBox) {
+        alertBox.className = 'alert d-none py-2 px-3 small rounded-3 mb-3';
+        alertBox.innerHTML = '';
+    }
+
+    updateTestSubjectPreview();
+
+    const modalEl = document.getElementById('testEmailModal');
+    if (modalEl) {
+        const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+        modal.show();
+    }
+}
+
+function updateTestSubjectPreview() {
+    const rawSubject = document.getElementById('tplSubject')?.value || 'Sweet Scribbles Corporate Gifting Showcase';
+    const contact = document.getElementById('testVarContact')?.value || 'Vishnu Govind';
+    const company = document.getElementById('testVarCompany')?.value || 'Pikachooz';
+    const city = document.getElementById('testVarCity')?.value || 'Bangalore';
+    const designation = document.getElementById('testVarDesignation')?.value || 'Corporate Partner';
+    const link = document.getElementById('testVarLink')?.value || 'https://sweetscribbles.pikachooz.com/b2b?trk=test-preview';
+
+    let rendered = rawSubject
+        .replaceAll('{contact_name}', contact)
+        .replaceAll('{company_name}', company)
+        .replaceAll('{city}', city)
+        .replaceAll('{designation}', designation)
+        .replaceAll('{outreach_link}', link);
+
+    const previewEl = document.getElementById('testSubjectPreviewText');
+    if (previewEl) {
+        previewEl.textContent = '[TEST] ' + rendered;
+    }
+}
+
+async function sendTestEmailNow() {
+    const toEmail = document.getElementById('testEmailTo')?.value?.trim();
+    const ccEmail = document.getElementById('testEmailCc')?.value?.trim();
+    const btn = document.getElementById('btnDoSendTestEmail');
+    const alertBox = document.getElementById('testEmailModalAlert');
+
+    if (!toEmail) {
+        alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+        alertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>Please provide a valid destination email address.';
+        return;
+    }
+
+    // Prepare content
+    let contentHtml = '';
+    if (currentEditorMode === 'code') {
+        contentHtml = document.getElementById('rawHtmlInput')?.value || '';
+    } else {
+        const blocks = getBlocksData();
+        contentHtml = compileBlocksToHtml(blocks);
+    }
+
+    const blocksData = getBlocksData();
+    const subject = document.getElementById('tplSubject')?.value || '';
+    const includeAttachments = document.getElementById('testEmailIncludeAttachments')?.checked ?? true;
+
+    const variables = {
+        contact_name: document.getElementById('testVarContact')?.value || 'Vishnu Govind',
+        company_name: document.getElementById('testVarCompany')?.value || 'Pikachooz',
+        city: document.getElementById('testVarCity')?.value || 'Bangalore',
+        designation: document.getElementById('testVarDesignation')?.value || 'Corporate Partner',
+        outreach_link: document.getElementById('testVarLink')?.value || 'https://sweetscribbles.pikachooz.com/b2b?trk=test-preview'
+    };
+
+    // Button loading state
+    const originalBtnText = btn.innerHTML;
+    btn.disabled = true;
+    btn.innerHTML = '<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Dispatching via SMTP...';
+    alertBox.className = 'alert alert-info py-2 px-3 small rounded-3 mb-3';
+    alertBox.innerHTML = '<div class="d-flex align-items-center gap-2"><div class="spinner-border spinner-border-sm" role="status"></div><span>Connecting to mail server &amp; dispatching test email to <strong>' + escapeHtml(toEmail) + '</strong>...</span></div>';
+
+    try {
+        const res = await fetch("{{ url_for('crm_templates.api_send_test') }}", {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-Requested-With': 'XMLHttpRequest'
+            },
+            body: JSON.stringify({
+                to_email: toEmail,
+                cc_email: ccEmail,
+                subject: subject,
+                content_html: contentHtml,
+                blocks_json: blocksData,
+                cta_text: blocksData.cta_text,
+                cta_url: blocksData.cta_url,
+                include_attachments: includeAttachments,
+                attachments: currentAttachments,
+                template_id: currentTemplateId,
+                variables: variables
+            })
+        });
+
+        const data = await res.json();
+
+        if (res.ok && data.success) {
+            alertBox.className = 'alert alert-success py-2 px-3 small rounded-3 mb-3';
+            alertBox.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' + escapeHtml(data.message);
+
+            // Also show on top alert
+            const topAlert = document.getElementById('saveStatusAlert');
+            if (topAlert) {
+                topAlert.className = 'alert alert-success mb-3 py-2 px-3 small rounded-3';
+                topAlert.innerHTML = '<i class="bi bi-check-circle-fill me-1"></i>' + escapeHtml(data.message);
+                topAlert.classList.remove('d-none');
+            }
+
+            btn.innerHTML = '<i class="bi bi-check2 me-1"></i>Email Dispatched!';
+            setTimeout(() => {
+                btn.disabled = false;
+                btn.innerHTML = originalBtnText;
+            }, 3000);
+        } else {
+            alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+            alertBox.innerHTML = '<i class="bi bi-exclamation-triangle-fill me-1"></i>' + escapeHtml(data.error || 'Failed to dispatch test email');
+            btn.disabled = false;
+            btn.innerHTML = originalBtnText;
+        }
+    } catch (err) {
+        alertBox.className = 'alert alert-danger py-2 px-3 small rounded-3 mb-3';
+        alertBox.innerHTML = '<i class="bi bi-wifi-off me-1"></i>Network or server error: ' + escapeHtml(err.message);
+        btn.disabled = false;
+        btn.innerHTML = originalBtnText;
+    }
 }
 </script>
 {% endblock %}

@@ -8,7 +8,7 @@ from werkzeug.utils import secure_filename
 from extensions import db
 from models.b2b_crm import CRMEmailTemplate, B2BLead, CRMLeadOwner
 from crm.routes.auth import crm_login_required
-from utils.email_utils import _render_luxury_email_layout, DEFAULT_CC_EMAIL
+from utils.email_utils import _render_luxury_email_layout, DEFAULT_CC_EMAIL, send_b2b_email
 
 templates_bp = Blueprint('crm_templates', __name__, url_prefix='/email-templates')
 
@@ -405,3 +405,158 @@ def api_render_preview():
     )
 
     return jsonify({'success': True, 'html': full_html, 'subject': subject})
+
+
+def resolve_attachments_from_list(att_list):
+    """
+    Reads attachment files from static/uploads/email_attachments and returns
+    list of (filename, file_bytes, mime_type) tuples for smtplib MIME attachment.
+    """
+    result = []
+    base_dir = current_app.root_path
+    if os.path.basename(base_dir) == 'crm':
+        base_dir = os.path.dirname(base_dir)
+    upload_dir = os.path.join(base_dir, 'static', 'uploads', 'email_attachments')
+
+    for att in att_list:
+        if not isinstance(att, dict):
+            continue
+        rel_path = att.get('file_path') or ''
+        orig_name = att.get('original_filename') or att.get('filename') or 'attachment'
+        mime_type = att.get('mime_type') or 'application/octet-stream'
+
+        if not rel_path and not orig_name:
+            continue
+
+        candidates = []
+        if rel_path:
+            candidates.extend([
+                rel_path,
+                os.path.abspath(rel_path),
+                os.path.join(base_dir, rel_path),
+                os.path.join(upload_dir, os.path.basename(rel_path))
+            ])
+
+        file_path_found = None
+        for p in candidates:
+            if os.path.exists(p) and os.path.isfile(p):
+                file_path_found = p
+                break
+
+        # Fallback search by original filename in upload directory
+        if not file_path_found and os.path.exists(upload_dir):
+            clean_orig = orig_name.replace(' ', '_')
+            for f in os.listdir(upload_dir):
+                if f.endswith(clean_orig) or f.endswith(orig_name):
+                    file_path_found = os.path.join(upload_dir, f)
+                    break
+
+        file_bytes = None
+        if file_path_found and os.path.exists(file_path_found):
+            try:
+                with open(file_path_found, 'rb') as f:
+                    file_bytes = f.read()
+            except Exception as e:
+                current_app.logger.warning(f"Failed to read attachment file {file_path_found}: {e}")
+
+        if file_bytes:
+            result.append((orig_name, file_bytes, mime_type))
+
+    return result
+
+
+@templates_bp.route('/api/send-test', methods=['POST'])
+@crm_login_required
+def api_send_test():
+    """
+    Dispatches a real test email with user-editable test variable values and attachments.
+    Defaults to vishnu.govind@pikachooz.com.
+    """
+    data = request.get_json(silent=True) or {}
+    to_email = (data.get('to_email') or 'vishnu.govind@pikachooz.com').strip()
+    cc_email = (data.get('cc_email') or '').strip()
+    if not to_email:
+        return jsonify({'success': False, 'error': 'Recipient email cannot be empty.'}), 400
+
+    raw_subject = (data.get('subject') or 'Sweet Scribbles Corporate Gifting Showcase').strip()
+    content_html = data.get('content_html', '')
+    blocks = data.get('blocks_json') or {}
+    cta_text = data.get('cta_text') or blocks.get('cta_text') or 'Explore Corporate Gifting Showcase'
+    cta_url = data.get('cta_url') or blocks.get('cta_url') or '{outreach_link}'
+    include_attachments = data.get('include_attachments', True)
+    attachments_data = data.get('attachments') or []
+    template_id = data.get('template_id')
+
+    # Test variables with smart defaults
+    variables = data.get('variables') or {}
+    test_contact = (variables.get('contact_name') or 'Vishnu Govind').strip()
+    test_company = (variables.get('company_name') or 'Pikachooz').strip()
+    test_city = (variables.get('city') or 'Bangalore').strip()
+    test_designation = (variables.get('designation') or 'Corporate Partner').strip()
+    test_link = (variables.get('outreach_link') or 'https://sweetscribbles.pikachooz.com/b2b?trk=test-preview').strip()
+
+    substitutions = {
+        'contact_name': test_contact,
+        'company_name': test_company,
+        'city': test_city,
+        'designation': test_designation,
+        'outreach_link': test_link
+    }
+
+    # Replace variables in subject
+    rendered_subject = raw_subject
+    for k, v in substitutions.items():
+        rendered_subject = rendered_subject.replace(f"{{{k}}}", str(v))
+    if not rendered_subject.startswith('[TEST]'):
+        rendered_subject = f"[TEST] {rendered_subject}"
+
+    # Replace variables in body
+    rendered_body = content_html
+    store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com').rstrip('/')
+    sig_gif_tag = f'<div style="margin-top: 14px;"><img src="{store_base_url}/static/gifs/pika_ss_signature.gif" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" /></div>'
+
+    for k, v in substitutions.items():
+        rendered_body = rendered_body.replace(f"{{{k}}}", str(v))
+        cta_url = cta_url.replace(f"{{{k}}}", str(v))
+
+    rendered_body = rendered_body.replace('{signature_gif}', sig_gif_tag)
+
+    # Render luxury layout
+    full_html = _render_luxury_email_layout(
+        title=rendered_subject,
+        preheader=rendered_subject,
+        body_html=rendered_body,
+        cta_text=cta_text,
+        cta_url=cta_url
+    )
+
+    # Resolve attachments
+    resolved_attachments = []
+    if include_attachments:
+        if attachments_data:
+            resolved_attachments = resolve_attachments_from_list(attachments_data)
+        elif template_id:
+            tpl = db.session.get(CRMEmailTemplate, int(template_id))
+            if tpl:
+                resolved_attachments = tpl.get_email_attachments()
+
+    success, message = send_b2b_email(
+        to_email=to_email,
+        subject=rendered_subject,
+        html_content=full_html,
+        attachments=resolved_attachments if resolved_attachments else None,
+        cc_email=cc_email if cc_email else None
+    )
+
+    if success:
+        att_count = len(resolved_attachments)
+        att_msg = f" with {att_count} attachment{'s' if att_count != 1 else ''}" if att_count > 0 else ""
+        return jsonify({
+            'success': True,
+            'message': f"Test email successfully dispatched to {to_email}{att_msg}!" + (f" (CC: {cc_email})" if cc_email else "")
+        })
+    else:
+        return jsonify({
+            'success': False,
+            'error': f"Failed to send test email: {message}"
+        }), 500

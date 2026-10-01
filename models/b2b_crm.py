@@ -362,6 +362,15 @@ class CRMEmailTemplate(db.Model):
                     file_path_found = p
                     break
 
+            if not file_path_found:
+                upload_dir = os.path.join(project_root, 'static', 'uploads', 'email_attachments')
+                if os.path.exists(upload_dir):
+                    clean_orig = orig_name.replace(' ', '_')
+                    for f in os.listdir(upload_dir):
+                        if f.endswith(clean_orig) or f.endswith(orig_name):
+                            file_path_found = os.path.join(upload_dir, f)
+                            break
+
             file_bytes = None
             if file_path_found:
                 try:
