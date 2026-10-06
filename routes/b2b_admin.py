@@ -14,7 +14,8 @@ from utils.quotation_pdf import generate_quotation_pdf
 from utils.email_utils import (
     send_welcome_onboarding_email, send_quotation_email,
     send_advance_received_email, send_design_proof_email,
-    send_production_eta_email, send_order_delivered_email
+    send_production_eta_email, send_order_delivered_email,
+    send_proforma_email, send_tax_invoice_email
 )
 
 b2b_admin_bp = Blueprint('b2b_admin', __name__)
@@ -388,7 +389,14 @@ def update_quotation_builder(order_id):
         adv_pct = 50.0
     order.advance_percent = max(0.0, min(100.0, adv_pct))
 
-    # 2. Optional Discount Type & Value
+    # 2. Configurable Manual GST Percentage (0%, 5%, 12%, 18%, etc.)
+    try:
+        gst_pct = float(request.form.get('gst_percent', order.gst_percent if order.gst_percent is not None else 5.0))
+    except (ValueError, TypeError):
+        gst_pct = 5.0
+    order.gst_percent = max(0.0, min(100.0, gst_pct))
+
+    # 3. Optional Discount Type & Value
     discount_type = request.form.get('discount_type', 'flat') # 'flat' or 'percent'
     try:
         discount_input = float(request.form.get('discount_value', 0.0))
@@ -396,14 +404,14 @@ def update_quotation_builder(order_id):
         discount_input = 0.0
     discount_input = max(0.0, discount_input)
 
-    # 3. Occasion, Notes, ETA
+    # 4. Occasion, Notes, ETA, Payment Link
     order.custom_occasion = request.form.get('custom_occasion', order.custom_occasion)
     order.custom_message = request.form.get('custom_message', order.custom_message)
     order.internal_notes = request.form.get('internal_notes', order.internal_notes)
     order.eta_date = request.form.get('eta_date', order.eta_date)
     order.payment_link = request.form.get('payment_link', order.payment_link)
 
-    # 4. Multi-Item Line Builder
+    # 5. Multi-Item Line Builder (Supports catalogue items and custom manual lines)
     item_names = request.form.getlist('item_name[]')
     product_ids = request.form.getlist('product_id[]')
     categories = request.form.getlist('item_category[]')
@@ -436,8 +444,10 @@ def update_quotation_builder(order_id):
             p_id = None
             if i < len(product_ids) and product_ids[i]:
                 raw_pid = str(product_ids[i]).split('__')[0].strip()
-                if raw_pid.isdigit():
+                if raw_pid.isdigit() and int(raw_pid) > 0:
                     p_id = int(raw_pid)
+                else:
+                    p_id = None
 
             cat = categories[i].strip() if i < len(categories) else 'Corporate Gifting'
             desc = descriptions[i].strip() if i < len(descriptions) else ''
@@ -488,7 +498,7 @@ def update_quotation_builder(order_id):
 
     order.subtotal_amount = round(subtotal, 2)
     taxable_val = max(0.0, round(subtotal - order.discount_amount, 2))
-    total_tax = round(taxable_val * 0.05, 2)
+    total_tax = round(taxable_val * (order.effective_gst_rate / 100.0), 2)
     order.total_amount = round(taxable_val + total_tax, 2)
     order.advance_amount_required = round(order.total_amount * (order.advance_percent / 100.0), 2)
 
@@ -505,17 +515,17 @@ def update_quotation_builder(order_id):
             from_stage=old_stage,
             to_stage='quotation_sent',
             actor=f"{current_user.name} (Admin)",
-            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST (5%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
+            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST ({order.effective_gst_rate}%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
         )
     else:
         order.add_log(
             action_title="Quotation Values Updated via Builder",
             actor=f"{current_user.name} (Admin)",
-            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST (5%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
+            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST ({order.effective_gst_rate}%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
         )
 
     db.session.commit()
-    flash(f"Quotation for #{order.order_number} saved successfully! (Total: ₹{order.total_amount:,.2f})", 'success')
+    flash(f"Quotation for #{order.order_number} saved successfully! (Total: ₹{order.total_amount:,.2f} @ {order.effective_gst_rate}% GST)", 'success')
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
@@ -524,7 +534,7 @@ def update_quotation_builder(order_id):
 def download_quotation_pdf(order_id):
     """Streams or downloads the luxury branded Quotation PDF."""
     order = B2BOrder.query.get_or_404(order_id)
-    pdf_bytes = generate_quotation_pdf(order)
+    pdf_bytes = generate_quotation_pdf(order, doc_type='quotation')
 
     filename = f"Quotation-{order.order_number}.pdf"
     as_attachment = request.args.get('download', '0') == '1'
@@ -535,6 +545,200 @@ def download_quotation_pdf(order_id):
         as_attachment=as_attachment,
         download_name=filename
     )
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/proforma-pdf')
+@admin_required
+def download_proforma_pdf(order_id):
+    """Streams or downloads the official Proforma Invoice PDF."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if not order.proforma_invoice_number:
+        order.proforma_invoice_number = f"PI-{order.order_number}"
+    if not order.proforma_date:
+        order.proforma_date = datetime.utcnow()
+        db.session.commit()
+
+    pdf_bytes = generate_quotation_pdf(order, doc_type='proforma')
+    filename = f"Proforma-Invoice-{order.order_number}.pdf"
+    as_attachment = request.args.get('download', '0') == '1'
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/invoice-pdf')
+@admin_required
+def download_invoice_pdf(order_id):
+    """Streams or downloads the statutory GST Tax Invoice PDF."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if not order.tax_invoice_number:
+        order.tax_invoice_number = f"INV-{order.order_number}"
+    if not order.tax_invoice_date:
+        order.tax_invoice_date = datetime.utcnow()
+        db.session.commit()
+
+    pdf_bytes = generate_quotation_pdf(order, doc_type='tax_invoice')
+    filename = f"Tax-Invoice-{order.order_number}.pdf"
+    as_attachment = request.args.get('download', '0') == '1'
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/save-po', methods=['POST'])
+@admin_required
+def save_po(order_id):
+    """Records Client Purchase Order (PO) Number, Date, and uploaded Document."""
+    order = B2BOrder.query.get_or_404(order_id)
+    po_number = request.form.get('client_po_number', '').strip()
+    po_date = request.form.get('client_po_date', '').strip()
+
+    order.client_po_number = po_number or None
+    order.client_po_date = po_date or None
+
+    if 'client_po_file' in request.files:
+        f = request.files['client_po_file']
+        if f and f.filename:
+            try:
+                po_url = upload_file(f, f.filename, folder='b2b_po')
+                if po_url:
+                    order.client_po_file = po_url
+            except Exception as e:
+                flash(f"Error uploading PO document: {e}", 'warning')
+
+    order.add_log(
+        action_title="Client Purchase Order (PO) Details Updated",
+        actor=f"{current_user.name} (Admin)",
+        details=f"PO Ref: {order.client_po_number or 'None'} | PO Date: {order.client_po_date or '—'} | Document: {'Attached' if order.client_po_file else 'None'}"
+    )
+    db.session.commit()
+    flash(f"Purchase Order details for #{order.order_number} saved successfully!", 'success')
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/toggle-balance-paid', methods=['POST'])
+@admin_required
+def toggle_balance_paid(order_id):
+    """Marks final balance payment as received or pending."""
+    order = B2BOrder.query.get_or_404(order_id)
+    order.balance_paid = not bool(order.balance_paid)
+    if order.balance_paid:
+        order.balance_paid_at = datetime.utcnow()
+        action_title = "Final Balance Payment Received & Cleared"
+        details = f"Balance ₹{order.balance_amount_due:,.2f} marked as cleared. Total invoice ₹{order.total_amount:,.2f} settled."
+    else:
+        order.balance_paid_at = None
+        action_title = "Balance Payment Marked Pending"
+        details = "Payment balance reset to pending."
+
+    order.add_log(action_title=action_title, actor=f"{current_user.name} (Admin)", details=details)
+    db.session.commit()
+    flash(f"Order #{order.order_number} balance status updated to: {'Paid / Cleared' if order.balance_paid else 'Pending'}", 'success')
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/send-proforma', methods=['POST'])
+@admin_required
+def send_proforma(order_id):
+    """Generates Proforma Invoice PDF and dispatches dual Email (with PDF attached) + SMS."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if not order.client:
+        flash("No client associated with this order.", "danger")
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    if not order.proforma_invoice_number:
+        order.proforma_invoice_number = f"PI-{order.order_number}"
+    if not order.proforma_date:
+        order.proforma_date = datetime.utcnow()
+
+    pdf_bytes = generate_quotation_pdf(order, doc_type='proforma')
+    filename = f"Proforma-Invoice-{order.order_number}.pdf"
+
+    email_sent, email_msg = False, "No client email"
+    if order.client.email:
+        email_sent, email_msg = send_proforma_email(order, pdf_bytes, filename=filename)
+
+    if order.client.phone:
+        dispatch_b2b_sms_and_log(
+            order,
+            event_type='proforma',
+            flow_key='proforma_sent',
+            variables_dict={
+                'client_name': order.client.contact_name or order.client.company_name,
+                'order_number': order.order_number,
+                'advance_amount': f"₹{order.advance_amount_required:,.2f}"
+            }
+        )
+
+    order.add_log(
+        action_title="Proforma Invoice Dispatched (Email + SMS)",
+        actor=f"{current_user.name} (Admin)",
+        details=f"Dispatched Proforma Invoice {order.proforma_invoice_number} (Advance Due: ₹{order.advance_amount_required:,.2f}) to {order.client.email}"
+    )
+    db.session.commit()
+
+    if email_sent:
+        flash(f"Proforma Invoice PDF successfully emailed to {order.client.email}!", 'success')
+    else:
+        flash(f"Proforma SMS dispatched. Email delivery status: {email_msg}", 'warning')
+
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/send-invoice', methods=['POST'])
+@admin_required
+def send_tax_invoice(order_id):
+    """Generates statutory GST Tax Invoice PDF and dispatches dual Email (with PDF attached) + SMS."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if not order.client:
+        flash("No client associated with this order.", "danger")
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    if not order.tax_invoice_number:
+        order.tax_invoice_number = f"INV-{order.order_number}"
+    if not order.tax_invoice_date:
+        order.tax_invoice_date = datetime.utcnow()
+
+    pdf_bytes = generate_quotation_pdf(order, doc_type='tax_invoice')
+    filename = f"Tax-Invoice-{order.order_number}.pdf"
+
+    email_sent, email_msg = False, "No client email"
+    if order.client.email:
+        email_sent, email_msg = send_tax_invoice_email(order, pdf_bytes, filename=filename)
+
+    if order.client.phone:
+        dispatch_b2b_sms_and_log(
+            order,
+            event_type='invoice',
+            flow_key='invoice_sent',
+            variables_dict={
+                'client_name': order.client.contact_name or order.client.company_name,
+                'order_number': order.order_number,
+                'balance_amount': f"₹{order.balance_amount_due:,.2f}"
+            }
+        )
+
+    order.add_log(
+        action_title="Statutory Tax Invoice Dispatched (Email + SMS)",
+        actor=f"{current_user.name} (Admin)",
+        details=f"Dispatched Tax Invoice {order.tax_invoice_number} (Balance Due: ₹{order.balance_amount_due:,.2f}) to {order.client.email}"
+    )
+    db.session.commit()
+
+    if email_sent:
+        flash(f"Tax Invoice PDF successfully emailed to {order.client.email}!", 'success')
+    else:
+        flash(f"Tax Invoice SMS dispatched. Email delivery status: {email_msg}", 'warning')
+
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
 @b2b_admin_bp.route('/orders/<int:order_id>/send-quotation', methods=['POST'])

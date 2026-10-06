@@ -89,12 +89,26 @@ class B2BOrder(db.Model):
     discount_amount = db.Column(db.Float, default=0.0)
     discount_percent = db.Column(db.Float, default=0.0)
     advance_percent = db.Column(db.Float, default=50.0) # Configurable, not hardcoded
+    gst_percent = db.Column(db.Float, default=5.0) # Configurable manual GST percentage (0, 5, 12, 18, etc.)
     quoted_price_per_box = db.Column(db.Float, default=0.0)
     total_amount = db.Column(db.Float, default=0.0)
     advance_amount_required = db.Column(db.Float, default=0.0)
     advance_paid = db.Column(db.Boolean, default=False)
     advance_paid_at = db.Column(db.DateTime, nullable=True)
     payment_link = db.Column(db.String(500), nullable=True)
+
+    # Enterprise Purchase Order (PO) Tracking
+    client_po_number = db.Column(db.String(100), nullable=True)
+    client_po_date = db.Column(db.String(50), nullable=True)
+    client_po_file = db.Column(db.String(500), nullable=True)
+
+    # Document Series & Milestone Invoices
+    proforma_invoice_number = db.Column(db.String(50), nullable=True)
+    proforma_date = db.Column(db.DateTime, nullable=True)
+    tax_invoice_number = db.Column(db.String(50), nullable=True)
+    tax_invoice_date = db.Column(db.DateTime, nullable=True)
+    balance_paid = db.Column(db.Boolean, default=False)
+    balance_paid_at = db.Column(db.DateTime, nullable=True)
     
     # Pipeline Workflow Stage
     stage = db.Column(db.String(50), default='enquiry', index=True)
@@ -180,16 +194,22 @@ class B2BOrder(db.Model):
         return False
 
     @property
+    def effective_gst_rate(self):
+        if self.gst_percent is not None:
+            return round(self.gst_percent, 2)
+        return 5.0
+
+    @property
     def cgst_rate(self):
-        return 0.0 if self.is_interstate else 2.5
+        return 0.0 if self.is_interstate else round(self.effective_gst_rate / 2.0, 2)
 
     @property
     def sgst_rate(self):
-        return 0.0 if self.is_interstate else 2.5
+        return 0.0 if self.is_interstate else round(self.effective_gst_rate / 2.0, 2)
 
     @property
     def igst_rate(self):
-        return 5.0 if self.is_interstate else 0.0
+        return round(self.effective_gst_rate, 2) if self.is_interstate else 0.0
 
     @property
     def cgst_amount(self):
@@ -205,7 +225,13 @@ class B2BOrder(db.Model):
 
     @property
     def total_tax_amount(self):
-        return round(self.taxable_amount * 0.05, 2)
+        return round(self.taxable_amount * (self.effective_gst_rate / 100.0), 2)
+
+    @property
+    def balance_amount_due(self):
+        total = self.total_amount or 0.0
+        adv = self.advance_amount_required if self.advance_paid else 0.0
+        return max(0.0, round(total - adv, 2))
 
     def add_log(self, action_title, to_stage=None, from_stage=None, actor='Admin', details=None):
         if to_stage is None:

@@ -140,13 +140,20 @@ class NumberedCanvas(canvas.Canvas):
 # -------------------------------------------------------------------------
 # MAIN PDF GENERATOR
 # -------------------------------------------------------------------------
-def generate_quotation_pdf(order, logo_filename=None):
+def generate_quotation_pdf(order, logo_filename=None, doc_type='quotation'):
     """
-    Generates a formal, luxury branded Quotation PDF for a B2B order.
+    Generates a formal, luxury branded PDF for a B2B order supporting:
+    - doc_type='quotation'   : Corporate Estimate & Quotation (default)
+    - doc_type='proforma'    : Proforma Invoice for advance payment release
+    - doc_type='tax_invoice' : Official statutory GST Tax Invoice upon dispatch
     
-    Matches verified corporate billing format, dynamic GST (2.5% CGST + 2.5% SGST / 5% IGST),
-    authorized signatory, and strict conditional discount logic.
+    Dynamically applies configurable GST %, PO tracking, bank remittance details,
+    authorized signatory, and advance adjustment ledger.
     """
+    doc_type = (doc_type or 'quotation').lower().strip()
+    if doc_type not in ('quotation', 'proforma', 'tax_invoice'):
+        doc_type = 'quotation'
+
     buffer = io.BytesIO()
     doc = SimpleDocTemplate(
         buffer,
@@ -339,11 +346,32 @@ def generate_quotation_pdf(order, logo_filename=None):
     ]
 
     issue_date = order.created_at or datetime.utcnow()
-    valid_until = issue_date + timedelta(days=15)
-    quote_ref = f"QT-{order.order_number}"
+    valid_until = issue_date + timedelta(days=15 if doc_type == 'quotation' else 30)
+
+    if doc_type == 'proforma':
+        doc_title_text = "PROFORMA INVOICE"
+        doc_ref_label = "Proforma Ref:"
+        doc_ref_val = order.proforma_invoice_number or f"PI-{order.order_number}"
+        doc_subnote = "Advance Payment Authorization & Commercial Budget Approval"
+        if order.proforma_date:
+            issue_date = order.proforma_date
+    elif doc_type == 'tax_invoice':
+        doc_title_text = "TAX INVOICE"
+        doc_ref_label = "Tax Invoice No:"
+        doc_ref_val = order.tax_invoice_number or f"INV-{order.order_number}"
+        doc_subnote = "(Issued under Section 31 of CGST Act, 2017 & Rule 46 of CGST Rules)"
+        if order.tax_invoice_date:
+            issue_date = order.tax_invoice_date
+        elif order.delivered_at:
+            issue_date = order.delivered_at
+    else:
+        doc_title_text = "CORPORATE QUOTATION"
+        doc_ref_label = "Quotation Ref:"
+        doc_ref_val = f"QT-{order.order_number}"
+        doc_subnote = "Artisanal Confectionery & Bespoke Corporate Gifting Proposal"
     
     header_right = [
-        Paragraph("TAX INVOICE", ParagraphStyle(
+        Paragraph(doc_title_text, ParagraphStyle(
             'QuoteTitle',
             parent=styles['Normal'],
             fontName=FONT_BOLD,
@@ -352,13 +380,24 @@ def generate_quotation_pdf(order, logo_filename=None):
             alignment=2,
             textColor=GOLD_COLOR
         )),
-        Spacer(1, 4),
-        Paragraph(f"<b>Quotation Ref:</b> {quote_ref}", ParagraphStyle('RightBold', parent=val_bold, alignment=2)),
+        Paragraph(f"<font color='#718096' size='6.5'><i>{doc_subnote}</i></font>", ParagraphStyle('RightSub', parent=val_style, alignment=2)),
+        Spacer(1, 3),
+        Paragraph(f"<b>{doc_ref_label}</b> {doc_ref_val}", ParagraphStyle('RightBold', parent=val_bold, alignment=2)),
         Paragraph(f"<b>Date:</b> {issue_date.strftime('%d %b %Y')}", ParagraphStyle('RightVal', parent=val_style, alignment=2)),
-        Paragraph(f"<b>Valid Until:</b> {valid_until.strftime('%d %b %Y')}", ParagraphStyle('RightVal', parent=val_style, alignment=2)),
-        Paragraph(f"<b>Place of Supply:</b> Karnataka (29)", ParagraphStyle('RightVal', parent=val_style, alignment=2)),
-        Paragraph(f"<b>Workflow Status:</b> {order.get_stage_display()}", ParagraphStyle('RightVal', parent=val_style, alignment=2))
     ]
+
+    if doc_type in ('quotation', 'proforma'):
+        header_right.append(Paragraph(f"<b>Valid Until:</b> {valid_until.strftime('%d %b %Y')}", ParagraphStyle('RightVal', parent=val_style, alignment=2)))
+
+    if order.client_po_number:
+        po_display = f"<b>Client PO:</b> {order.client_po_number}"
+        if order.client_po_date:
+            po_display += f" ({order.client_po_date})"
+        header_right.append(Paragraph(po_display, ParagraphStyle('RightValPO', parent=val_bold, alignment=2, textColor=PRIMARY_COLOR)))
+
+    pos_label = "Karnataka (29)" if not order.is_interstate else "Inter-State Supply"
+    header_right.append(Paragraph(f"<b>Place of Supply:</b> {pos_label}", ParagraphStyle('RightVal', parent=val_style, alignment=2)))
+    header_right.append(Paragraph(f"<b>Workflow Status:</b> {order.get_stage_display()}", ParagraphStyle('RightVal', parent=val_style, alignment=2)))
 
     header_table = Table(
         [[header_left, header_right]],
@@ -487,22 +526,24 @@ def generate_quotation_pdf(order, logo_filename=None):
     story.append(Spacer(1, 8))
 
     # -------------------------------------------------------------------------
-    # 4. FINANCIAL BREAKDOWN WITH EXACT GST (2.5% CGST + 2.5% SGST / 5% IGST)
+    # 4. FINANCIAL BREAKDOWN WITH DYNAMIC GST & ADVANCE ADJUSTMENT LEDGER
     # -------------------------------------------------------------------------
     subtotal = order.subtotal_amount if (order.subtotal_amount and order.subtotal_amount > 0) else sum(i['amount'] for i in line_items)
     discount_val = order.discount_amount or 0.0
     taxable_subtotal = max(0.0, round(subtotal - discount_val, 2))
     
-    # Check interstate
+    # Dynamic GST calculation based on order.effective_gst_rate
+    gst_rate = order.effective_gst_rate
     is_interstate = order.is_interstate
     if is_interstate:
-        igst_val = round(taxable_subtotal * 0.05, 2)
+        igst_val = round(taxable_subtotal * (gst_rate / 100.0), 2)
         cgst_val = 0.0
         sgst_val = 0.0
         total_tax = igst_val
     else:
-        cgst_val = round(taxable_subtotal * 0.025, 2)
-        sgst_val = round(taxable_subtotal * 0.025, 2)
+        half_rate = round(gst_rate / 2.0, 2)
+        cgst_val = round(taxable_subtotal * (half_rate / 100.0), 2)
+        sgst_val = round(taxable_subtotal * (half_rate / 100.0), 2)
         igst_val = 0.0
         total_tax = cgst_val + sgst_val
 
@@ -535,39 +576,80 @@ def generate_quotation_pdf(order, logo_filename=None):
             Paragraph(f"₹{taxable_subtotal:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
         ])
 
-    # GST Rows
-    if is_interstate:
-        summary_rows.append([
-            Paragraph("IGST (5.0%):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
-            Paragraph(f"₹{igst_val:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
-        ])
+    # Dynamic GST Rows
+    if gst_rate > 0:
+        if is_interstate:
+            summary_rows.append([
+                Paragraph(f"IGST ({gst_rate:.1f}%):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
+                Paragraph(f"₹{igst_val:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
+            ])
+        else:
+            half_rate = round(gst_rate / 2.0, 2)
+            summary_rows.append([
+                Paragraph(f"CGST ({half_rate:.1f}%):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
+                Paragraph(f"₹{cgst_val:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
+            ])
+            summary_rows.append([
+                Paragraph(f"SGST ({half_rate:.1f}%):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
+                Paragraph(f"₹{sgst_val:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
+            ])
     else:
         summary_rows.append([
-            Paragraph("CGST2.5 (2.5%):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
-            Paragraph(f"₹{cgst_val:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
-        ])
-        summary_rows.append([
-            Paragraph("SGST2.5 (2.5%):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
-            Paragraph(f"₹{sgst_val:,.2f}", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
+            Paragraph("GST (0.0% Exempted):", ParagraphStyle('TaxLbl', parent=val_style, alignment=2)),
+            Paragraph("₹0.00", ParagraphStyle('TaxVal', parent=val_style, alignment=2))
         ])
 
     # Grand Total Quoted Price (Incl. GST)
     summary_rows.append([
-        Paragraph("<b>Total:</b>", ParagraphStyle('TotLbl', parent=val_bold, fontSize=9.5, textColor=PRIMARY_COLOR, alignment=2)),
+        Paragraph("<b>Total (Incl. GST):</b>", ParagraphStyle('TotLbl', parent=val_bold, fontSize=9.5, textColor=PRIMARY_COLOR, alignment=2)),
         Paragraph(f"<b>₹{grand_total:,.2f}</b>", ParagraphStyle('TotVal', parent=val_bold, fontSize=9.5, textColor=PRIMARY_COLOR, alignment=2))
     ])
 
-    # Advance Required (Configured %)
-    summary_rows.append([
-        Paragraph(f"Advance Required ({adv_pct}%):", ParagraphStyle('AdvLbl', parent=val_bold, textColor=GOLD_COLOR, alignment=2)),
-        Paragraph(f"(-) ₹{adv_required:,.2f}", ParagraphStyle('AdvVal', parent=val_bold, textColor=GOLD_COLOR, alignment=2))
-    ])
-
-    # Balance Due on Dispatch
-    summary_rows.append([
-        Paragraph("<b>Balance Due:</b>", ParagraphStyle('BalLbl', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2)),
-        Paragraph(f"<b>₹{balance_amount:,.2f}</b>", ParagraphStyle('BalVal', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2))
-    ])
+    # Milestone Rows according to Document Type
+    if doc_type == 'tax_invoice':
+        if order.advance_paid:
+            paid_str = f"Advance Received (PI-{order.order_number}):"
+            if order.advance_paid_at:
+                paid_str += f"<br/><font size='6.5' color='#718096'>Recd on {order.advance_paid_at.strftime('%d %b %Y')}</font>"
+            summary_rows.append([
+                Paragraph(paid_str, ParagraphStyle('AdvPaidLbl', parent=val_style, alignment=2)),
+                Paragraph(f"<font color='#059669'>(-) ₹{adv_required:,.2f}</font>", ParagraphStyle('AdvPaidVal', parent=val_bold, alignment=2))
+            ])
+            net_bal = max(0.0, round(grand_total - adv_required, 2))
+            if order.balance_paid or net_bal == 0:
+                summary_rows.append([
+                    Paragraph("<b>Balance Status:</b>", ParagraphStyle('BalLbl', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2)),
+                    Paragraph("<font color='#059669'><b>PAID IN FULL</b></font>", ParagraphStyle('BalVal', parent=val_bold, fontSize=9, alignment=2))
+                ])
+            else:
+                summary_rows.append([
+                    Paragraph("<b>Net Balance Due:</b>", ParagraphStyle('BalLbl', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2)),
+                    Paragraph(f"<b>₹{net_bal:,.2f}</b>", ParagraphStyle('BalVal', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2))
+                ])
+        else:
+            summary_rows.append([
+                Paragraph("<b>Total Due:</b>", ParagraphStyle('BalLbl', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2)),
+                Paragraph(f"<b>₹{grand_total:,.2f}</b>", ParagraphStyle('BalVal', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2))
+            ])
+    elif doc_type == 'proforma':
+        summary_rows.append([
+            Paragraph(f"<b>Advance Due Now ({adv_pct}%):</b>", ParagraphStyle('AdvLbl', parent=val_bold, textColor=GOLD_COLOR, alignment=2)),
+            Paragraph(f"<b>₹{adv_required:,.2f}</b>", ParagraphStyle('AdvVal', parent=val_bold, textColor=GOLD_COLOR, alignment=2))
+        ])
+        summary_rows.append([
+            Paragraph("Balance Due on Dispatch:", ParagraphStyle('BalLbl', parent=val_style, fontSize=8.5, textColor=MUTED_TEXT, alignment=2)),
+            Paragraph(f"₹{balance_amount:,.2f}", ParagraphStyle('BalVal', parent=val_style, fontSize=8.5, textColor=MUTED_TEXT, alignment=2))
+        ])
+    else:
+        # Quotation
+        summary_rows.append([
+            Paragraph(f"Advance Required ({adv_pct}%):", ParagraphStyle('AdvLbl', parent=val_bold, textColor=GOLD_COLOR, alignment=2)),
+            Paragraph(f"(-) ₹{adv_required:,.2f}", ParagraphStyle('AdvVal', parent=val_bold, textColor=GOLD_COLOR, alignment=2))
+        ])
+        summary_rows.append([
+            Paragraph("<b>Balance on Dispatch:</b>", ParagraphStyle('BalLbl', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2)),
+            Paragraph(f"<b>₹{balance_amount:,.2f}</b>", ParagraphStyle('BalVal', parent=val_bold, fontSize=9, textColor=PRIMARY_COLOR, alignment=2))
+        ])
 
     summary_table = Table(
         summary_rows,
@@ -585,7 +667,7 @@ def generate_quotation_pdf(order, logo_filename=None):
     ]))
 
     # -------------------------------------------------------------------------
-    # 5. BANK & PAYMENT DETAILS TABLE (FROM VERIFIED INVOICE)
+    # 5. BANK & PAYMENT DETAILS TABLE
     # -------------------------------------------------------------------------
     bank_rows = [
         [Paragraph("<b>Bank Name</b>", val_bold), Paragraph("Kotak Mahindra Bank Ltd.", val_style)],
@@ -609,8 +691,14 @@ def generate_quotation_pdf(order, logo_filename=None):
         ('RIGHTPADDING', (0,0), (-1,-1), 5),
     ]))
 
+    bank_header_text = "BANK PAYMENT DETAILS:"
+    if doc_type == 'proforma':
+        bank_header_text = "BANK REMITTANCE DETAILS (FOR ADVANCE PAYMENT):"
+    elif doc_type == 'tax_invoice':
+        bank_header_text = "BANK REMITTANCE & NEFT DETAILS:"
+
     left_block = [
-        Paragraph("<b>BANK PAYMENT DETAILS:</b>", ParagraphStyle('BankHead', parent=label_style, textColor=GOLD_COLOR)),
+        Paragraph(f"<b>{bank_header_text}</b>", ParagraphStyle('BankHead', parent=label_style, textColor=GOLD_COLOR)),
         Spacer(1, 3),
         bank_table
     ]
@@ -632,8 +720,15 @@ def generate_quotation_pdf(order, logo_filename=None):
     # -------------------------------------------------------------------------
     # 6. TOTAL IN WORDS
     # -------------------------------------------------------------------------
-    words_str = number_to_indian_words(grand_total)
-    words_p = Paragraph(f"<b>Total In Words:</b> <i>{words_str}</i>", ParagraphStyle(
+    amount_in_words = grand_total
+    if doc_type == 'proforma':
+        words_label = f"Advance Amount In Words ({adv_pct}%):"
+        amount_in_words = adv_required
+    else:
+        words_label = "Total In Words:"
+
+    words_str = number_to_indian_words(amount_in_words)
+    words_p = Paragraph(f"<b>{words_label}</b> <i>{words_str}</i>", ParagraphStyle(
         'WordsP',
         parent=val_style,
         fontName=FONT_NORMAL,
@@ -645,7 +740,7 @@ def generate_quotation_pdf(order, logo_filename=None):
     story.append(Spacer(1, 6))
 
     # -------------------------------------------------------------------------
-    # 7. TERMS & AUTHORIZED SIGNATORY (FROM VERIFIED INVOICE)
+    # 7. TERMS & AUTHORIZED SIGNATORY (DOCUMENT TAILORED)
     # -------------------------------------------------------------------------
     sig_path = os.path.join(BASE_DIR, 'static', 'images', 'authorized_signature.png')
     sig_flowable = None
@@ -655,13 +750,30 @@ def generate_quotation_pdf(order, logo_filename=None):
         except Exception:
             sig_flowable = None
 
-    terms_list = [
-        Paragraph("<b>TERMS & SPECIFICATIONS:</b>", ParagraphStyle('TermsHead', parent=label_style, textColor=GOLD_COLOR)),
-        Paragraph("• HSN / SAC Code: 21069099 (Food preparations / Confectionery & Sweet Gift Boxes).", val_style),
-        Paragraph("• Standard production commences immediately upon advance receipt and design proof approval.", val_style),
-        Paragraph(f"• Target Delivery ETA: {order.eta_date or '5 - 7 Business Days post proof sign-off'}.", val_style),
-        Paragraph("• Quotation valid for 15 days from issue date. Prices inclusive of custom sleeve & logo printing.", val_style),
-    ]
+    if doc_type == 'tax_invoice':
+        terms_list = [
+            Paragraph("<b>STATUTORY TERMS & DECLARATION:</b>", ParagraphStyle('TermsHead', parent=label_style, textColor=GOLD_COLOR)),
+            Paragraph("• Certified that the particulars given above are true and correct under the CGST / SGST / IGST Act 2017.", val_style),
+            Paragraph("• Supply of goods handcrafted to bespoke corporate purchase order.", val_style),
+            Paragraph("• Input Tax Credit (ITC) can be claimed against GSTIN: 29FJPPP4801M1ZF under monthly GSTR filings.", val_style),
+            Paragraph(f"• Target Delivery / Fulfillment Date: {order.eta_date or 'Dispatched / Fulfilled'}.", val_style),
+        ]
+    elif doc_type == 'proforma':
+        terms_list = [
+            Paragraph("<b>PROFORMA INVOICE TERMS & CONDITIONS:</b>", ParagraphStyle('TermsHead', parent=label_style, textColor=GOLD_COLOR)),
+            Paragraph("• This Proforma Invoice is issued solely to facilitate corporate advance payment processing.", val_style),
+            Paragraph("• Statutory Tax Invoice will be issued upon physical dispatch of goods as per GST rules.", val_style),
+            Paragraph(f"• Please remit advance payment of {adv_pct}% (₹{adv_required:,.2f}) to the Kotak Mahindra Bank account above.", val_style),
+            Paragraph(f"• Target Turnaround ETA: {order.eta_date or '5 - 7 Business Days post advance receipt & proof sign-off'}.", val_style),
+        ]
+    else:
+        terms_list = [
+            Paragraph("<b>TERMS & SPECIFICATIONS:</b>", ParagraphStyle('TermsHead', parent=label_style, textColor=GOLD_COLOR)),
+            Paragraph("• HSN / SAC Code: 21069099 / 1806 / 1905 (Confectionery & Sweet Gift Boxes).", val_style),
+            Paragraph("• This quotation is a formal price estimate. Production commences upon receipt of PO and advance payment.", val_style),
+            Paragraph(f"• Target Delivery ETA: {order.eta_date or '5 - 7 Business Days post proof sign-off'}.", val_style),
+            Paragraph("• Quotation valid for 15 days from issue date. Prices inclusive of custom sleeve & logo printing.", val_style),
+        ]
 
     sig_block = [
         sig_flowable if sig_flowable else Spacer(1, 30),

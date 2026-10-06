@@ -745,10 +745,7 @@ def request_revision(client, order_id):
 @b2b_bp.route('/portal/orders/<int:order_id>/quotation-pdf')
 @b2b_auth_required
 def client_quotation_pdf(client, order_id):
-    if isinstance(client, B2BLead):
-        effective_client_id = client.converted_client_id
-    else:
-        effective_client_id = client.id
+    effective_client_id = client.converted_client_id if isinstance(client, B2BLead) else client.id
 
     if not effective_client_id:
         flash('Quotation PDF not found or access denied.', 'danger')
@@ -759,7 +756,7 @@ def client_quotation_pdf(client, order_id):
         flash('Quotation PDF not found or access denied.', 'danger')
         return redirect(url_for('b2b.portal'))
 
-    pdf_bytes = generate_quotation_pdf(order)
+    pdf_bytes = generate_quotation_pdf(order, doc_type='quotation')
     filename = f"Quotation-{order.order_number}.pdf"
     as_attachment = request.args.get('download', '0') == '1'
 
@@ -769,6 +766,116 @@ def client_quotation_pdf(client, order_id):
         as_attachment=as_attachment,
         download_name=filename
     )
+
+
+# --- Download / View Proforma Invoice PDF in Client Portal ---
+@b2b_bp.route('/portal/orders/<int:order_id>/proforma-pdf')
+@b2b_auth_required
+def client_proforma_pdf(client, order_id):
+    effective_client_id = client.converted_client_id if isinstance(client, B2BLead) else client.id
+
+    if not effective_client_id:
+        flash('Proforma Invoice not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    order = B2BOrder.query.filter_by(id=order_id, client_id=effective_client_id).first()
+    if not order:
+        flash('Proforma Invoice not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    if not order.proforma_invoice_number:
+        order.proforma_invoice_number = f"PI-{order.order_number}"
+    if not order.proforma_date:
+        order.proforma_date = datetime.utcnow()
+        db.session.commit()
+
+    pdf_bytes = generate_quotation_pdf(order, doc_type='proforma')
+    filename = f"Proforma-Invoice-{order.order_number}.pdf"
+    as_attachment = request.args.get('download', '0') == '1'
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+# --- Download / View Tax Invoice PDF in Client Portal ---
+@b2b_bp.route('/portal/orders/<int:order_id>/invoice-pdf')
+@b2b_auth_required
+def client_invoice_pdf(client, order_id):
+    effective_client_id = client.converted_client_id if isinstance(client, B2BLead) else client.id
+
+    if not effective_client_id:
+        flash('Tax Invoice not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    order = B2BOrder.query.filter_by(id=order_id, client_id=effective_client_id).first()
+    if not order:
+        flash('Tax Invoice not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    if not order.tax_invoice_number:
+        order.tax_invoice_number = f"INV-{order.order_number}"
+    if not order.tax_invoice_date:
+        order.tax_invoice_date = datetime.utcnow()
+        db.session.commit()
+
+    pdf_bytes = generate_quotation_pdf(order, doc_type='tax_invoice')
+    filename = f"Tax-Invoice-{order.order_number}.pdf"
+    as_attachment = request.args.get('download', '0') == '1'
+
+    return send_file(
+        io.BytesIO(pdf_bytes),
+        mimetype='application/pdf',
+        as_attachment=as_attachment,
+        download_name=filename
+    )
+
+
+# --- Upload Client Purchase Order (PO) from Client Portal ---
+@b2b_bp.route('/portal/orders/<int:order_id>/upload-po', methods=['POST'])
+@b2b_auth_required
+def client_upload_po(client, order_id):
+    effective_client_id = client.converted_client_id if isinstance(client, B2BLead) else client.id
+
+    if not effective_client_id:
+        flash('Order not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    order = B2BOrder.query.filter_by(id=order_id, client_id=effective_client_id).first()
+    if not order:
+        flash('Order not found or access denied.', 'danger')
+        return redirect(url_for('b2b.portal'))
+
+    po_number = request.form.get('client_po_number', '').strip()
+    po_date = request.form.get('client_po_date', '').strip()
+
+    if po_number:
+        order.client_po_number = po_number
+    if po_date:
+        order.client_po_date = po_date
+
+    if 'client_po_file' in request.files:
+        f = request.files['client_po_file']
+        if f and f.filename:
+            try:
+                po_url = upload_file(f, f.filename, folder='b2b_po')
+                if po_url:
+                    order.client_po_file = po_url
+            except Exception as e:
+                flash(f"Error uploading PO document: {e}", 'warning')
+
+    order.add_log(
+        action_title="Client Purchase Order (PO) Submitted via Portal",
+        actor=f"{client.contact_name or 'Client'} (Corporate Portal)",
+        details=f"PO Ref: {order.client_po_number or 'None'} | PO Date: {order.client_po_date or '—'} | Document: {'Attached' if order.client_po_file else 'None'}"
+    )
+    db.session.commit()
+    flash(f"Purchase Order (PO) details recorded for #{order.order_number} successfully!", 'success')
+    return redirect(url_for('b2b.portal'))
+
 
 
 # --- Enhanced Multi-Item Corporate Batch Enquiry from Client Portal ---

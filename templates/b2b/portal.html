@@ -258,15 +258,21 @@
                         <span class="badge bg-white text-muted border font-monospace small">QT-{{ active_order.order_number }}</span>
                     </div>
                     
-                    <div class="d-flex align-items-center gap-2">
+                    <div class="d-flex align-items-center gap-2 flex-wrap">
                         <a href="{{ url_for('b2b.client_quotation_pdf', order_id=active_order.id) }}" target="_blank" class="btn btn-outline-dark btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1">
                             <i class="bi bi-file-earmark-pdf text-danger fs-6"></i>
-                            <span>View Quotation PDF</span>
+                            <span>Quotation PDF</span>
                         </a>
-                        <a href="{{ url_for('b2b.client_quotation_pdf', order_id=active_order.id, download=1) }}" class="btn btn-dark btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1">
-                            <i class="bi bi-download fs-6"></i>
-                            <span>Download PDF</span>
+                        <a href="{{ url_for('b2b.client_proforma_pdf', order_id=active_order.id) }}" target="_blank" class="btn btn-outline-primary btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1">
+                            <i class="bi bi-file-earmark-text text-primary fs-6"></i>
+                            <span>Proforma (PI)</span>
                         </a>
+                        {% if active_order.tax_invoice_number or active_order.stage == 'delivered' %}
+                        <a href="{{ url_for('b2b.client_invoice_pdf', order_id=active_order.id) }}" target="_blank" class="btn btn-outline-success btn-sm rounded-pill px-3 py-1.5 fw-bold shadow-sm d-inline-flex align-items-center gap-1">
+                            <i class="bi bi-receipt text-success fs-6"></i>
+                            <span>Tax Invoice (INV)</span>
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
 
@@ -283,7 +289,7 @@
                         </div>
                         <div class="col-md-4 col-12">
                             <span class="small text-muted d-block fw-semibold text-uppercase" style="font-size: 0.72rem; letter-spacing: 0.5px;">Commercial Terms</span>
-                            <span class="small text-secondary">{{ active_order.advance_percent|round|int }}% Advance required · GST 5% Food Category</span>
+                            <span class="small text-secondary">{{ active_order.advance_percent_calc }}% Advance required · GST {{ active_order.effective_gst_rate }}% Rate</span>
                         </div>
                     </div>
 
@@ -361,31 +367,62 @@
                     <!-- Financial Summary & Advance Terms Cards -->
                     <div class="row g-4 justify-content-between align-items-center">
                         <div class="col-lg-6 col-12">
-                            <div class="p-3 rounded-3 border bg-light h-100">
-                                <h6 class="fw-bold text-dark small mb-2">
-                                    <i class="bi bi-shield-check text-success me-1"></i>Advance Terms & Production Slot
-                                </h6>
-                                <p class="small text-muted mb-2">
-                                    Once approved, a <strong>{{ active_order.advance_percent|round|int }}% advance payment</strong> reserves production dates and locks vector sleeve printing.
-                                </p>
-                                <div class="d-flex align-items-center gap-2 flex-wrap">
-                                    <span class="small fw-semibold text-secondary">Advance Requirement:</span>
-                                    {% if active_order.advance_paid %}
-                                        <span class="badge bg-success text-white px-2.5 py-1 fw-bold">
-                                            <i class="bi bi-check-circle-fill me-1"></i>Advance Paid (₹{{ "{:,.2f}".format(active_order.advance_amount_required) }})
-                                        </span>
-                                    {% elif active_order.advance_amount_required > 0 %}
-                                        <span class="badge bg-warning-subtle text-dark border border-warning px-2.5 py-1 fw-bold">
-                                            <i class="bi bi-clock-history me-1"></i>₹{{ "{:,.2f}".format(active_order.advance_amount_required) }} Pending
-                                        </span>
-                                        {% if active_order.payment_link %}
-                                            <a href="{{ active_order.payment_link }}" target="_blank" class="btn btn-sm btn-success fw-bold rounded-pill ms-2">
-                                                <i class="bi bi-credit-card me-1"></i>Pay Advance Online
-                                            </a>
+                            <div class="p-3 rounded-3 border bg-light h-100 d-flex flex-column justify-content-between">
+                                <div>
+                                    <h6 class="fw-bold text-dark small mb-2">
+                                        <i class="bi bi-shield-check text-success me-1"></i>Advance Terms & Production Slot
+                                    </h6>
+                                    <p class="small text-muted mb-2">
+                                        Once approved, a <strong>{{ active_order.advance_percent_calc }}% advance payment</strong> reserves production dates and locks vector sleeve printing.
+                                    </p>
+                                    <div class="d-flex align-items-center gap-2 flex-wrap mb-3">
+                                        <span class="small fw-semibold text-secondary">Advance Requirement:</span>
+                                        {% if active_order.advance_paid %}
+                                            <span class="badge bg-success text-white px-2.5 py-1 fw-bold">
+                                                <i class="bi bi-check-circle-fill me-1"></i>Advance Paid (₹{{ "{:,.2f}".format(active_order.advance_amount_required) }})
+                                            </span>
+                                        {% elif active_order.advance_amount_required > 0 %}
+                                            <span class="badge bg-warning-subtle text-dark border border-warning px-2.5 py-1 fw-bold">
+                                                <i class="bi bi-clock-history me-1"></i>₹{{ "{:,.2f}".format(active_order.advance_amount_required) }} Pending
+                                            </span>
+                                            {% if active_order.payment_link %}
+                                                <a href="{{ active_order.payment_link }}" target="_blank" class="btn btn-sm btn-success fw-bold rounded-pill ms-2">
+                                                    <i class="bi bi-credit-card me-1"></i>Pay Advance Online
+                                                </a>
+                                            {% endif %}
+                                        {% else %}
+                                            <span class="badge bg-light text-muted border">Quotation Under Final Review</span>
                                         {% endif %}
-                                    {% else %}
-                                        <span class="badge bg-light text-muted border">Quotation Under Final Review</span>
-                                    {% endif %}
+                                    </div>
+                                </div>
+
+                                <!-- Enterprise Client Purchase Order (PO) Desk -->
+                                <div class="pt-2.5 border-top">
+                                    <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                                        <div>
+                                            <span class="small fw-bold text-dark d-block">
+                                                <i class="bi bi-file-earmark-check text-warning me-1"></i>Enterprise PO Reference:
+                                            </span>
+                                            {% if active_order.client_po_number %}
+                                                <span class="badge bg-success-subtle text-success border border-success font-monospace" style="font-size: 0.72rem;">
+                                                    ✓ Ref: {{ active_order.client_po_number }}
+                                                </span>
+                                                {% if active_order.client_po_date %}<span class="small text-muted ms-1" style="font-size: 0.72rem;">({{ active_order.client_po_date }})</span>{% endif %}
+                                            {% else %}
+                                                <span class="badge bg-secondary-subtle text-secondary border" style="font-size: 0.72rem;">Optional: Enter Company PO #</span>
+                                            {% endif %}
+                                        </div>
+                                        <div class="d-flex gap-1.5 align-items-center">
+                                            {% if active_order.client_po_file %}
+                                                <a href="{{ active_order.client_po_file }}" target="_blank" class="btn btn-outline-primary btn-sm py-1 px-2.5 font-monospace rounded-pill" style="font-size: 0.75rem;">
+                                                    <i class="bi bi-paperclip me-1"></i>PO File
+                                                </a>
+                                            {% endif %}
+                                            <button type="button" class="btn btn-dark btn-sm rounded-pill px-3 py-1 fw-semibold" style="font-size: 0.75rem;" data-bs-toggle="modal" data-bs-target="#clientPoModal">
+                                                <i class="bi bi-upload me-1"></i>{% if active_order.client_po_number %}Update PO{% else %}Submit PO{% endif %}
+                                            </button>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -409,11 +446,9 @@
                                         </tr>
                                         {% endif %}
                                         <tr>
-                                            <td class="text-secondary small">GST (5% Food & Confectionery):</td>
+                                            <td class="text-secondary small">GST ({{ active_order.effective_gst_rate }}% Rate):</td>
                                             <td class="text-end font-monospace text-secondary">
-                                                {% set taxable = (active_order.subtotal_amount - active_order.discount_amount) if (active_order.subtotal_amount > active_order.discount_amount) else active_order.subtotal_amount %}
-                                                {% set tax_val = (active_order.total_amount - taxable) if (active_order.total_amount > taxable) else (taxable * 0.05) %}
-                                                ₹{{ "{:,.2f}".format(tax_val if tax_val > 0 else 0) }}
+                                                ₹{{ "{:,.2f}".format(active_order.total_tax_amount) }}
                                             </td>
                                         </tr>
                                         <tr class="border-top">
@@ -422,6 +457,15 @@
                                                 <span class="fs-5 fw-bold text-primary font-monospace">₹{{ "{:,.2f}".format(active_order.total_amount) }}</span>
                                             </td>
                                         </tr>
+                                        {% if active_order.advance_paid %}
+                                        <tr class="border-top">
+                                            <td class="pt-1.5 small text-secondary">Balance Remaining Due:</td>
+                                            <td class="text-end pt-1.5 font-monospace fw-bold {% if active_order.balance_paid %}text-success{% else %}text-danger{% endif %}">
+                                                ₹{{ "{:,.2f}".format(active_order.balance_amount_due) }}
+                                                {% if active_order.balance_paid %}<span class="badge bg-success-subtle text-success ms-1">Paid</span>{% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endif %}
                                     </tbody>
                                 </table>
                             </div>
@@ -506,9 +550,19 @@
                         </td>
                         <td class="fw-bold text-dark">₹{{ "{:,.2f}".format(ord.total_amount) }}</td>
                         <td class="text-end">
-                            <a href="{{ url_for('b2b.client_quotation_pdf', order_id=ord.id) }}" target="_blank" class="btn btn-outline-dark btn-sm py-1 px-2.5 text-nowrap rounded-pill font-monospace" style="font-size: 0.75rem;" title="View Quotation PDF">
-                                <i class="bi bi-file-earmark-pdf text-danger me-1"></i>PDF
-                            </a>
+                            <div class="d-flex justify-content-end gap-1 flex-wrap">
+                                <a href="{{ url_for('b2b.client_quotation_pdf', order_id=ord.id) }}" target="_blank" class="btn btn-outline-dark btn-sm py-0.5 px-2 text-nowrap rounded-pill font-monospace" style="font-size: 0.72rem;" title="View Quotation PDF">
+                                    <i class="bi bi-file-earmark-pdf text-danger me-0.5"></i>Quote
+                                </a>
+                                <a href="{{ url_for('b2b.client_proforma_pdf', order_id=ord.id) }}" target="_blank" class="btn btn-outline-primary btn-sm py-0.5 px-2 text-nowrap rounded-pill font-monospace" style="font-size: 0.72rem;" title="View Proforma Invoice (PI)">
+                                    <i class="bi bi-file-earmark-text text-primary me-0.5"></i>PI
+                                </a>
+                                {% if ord.tax_invoice_number or ord.stage == 'delivered' %}
+                                <a href="{{ url_for('b2b.client_invoice_pdf', order_id=ord.id) }}" target="_blank" class="btn btn-outline-success btn-sm py-0.5 px-2 text-nowrap rounded-pill font-monospace" style="font-size: 0.72rem;" title="View Tax Invoice">
+                                    <i class="bi bi-receipt text-success me-0.5"></i>INV
+                                </a>
+                                {% endif %}
+                            </div>
                         </td>
                     </tr>
                     {% endfor %}
@@ -692,6 +746,57 @@
         </div>
     </div>
 </div>
+
+<!-- ========================================== -->
+<!-- CLIENT PURCHASE ORDER (PO) UPLOAD MODAL   -->
+<!-- ========================================== -->
+{% if active_order %}
+<div class="modal fade" id="clientPoModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content rounded-4 border-0 shadow-lg overflow-hidden">
+            <div class="modal-header border-bottom px-4 py-3" style="background: linear-gradient(135deg, #fffaf1 0%, #fef4e5 100%);">
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge bg-warning text-dark fw-bold px-2 py-0.5" style="font-size: 0.72rem;">ENTERPRISE PROCUREMENT</span>
+                    <h5 class="modal-title fw-bold text-dark mb-0" style="font-family: 'Playfair Display', serif;">
+                        Submit Purchase Order (PO)
+                    </h5>
+                </div>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <form action="{{ url_for('b2b.client_upload_po', order_id=active_order.id) }}" method="POST" enctype="multipart/form-data">
+                <div class="modal-body p-4">
+                    <p class="small text-muted mb-3">
+                        If your enterprise requires issuing a formal Purchase Order (PO) prior to advance disbursement, enter your PO number, issue date, and attach the signed PO document below.
+                    </p>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Purchase Order (PO) Number</label>
+                        <input type="text" name="client_po_number" class="form-control" value="{{ active_order.client_po_number or '' }}" placeholder="e.g. PO-CORP-2026-9042" required>
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">PO Issue Date</label>
+                        <input type="text" name="client_po_date" class="form-control" value="{{ active_order.client_po_date or '' }}" placeholder="e.g. 06 Oct 2026">
+                    </div>
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Attach PO Document (PDF / Scan)</label>
+                        <input type="file" name="client_po_file" class="form-control" accept=".pdf,image/*">
+                        {% if active_order.client_po_file %}
+                        <small class="text-success mt-1.5 d-block">
+                            <i class="bi bi-check-circle me-1"></i>Currently on file: <a href="{{ active_order.client_po_file }}" target="_blank" class="fw-semibold">View Uploaded Document</a>
+                        </small>
+                        {% endif %}
+                    </div>
+                </div>
+                <div class="modal-footer border-top px-4 py-3 bg-light">
+                    <button type="button" class="btn btn-outline-secondary btn-sm rounded-pill px-3" data-bs-dismiss="modal">Cancel</button>
+                    <button type="submit" class="btn btn-dark btn-sm rounded-pill fw-bold px-4 shadow-sm">
+                        <i class="bi bi-check2-circle me-1"></i>Save Purchase Order Details
+                    </button>
+                </div>
+            </form>
+        </div>
+    </div>
+</div>
+{% endif %}
 {% endblock %}
 
 {% block extra_js %}

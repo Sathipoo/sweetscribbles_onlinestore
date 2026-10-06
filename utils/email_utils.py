@@ -357,6 +357,206 @@ def send_quotation_email(order, pdf_bytes, filename=None, cc_email=None):
     return success, msg
 
 
+def send_proforma_email(order, pdf_bytes, filename=None, cc_email=None):
+    """
+    Sends formal Proforma Invoice with bank coordinates for advance payment processing.
+    """
+    client = order.client
+    to_email = client.email if client else None
+    if not to_email:
+        return False, "Client has no email address"
+
+    pi_ref = order.proforma_invoice_number or f"PI-{order.order_number}"
+    if not filename:
+        filename = f"Proforma-Invoice-{order.order_number}.pdf"
+
+    contact_name = client.contact_name or "Valued Client"
+    company_name = client.company_name or ""
+    total_val = f"₹{order.total_amount:,.2f}"
+    adv_pct = order.advance_percent_calc
+    adv_val = f"₹{order.advance_amount_required:,.2f}"
+
+    subject = f"Proforma Invoice [{pi_ref}] — Advance Billing for {company_name or contact_name}"
+    preheader = f"Proforma Invoice {pi_ref} for {order.box_count} units ({order.box_type}). Advance Due: {adv_val}."
+
+    body_html = f"""
+    <h2 style="color: #1A202C; margin-top: 0; font-size: 20px; font-weight: 700;">
+        Proforma Invoice Prepared for {company_name or contact_name}
+    </h2>
+    <p style="color: #4A5568; font-size: 15px;">
+        Dear {contact_name},<br><br>
+        Please find your official <b>Proforma Invoice {pi_ref}</b> attached for commercial budget sign-off and advance payment release.
+    </p>
+
+    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+                <td style="padding: 6px 0; color: #718096; font-size: 14px;">Order Ref:</td>
+                <td style="padding: 6px 0; color: #1A202C; font-weight: 700; text-align: right; font-size: 14px;">#{order.order_number}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #718096; font-size: 14px;">Hamper Format:</td>
+                <td style="padding: 6px 0; color: #1A202C; font-weight: 700; text-align: right; font-size: 14px;">{order.box_type} ({order.box_count} Units)</td>
+            </tr>
+            <tr style="border-top: 1px solid #CBD5E0;">
+                <td style="padding: 10px 0 6px 0; color: #1A202C; font-weight: 700; font-size: 16px;">Total Order Value:</td>
+                <td style="padding: 10px 0 6px 0; color: #1A202C; font-weight: 800; text-align: right; font-size: 16px;">{total_val}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #B78628; font-weight: 700; font-size: 14px;">Advance Payable Now ({adv_pct}%):</td>
+                <td style="padding: 6px 0; color: #B78628; font-weight: 800; text-align: right; font-size: 14px;">{adv_val}</td>
+            </tr>
+        </table>
+    </div>
+
+    <div style="background-color: #FFFBEB; border: 1px solid #FDE68A; border-radius: 8px; padding: 16px; margin: 20px 0;">
+        <h4 style="margin: 0 0 8px 0; color: #92400E; font-size: 14px; text-transform: uppercase;">Bank Remittance Coordinates (NEFT / RTGS):</h4>
+        <p style="margin: 0; color: #78350F; font-size: 13.5px; line-height: 1.6;">
+            <b>Beneficiary:</b> PIKACHOOZ<br>
+            <b>Bank:</b> Kotak Mahindra Bank Ltd.<br>
+            <b>Branch:</b> Peenya Industrial Estate, Bengaluru - 560058<br>
+            <b>Account No:</b> 6450708114 (Current Account)<br>
+            <b>IFSC Code:</b> KKBK0008036
+        </p>
+    </div>
+
+    <p style="color: #4A5568; font-size: 14px;">
+        Production will be slated immediately upon receipt of advance and purchase order confirmation.
+    </p>
+    """
+
+    success, msg = send_b2b_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=_render_luxury_email_layout(
+            title=f"Proforma Invoice {pi_ref}",
+            preheader=preheader,
+            body_html=body_html,
+            cta_text="View Order on B2B Portal",
+            cta_url=PORTAL_URL
+        ),
+        attachments=[(filename, pdf_bytes)],
+        cc_email=cc_email
+    )
+
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
+    log = B2BCommunicationLog(
+        order_id=order.id,
+        client_id=client.id,
+        channel='email',
+        event_type='proforma',
+        recipient=to_email,
+        subject=subject,
+        message_preview=f"Proforma Invoice {pi_ref} for {total_val} (Advance Due: {adv_val}) with PDF attached{cc_tag}",
+        attachment_name=filename,
+        status='sent' if success else 'failed'
+    )
+    db.session.add(log)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return success, msg
+
+
+def send_tax_invoice_email(order, pdf_bytes, filename=None, cc_email=None):
+    """
+    Sends official statutory GST Tax Invoice upon dispatch/delivery with advance credit ledger.
+    """
+    client = order.client
+    to_email = client.email if client else None
+    if not to_email:
+        return False, "Client has no email address"
+
+    inv_ref = order.tax_invoice_number or f"INV-{order.order_number}"
+    if not filename:
+        filename = f"Tax-Invoice-{order.order_number}.pdf"
+
+    contact_name = client.contact_name or "Valued Client"
+    company_name = client.company_name or ""
+    total_val = f"₹{order.total_amount:,.2f}"
+    bal_val = f"₹{order.balance_amount_due:,.2f}"
+
+    subject = f"Tax Invoice [{inv_ref}] — Sweet Scribbles Corporate Fulfillment"
+    preheader = f"Official GST Tax Invoice {inv_ref} for Order #{order.order_number} ({order.box_count} units)."
+
+    body_html = f"""
+    <h2 style="color: #1A202C; margin-top: 0; font-size: 20px; font-weight: 700;">
+        Official GST Tax Invoice for {company_name or contact_name}
+    </h2>
+    <p style="color: #4A5568; font-size: 15px;">
+        Dear {contact_name},<br><br>
+        Your bespoke gifting batch has been handcrafted and dispatched! Please find your official statutory <b>Tax Invoice {inv_ref}</b> attached for your accounting and GST Input Tax Credit (ITC) records.
+    </p>
+
+    <div style="background-color: #F8FAFC; border: 1px solid #E2E8F0; border-radius: 8px; padding: 20px; margin: 24px 0;">
+        <table border="0" cellpadding="0" cellspacing="0" width="100%">
+            <tr>
+                <td style="padding: 6px 0; color: #718096; font-size: 14px;">Invoice Number:</td>
+                <td style="padding: 6px 0; color: #1A202C; font-weight: 700; text-align: right; font-size: 14px;">{inv_ref}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #718096; font-size: 14px;">Order / PO Ref:</td>
+                <td style="padding: 6px 0; color: #1A202C; font-weight: 700; text-align: right; font-size: 14px;">#{order.order_number} {f'({order.client_po_number})' if order.client_po_number else ''}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #718096; font-size: 14px;">Total Invoice Value:</td>
+                <td style="padding: 6px 0; color: #1A202C; font-weight: 700; text-align: right; font-size: 14px;">{total_val}</td>
+            </tr>
+            <tr>
+                <td style="padding: 6px 0; color: #059669; font-size: 14px;">Advance Credited:</td>
+                <td style="padding: 6px 0; color: #059669; font-weight: 700; text-align: right; font-size: 14px;">- ₹{order.advance_amount_required:,.2f}</td>
+            </tr>
+            <tr style="border-top: 1px solid #CBD5E0;">
+                <td style="padding: 10px 0 6px 0; color: #1A202C; font-weight: 700; font-size: 16px;">Net Balance Payable:</td>
+                <td style="padding: 10px 0 6px 0; color: #1A202C; font-weight: 800; text-align: right; font-size: 16px;">{bal_val}</td>
+            </tr>
+        </table>
+    </div>
+
+    <p style="color: #4A5568; font-size: 14px;">
+        A copy of this invoice has been archived under GSTIN: 29FJPPP4801M1ZF and can also be downloaded at any time from your B2B Client Portal.
+    </p>
+    """
+
+    success, msg = send_b2b_email(
+        to_email=to_email,
+        subject=subject,
+        html_content=_render_luxury_email_layout(
+            title=f"Tax Invoice {inv_ref}",
+            preheader=preheader,
+            body_html=body_html,
+            cta_text="Download from Client Portal",
+            cta_url=PORTAL_URL
+        ),
+        attachments=[(filename, pdf_bytes)],
+        cc_email=cc_email
+    )
+
+    effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
+    log = B2BCommunicationLog(
+        order_id=order.id,
+        client_id=client.id,
+        channel='email',
+        event_type='invoice',
+        recipient=to_email,
+        subject=subject,
+        message_preview=f"Tax Invoice {inv_ref} for {total_val} (Balance Due: {bal_val}) with PDF attached{cc_tag}",
+        attachment_name=filename,
+        status='sent' if success else 'failed'
+    )
+    db.session.add(log)
+    try:
+        db.session.commit()
+    except Exception:
+        db.session.rollback()
+
+    return success, msg
+
+
 def send_advance_received_email(order, advance_amount=None, cc_email=None):
     """
     Confirms advance payment receipt (dynamically formatted, NOT hardcoded to 50%).

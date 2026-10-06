@@ -139,8 +139,21 @@ with app.app_context():
             ON CONFLICT DO NOTHING;
         """))
         print("Default banners seeded.")
+        db.session.execute(text("""
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS gst_percent FLOAT DEFAULT 5.0;
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS client_po_number VARCHAR(100);
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS client_po_date VARCHAR(50);
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS client_po_file VARCHAR(500);
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS proforma_invoice_number VARCHAR(50);
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS proforma_date TIMESTAMP;
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS tax_invoice_number VARCHAR(50);
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS tax_invoice_date TIMESTAMP;
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS balance_paid BOOLEAN DEFAULT FALSE;
+            ALTER TABLE b2b_orders ADD COLUMN IF NOT EXISTS balance_paid_at TIMESTAMP;
+        """))
+        print("B2B orders PO, GST, and invoice fields verified/added.")
     except Exception as e:
-        print(f"Error creating/seeding banners: {e}")
+        print(f"Error updating b2b_orders columns: {e}")
 
     db.session.commit()
     print("Migration completed successfully.")
