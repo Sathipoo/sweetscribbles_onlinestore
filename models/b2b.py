@@ -88,6 +88,7 @@ class B2BOrder(db.Model):
     subtotal_amount = db.Column(db.Float, default=0.0)
     discount_amount = db.Column(db.Float, default=0.0)
     discount_percent = db.Column(db.Float, default=0.0)
+    advance_type = db.Column(db.String(20), default='percent') # 'percent' or 'flat'
     advance_percent = db.Column(db.Float, default=50.0) # Configurable, not hardcoded
     gst_percent = db.Column(db.Float, default=5.0) # Configurable manual GST percentage (0, 5, 12, 18, etc.)
     quoted_price_per_box = db.Column(db.Float, default=0.0)
@@ -166,11 +167,20 @@ class B2BOrder(db.Model):
 
     @property
     def advance_percent_calc(self):
-        if self.advance_percent and self.advance_percent > 0:
+        if self.advance_type == 'flat' and self.total_amount and self.total_amount > 0 and self.advance_amount_required is not None:
+            return round((self.advance_amount_required / self.total_amount) * 100.0, 1)
+        if self.advance_percent is not None and self.advance_percent >= 0:
             return round(self.advance_percent, 1)
         if self.total_amount and self.total_amount > 0 and self.advance_amount_required:
-            return round((self.advance_amount_required / self.total_amount) * 100, 1)
+            return round((self.advance_amount_required / self.total_amount) * 100.0, 1)
         return 50.0
+
+    @property
+    def advance_val_display(self):
+        """Value to populate into the input box in Quotation Builder based on advance_type."""
+        if self.advance_type == 'flat' and self.advance_amount_required is not None:
+            return round(self.advance_amount_required, 2)
+        return round(self.advance_percent if self.advance_percent is not None else 50.0, 1)
 
     @property
     def taxable_amount(self):

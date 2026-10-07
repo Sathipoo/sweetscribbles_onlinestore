@@ -731,7 +731,7 @@
                     <div>
                         <i class="bi bi-info-circle-fill me-1 text-warning"></i>
                         <strong>Mandatory Executive Tracking:</strong> All outbound emails automatically CC
-                        <code>Vishnu.govind@pikachooz.com</code> and append lead-specific tracking links.
+                        <code>{{ default_cc or 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com' }}</code> and append lead-specific tracking links.
                     </div>
                     <span class="badge bg-dark text-white">Automated CC</span>
                 </div>
@@ -797,12 +797,12 @@
                                 <span class="input-group-text bg-light text-muted"><i
                                         class="bi bi-envelope-at"></i></span>
                                 <input type="text" id="emailCcInput" class="form-control crm-input font-monospace small"
-                                    value="Vishnu.govind@pikachooz.com"
-                                    placeholder="e.g. Vishnu.govind@pikachooz.com, sales@sweetscribbles.com"
+                                    value="{{ default_cc or 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com' }}"
+                                    placeholder="e.g. Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com, sales@sweetscribbles.com"
                                     oninput="updateLivePreview()">
                             </div>
                             <small class="text-muted" style="font-size: 0.7rem;">Every email automatically CCs
-                                <code>Vishnu.govind@pikachooz.com</code>. Add extra recipients as needed.</small>
+                                <code>{{ default_cc or 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com' }}</code>. Add extra recipients as needed.</small>
                         </div>
 
                         <!-- Parameter Insertion Chips -->
@@ -868,7 +868,7 @@
                                 <div class="small text-muted"><strong>To:</strong> <span id="previewTo">Ananya Sharma
                                         &lt;ananya@wipro.com&gt;</span></div>
                                 <div class="small text-muted"><strong>CC:</strong> <span
-                                        id="previewCc">Vishnu.govind@pikachooz.com</span></div>
+                                        id="previewCc">{{ default_cc or 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com' }}</span></div>
                                 <div class="small text-dark mt-1"><strong>Subject:</strong> <span id="previewSubject"
                                         class="fw-bold">Exclusive Corporate Gifting Catalog</span></div>
                             </div>
@@ -1125,7 +1125,7 @@
         name: {{ t.name | tojson }},
         subject: {{ t.subject | tojson }},
         content_html: {{ (t.content_html or '') | tojson }},
-        default_cc: {{ (t.default_cc or 'Vishnu.govind@pikachooz.com') | tojson }},
+        default_cc: {{ (t.default_cc or default_cc or 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com') | tojson }},
         attachments: {{ (t.attachments or []) | tojson }}
     },
     {% endfor %}
@@ -2102,9 +2102,10 @@ Corporate Gifting Director, Sweet Scribbles`
         }
         document.getElementById('previewTo').textContent = `${sampleName} <${sampleEmail}>`;
 
-        const ccVal = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : "Vishnu.govind@pikachooz.com";
+        const defaultCcFallback = {{ (default_cc or 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com') | tojson }};
+        const ccVal = document.getElementById('emailCcInput') ? document.getElementById('emailCcInput').value.trim() : defaultCcFallback;
         if (document.getElementById('previewCc')) {
-            document.getElementById('previewCc').textContent = ccVal || "Vishnu.govind@pikachooz.com";
+            document.getElementById('previewCc').textContent = ccVal || defaultCcFallback;
         }
     }
 

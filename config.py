@@ -57,3 +57,7 @@ class Config:
     MSG91_AUTH_KEY = os.environ.get('MSG91_AUTH_KEY') or os.environ.get('msg91_authkey')
     MSG91_SENDER_ID = os.environ.get('MSG91_SENDER_ID', 'PIKCHZ')
     MSG91_FLOW_ID_LOGIN_OTP = os.environ.get('MSG91_FLOW_ID_LOGIN_OTP', '6a9652029b7d90c0f30b5024')
+
+    # Default CC Email
+    DEFAULT_CC_EMAIL = os.environ.get('DEFAULT_CC_EMAIL', 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com')
+

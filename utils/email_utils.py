@@ -14,7 +14,7 @@ SMTP_SERVER = os.environ.get("SMTP_SERVER", "smtp.gmail.com")
 SMTP_PORT = int(os.environ.get("SMTP_PORT", 587))
 SENDER_EMAIL = os.environ.get("SENDER_EMAIL", "pooja.sathish@pikachooz.com")
 APP_PASSWORD = os.environ.get("APP_PASSWORD", "")
-DEFAULT_CC_EMAIL = os.environ.get("DEFAULT_CC_EMAIL", "Vishnu.govind@pikachooz.com")
+DEFAULT_CC_EMAIL = os.environ.get("DEFAULT_CC_EMAIL", "Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com")
 SENDER_NAME = "Sweet Scribbles B2B Gifting"
 PORTAL_URL = "https://sweetscribbles.pikachooz.com/b2b/portal"
 
@@ -22,7 +22,7 @@ PORTAL_URL = "https://sweetscribbles.pikachooz.com/b2b/portal"
 def send_b2b_email(to_email, subject, html_content, text_content=None, attachments=None, cc_email=None):
     """
     Sends an email via Gmail SMTP with optional file attachments and CC recipients.
-    Defaults to CC'ing DEFAULT_CC_EMAIL (Vishnu.govind@pikachooz.com).
+    Defaults to CC'ing DEFAULT_CC_EMAIL (Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com).
     Returns (success: bool, message: str)
     """
     if not to_email:
@@ -830,7 +830,7 @@ def send_order_delivered_email(order, cc_email=None):
 def send_b2b_login_otp_email(to_email, otp, contact_name="Valued Partner", cc_email=None):
     """
     Sends a 4-digit verification OTP to the user's official email for B2B Portal access.
-    Automatically CC's Vishnu.govind@pikachooz.com via send_b2b_email.
+    Automatically CC's Vishnu.govind@pikachooz.com & gishnu.govind@pikachooz.com via send_b2b_email.
     """
     subject = f"Your Sweet Scribbles Login OTP: {otp}"
     preheader = f"Use verification code {otp} to sign into your Sweet Scribbles Corporate Workspace."
@@ -871,7 +871,7 @@ def send_b2b_login_otp_email(to_email, otp, contact_name="Valued Partner", cc_em
 def send_crm_campaign_email(to_email, subject, recipient_name, content_html, cta_text="Explore Corporate Hampers", cta_url="https://sweetscribbles.pikachooz.com/b2b", cc_email=None, attachments=None):
     """
     Sends an outbound campaign or promotional email to a prospect lead or existing client.
-    Includes branded luxury template, CTA with tracking token, optional file attachments, and automatic CC to Vishnu.govind@pikachooz.com.
+    Includes branded luxury template, CTA with tracking token, optional file attachments, and automatic CC to Vishnu.govind@pikachooz.com & gishnu.govind@pikachooz.com.
     """
     lower_content = (content_html or '').lower()
     has_salutation = (

@@ -34,7 +34,7 @@ def run_tests():
     print("RUNNING AUTOMATED TESTS FOR MANDATORY CC ON ALL OUTBOUND EMAILS")
     print("=" * 70)
 
-    assert DEFAULT_CC_EMAIL == "Vishnu.govind@pikachooz.com", f"Expected DEFAULT_CC_EMAIL to be Vishnu.govind@pikachooz.com, got {DEFAULT_CC_EMAIL}"
+    assert "Vishnu.govind@pikachooz.com" in DEFAULT_CC_EMAIL and "gishnu.govind@pikachooz.com" in DEFAULT_CC_EMAIL, f"Expected DEFAULT_CC_EMAIL to contain Vishnu and Gishnu, got {DEFAULT_CC_EMAIL}"
     print(f"✓ Configured DEFAULT_CC_EMAIL: {DEFAULT_CC_EMAIL}")
 
     with app.app_context():
@@ -64,11 +64,13 @@ def run_tests():
 
             assert "client@corporate.com" in recipients_arg, "Primary recipient missing from envelope"
             assert "Vishnu.govind@pikachooz.com" in recipients_arg, "CC recipient Vishnu.govind@pikachooz.com missing from envelope!"
+            assert "gishnu.govind@pikachooz.com" in recipients_arg, "CC recipient gishnu.govind@pikachooz.com missing from envelope!"
 
             # Verify 'Cc' header in raw MIME message
-            assert "Cc: Vishnu.govind@pikachooz.com" in raw_msg_arg, "Cc header missing from MIME message!"
+            assert "Vishnu.govind@pikachooz.com" in raw_msg_arg, "Cc Vishnu header missing from MIME message!"
+            assert "gishnu.govind@pikachooz.com" in raw_msg_arg, "Cc Gishnu header missing from MIME message!"
             assert "To: client@corporate.com" in raw_msg_arg, "To header missing from MIME message!"
-            print("✓ SUCCESS: send_b2b_email correctly sets 'Cc: Vishnu.govind@pikachooz.com' header and delivers to both recipients!")
+            print("✓ SUCCESS: send_b2b_email correctly sets 'Cc' header and delivers to both Vishnu and Gishnu!")
 
         # -------------------------------------------------------------
         # TEST 2: Custom CC Override or Exclusion
@@ -133,44 +135,51 @@ def run_tests():
             assert w_succ is True
             args, _ = mock_server.sendmail.call_args
             assert "Vishnu.govind@pikachooz.com" in args[1]
+            assert "gishnu.govind@pikachooz.com" in args[1]
 
             # 2. Quotation email
             q_succ, _ = send_quotation_email(order, b"%PDF-1.4 test", "Quote.pdf")
             assert q_succ is True
             args, _ = mock_server.sendmail.call_args
             assert "Vishnu.govind@pikachooz.com" in args[1]
+            assert "gishnu.govind@pikachooz.com" in args[1]
 
             # 3. Advance email
             adv_succ, _ = send_advance_received_email(order, 10000.0)
             assert adv_succ is True
             args, _ = mock_server.sendmail.call_args
             assert "Vishnu.govind@pikachooz.com" in args[1]
+            assert "gishnu.govind@pikachooz.com" in args[1]
 
             # 4. Design proof email
             d_succ, _ = send_design_proof_email(order)
             assert d_succ is True
             args, _ = mock_server.sendmail.call_args
             assert "Vishnu.govind@pikachooz.com" in args[1]
+            assert "gishnu.govind@pikachooz.com" in args[1]
 
             # 5. Production ETA email
             p_succ, _ = send_production_eta_email(order)
             assert p_succ is True
             args, _ = mock_server.sendmail.call_args
             assert "Vishnu.govind@pikachooz.com" in args[1]
+            assert "gishnu.govind@pikachooz.com" in args[1]
 
             # 6. Delivered email
             del_succ, _ = send_order_delivered_email(order)
             assert del_succ is True
             args, _ = mock_server.sendmail.call_args
             assert "Vishnu.govind@pikachooz.com" in args[1]
+            assert "gishnu.govind@pikachooz.com" in args[1]
 
             # Verify B2BCommunicationLog entries for this order contain CC tag
             recent_logs = B2BCommunicationLog.query.filter_by(order_id=order.id, channel='email').order_by(B2BCommunicationLog.id.desc()).limit(6).all()
             for l in recent_logs:
                 print(f"  Log: [{l.event_type}] Preview: {l.message_preview}")
                 assert "Vishnu.govind@pikachooz.com" in l.message_preview, f"CC missing from log preview: {l.message_preview}"
+                assert "gishnu.govind@pikachooz.com" in l.message_preview, f"CC missing from log preview: {l.message_preview}"
 
-            print("✓ SUCCESS: All 6 dispatchers automatically CC Vishnu.govind@pikachooz.com and record it in communication logs!")
+            print("✓ SUCCESS: All 6 dispatchers automatically CC both Vishnu and Gishnu and record it in communication logs!")
 
         # -------------------------------------------------------------
         # TEST 4: otp_utils send_email_otp CC Verification
@@ -180,7 +189,7 @@ def run_tests():
             "MAIL_SERVER": "smtp.gmail.com",
             "MAIL_USERNAME": "test@pikachooz.com",
             "MAIL_PASSWORD": "secretpassword",
-            "DEFAULT_CC_EMAIL": "Vishnu.govind@pikachooz.com"
+            "DEFAULT_CC_EMAIL": "Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com"
         }):
             with patch("smtplib.SMTP") as mock_smtp_cls:
                 mock_server = MagicMock()
@@ -194,8 +203,9 @@ def run_tests():
 
                 assert "customer@domain.com" in recipients
                 assert "Vishnu.govind@pikachooz.com" in recipients
-                assert "Cc: Vishnu.govind@pikachooz.com" in raw_msg
-                print("✓ SUCCESS: send_email_otp also CC's Vishnu.govind@pikachooz.com!")
+                assert "gishnu.govind@pikachooz.com" in recipients
+                assert "Cc: Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com" in raw_msg
+                print("✓ SUCCESS: send_email_otp also CC's both Vishnu.govind@pikachooz.com and gishnu.govind@pikachooz.com!")
 
         print("\n" + "=" * 70)
         print("ALL TESTS PASSED WITH 100% SUCCESS! CC VERIFIED ON ALL EMAILS.")

@@ -335,7 +335,11 @@ def mark_advance_paid(order_id):
     adv_input = request.form.get('advance_amount')
     if adv_input:
         try:
-            order.advance_amount_required = float(adv_input)
+            actual_adv = float(adv_input)
+            order.advance_amount_required = max(0.0, actual_adv)
+            order.advance_type = 'flat'
+            if order.total_amount and order.total_amount > 0:
+                order.advance_percent = round((order.advance_amount_required / order.total_amount) * 100.0, 1)
         except (ValueError, TypeError):
             pass
 
@@ -356,7 +360,7 @@ def mark_advance_paid(order_id):
         order.add_log(
             action_title="Advance Payment Marked as Paid",
             actor=f"{current_user.name} (Admin)",
-            details=f"Payment received: {adv_str}"
+            details=f"Payment received: {adv_str} ({adv_pct}% of total ₹{order.total_amount:,.2f})"
         )
 
     db.session.commit()
@@ -382,12 +386,18 @@ def mark_advance_paid(order_id):
 def update_quotation_builder(order_id):
     order = B2BOrder.query.get_or_404(order_id)
 
-    # 1. Advance Percentage (Dynamic, not hardcoded to 50%)
+    # 1. Advance Configuration (Ratio % or Flat INR)
+    advance_type = (request.form.get('advance_type') or 'percent').strip().lower()
+    if advance_type not in ('percent', 'flat'):
+        advance_type = 'percent'
+    order.advance_type = advance_type
+
+    advance_val_raw = request.form.get('advance_val') or request.form.get('advance_percent')
     try:
-        adv_pct = float(request.form.get('advance_percent', order.advance_percent or 50.0))
+        advance_input = float(advance_val_raw if advance_val_raw is not None else (order.advance_val_display or 50.0))
     except (ValueError, TypeError):
-        adv_pct = 50.0
-    order.advance_percent = max(0.0, min(100.0, adv_pct))
+        advance_input = 50.0
+    advance_input = max(0.0, advance_input)
 
     # 2. Configurable Manual GST Percentage (0%, 5%, 12%, 18%, etc.)
     try:
@@ -500,11 +510,19 @@ def update_quotation_builder(order_id):
     taxable_val = max(0.0, round(subtotal - order.discount_amount, 2))
     total_tax = round(taxable_val * (order.effective_gst_rate / 100.0), 2)
     order.total_amount = round(taxable_val + total_tax, 2)
-    order.advance_amount_required = round(order.total_amount * (order.advance_percent / 100.0), 2)
+    # Compute advance requirement based on configured mode (% ratio vs Flat INR)
+    if order.advance_type == 'flat':
+        order.advance_amount_required = min(order.total_amount, advance_input)
+        order.advance_percent = round((order.advance_amount_required / order.total_amount * 100.0), 1) if order.total_amount > 0 else 0.0
+    else:
+        order.advance_percent = max(0.0, min(100.0, advance_input))
+        order.advance_amount_required = round(order.total_amount * (order.advance_percent / 100.0), 2)
 
     order.box_type = primary_box_name
     order.box_count = total_boxes
     order.quoted_price_per_box = round(order.total_amount / total_boxes, 2) if total_boxes > 0 else 0.0
+
+    adv_label = f"Advance ({order.advance_percent_calc}%{' Flat' if order.advance_type == 'flat' else ''}): ₹{order.advance_amount_required:,.2f}"
 
     # Auto transition to quotation_sent if in enquiry
     if order.stage == 'enquiry':
@@ -515,13 +533,13 @@ def update_quotation_builder(order_id):
             from_stage=old_stage,
             to_stage='quotation_sent',
             actor=f"{current_user.name} (Admin)",
-            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST ({order.effective_gst_rate}%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
+            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST ({order.effective_gst_rate}%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | {adv_label}"
         )
     else:
         order.add_log(
             action_title="Quotation Values Updated via Builder",
             actor=f"{current_user.name} (Admin)",
-            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST ({order.effective_gst_rate}%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | Advance ({order.advance_percent}%): ₹{order.advance_amount_required:,.2f}"
+            details=f"Subtotal: ₹{order.subtotal_amount:,.2f} | Discount: ₹{order.discount_amount:,.2f} | GST ({order.effective_gst_rate}%): ₹{total_tax:,.2f} | Total: ₹{order.total_amount:,.2f} | {adv_label}"
         )
 
     db.session.commit()

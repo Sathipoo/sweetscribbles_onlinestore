@@ -551,7 +551,7 @@ def generate_quotation_pdf(order, logo_filename=None, doc_type='quotation'):
     
     # Dynamic advance calculation
     adv_pct = order.advance_percent_calc
-    adv_required = round(grand_total * (adv_pct / 100.0), 2)
+    adv_required = round(order.advance_amount_required, 2) if (order.advance_amount_required is not None and order.advance_amount_required > 0) else round(grand_total * (adv_pct / 100.0), 2)
     balance_amount = max(0.0, round(grand_total - adv_required, 2))
 
     summary_rows = []

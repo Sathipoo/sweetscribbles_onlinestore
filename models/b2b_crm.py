@@ -295,7 +295,7 @@ class CRMEmailTemplate(db.Model):
     content_html = db.Column(db.Text, nullable=False)
     blocks_json = db.Column(db.Text, nullable=True)  # Serialized modular builder blocks
     attachments_json = db.Column(db.Text, nullable=True)  # Serialized list of attached file objects
-    default_cc = db.Column(db.String(255), default='Vishnu.govind@pikachooz.com')
+    default_cc = db.Column(db.String(255), default='Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com')
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     created_at = db.Column(db.DateTime, default=datetime.utcnow)
     updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

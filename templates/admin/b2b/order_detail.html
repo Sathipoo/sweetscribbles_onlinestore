@@ -599,18 +599,29 @@
                             </small>
                         </div>
 
-                        <!-- Configurable Advance Percentage (Not hardcoded to 50%) -->
+                        <!-- Configurable Advance Requirement (% Ratio or Flat INR) -->
                         <div class="col-md-4">
-                            <label class="form-label small fw-semibold text-secondary">
-                                Advance Requirement (%)
+                            <label class="form-label small fw-semibold text-secondary d-flex justify-content-between align-items-center">
+                                <span>Advance Requirement</span>
+                                <span class="badge bg-primary-subtle text-primary border border-primary-subtle" id="advanceRatioBadge" style="font-size: 0.68rem;">
+                                    {{ order.advance_percent_calc }}% of Total
+                                </span>
                             </label>
                             <div class="input-group input-group-sm">
-                                <input type="number" step="1" min="0" max="100" name="advance_percent" id="advancePercentInput" class="form-control form-control-sm fw-bold text-end"
-                                       value="{{ order.advance_percent_calc }}" placeholder="50">
-                                <span class="input-group-text fw-bold">%</span>
+                                <select name="advance_type" id="advanceTypeSelect" class="form-select form-select-sm" style="max-width: 95px;">
+                                    <option value="percent" {% if not order.advance_type or order.advance_type == 'percent' %}selected{% endif %}>% Ratio</option>
+                                    <option value="flat" {% if order.advance_type == 'flat' %}selected{% endif %}>Flat (₹)</option>
+                                </select>
+                                <input type="number" step="0.5" min="0" name="advance_val" id="advanceValInput" class="form-control form-control-sm fw-bold text-end"
+                                       value="{{ order.advance_val_display }}" placeholder="50.0">
+                                <span class="input-group-text fw-bold" id="advanceUnitSymbol">{% if order.advance_type == 'flat' %}₹{% else %}%{% endif %}</span>
                             </div>
-                            <small class="text-muted" style="font-size: 0.72rem;">
-                                Fully configurable (e.g. 25%, 30%, 50%, 100%).
+                            <small class="text-muted d-block mt-1" id="advanceHelperText" style="font-size: 0.72rem;">
+                                {% if order.advance_type == 'flat' %}
+                                    Custom flat advance: ₹{{ "{:,.2f}".format(order.advance_amount_required) }} (~{{ order.advance_percent_calc }}% of total).
+                                {% else %}
+                                    Percentage advance requirement: {{ order.advance_percent_calc }}% of total.
+                                {% endif %}
                             </small>
                         </div>
                     </div>
@@ -981,6 +992,10 @@
                         <small class="text-muted" style="font-size: 0.74rem;">
                             Quoted {{ order.advance_percent_calc }}% advance requirement: ₹{{ "{:,.2f}".format(order.advance_amount_required) }}.
                         </small>
+                        <div class="alert alert-light border small text-muted mt-2 py-1.5 px-2.5 mb-0" style="font-size: 0.72rem;">
+                            <i class="bi bi-info-circle text-primary me-1"></i>
+                            If actual received bank payment differs from the quote (e.g. ₹56,595), enter the exact figure. The system automatically reconciles the advance ledger, sets the remaining balance due (₹{{ "{:,.2f}".format(order.total_amount) }} - received amount), and updates Proforma &amp; Tax invoices.
+                        </div>
                     </div>
                 </div>
                 <div class="modal-footer border-top px-4 py-3 bg-light">
@@ -1092,7 +1107,11 @@ document.addEventListener('DOMContentLoaded', function() {
     const discountTypeSelect = document.getElementById('discountTypeSelect');
     const discountValueInput = document.getElementById('discountValueInput');
     const gstPercentInput = document.getElementById('gstPercentInput');
-    const advancePercentInput = document.getElementById('advancePercentInput');
+    const advanceTypeSelect = document.getElementById('advanceTypeSelect');
+    const advanceValInput = document.getElementById('advanceValInput');
+    const advanceUnitSymbol = document.getElementById('advanceUnitSymbol');
+    const advanceRatioBadge = document.getElementById('advanceRatioBadge');
+    const advanceHelperText = document.getElementById('advanceHelperText');
     const discountPdfBadge = document.getElementById('discountPdfBadge');
     
     const calcSubtotalDisplay = document.getElementById('calcSubtotalDisplay');
@@ -1149,9 +1168,35 @@ document.addEventListener('DOMContentLoaded', function() {
         const gstAmount = taxable * (gstRate / 100.0);
         const grandTotal = taxable + gstAmount;
 
-        // Advance calculation
-        const advPct = Math.max(0, Math.min(100, parseFloat(advancePercentInput.value) || 50));
-        const advanceAmount = grandTotal * (advPct / 100.0);
+        // Advance calculation (% Ratio vs Flat INR)
+        const advType = advanceTypeSelect ? advanceTypeSelect.value : 'percent';
+        const advRawVal = advanceValInput ? Math.max(0, parseFloat(advanceValInput.value) || 0) : 50;
+        let advanceAmount = 0;
+        let effectiveAdvPct = 0;
+
+        if (advType === 'flat') {
+            advanceAmount = Math.min(grandTotal, advRawVal);
+            effectiveAdvPct = grandTotal > 0 ? ((advanceAmount / grandTotal) * 100).toFixed(1) : 0;
+            if (advanceUnitSymbol) advanceUnitSymbol.textContent = '₹';
+            if (advanceRatioBadge) advanceRatioBadge.textContent = `${effectiveAdvPct}% of Total`;
+            if (advanceHelperText) {
+                advanceHelperText.textContent = `Custom flat advance: ₹${advanceAmount.toLocaleString('en-IN', {minimumFractionDigits: 2, maximumFractionDigits: 2})} (~${effectiveAdvPct}% of total).`;
+            }
+            if (calcAdvanceLabel) {
+                calcAdvanceLabel.textContent = `${effectiveAdvPct}% Advance (Flat):`;
+            }
+        } else {
+            effectiveAdvPct = Math.min(100, advRawVal);
+            advanceAmount = grandTotal * (effectiveAdvPct / 100.0);
+            if (advanceUnitSymbol) advanceUnitSymbol.textContent = '%';
+            if (advanceRatioBadge) advanceRatioBadge.textContent = `${effectiveAdvPct}% of Total`;
+            if (advanceHelperText) {
+                advanceHelperText.textContent = `Percentage advance requirement: ${effectiveAdvPct}% of total.`;
+            }
+            if (calcAdvanceLabel) {
+                calcAdvanceLabel.textContent = `${effectiveAdvPct}% Advance:`;
+            }
+        }
 
         // Update displays
         calcSubtotalDisplay.textContent = '₹' + subtotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
@@ -1168,7 +1213,6 @@ document.addEventListener('DOMContentLoaded', function() {
             calcTaxDisplay.textContent = '₹' + gstAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
         }
         calcTotalDisplay.textContent = '₹' + grandTotal.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-        calcAdvanceLabel.textContent = `${advPct}% Advance:`;
         calcAdvanceDisplay.textContent = '₹' + advanceAmount.toLocaleString('en-IN', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
         totalItemsSummary.textContent = `${rows.length} Line Item${rows.length === 1 ? '' : 's'} (${totalItems} total units)`;
@@ -1376,7 +1420,23 @@ document.addEventListener('DOMContentLoaded', function() {
     if (discountTypeSelect) discountTypeSelect.addEventListener('change', recalculateQuotation);
     if (discountValueInput) discountValueInput.addEventListener('input', recalculateQuotation);
     if (gstPercentInput) gstPercentInput.addEventListener('input', recalculateQuotation);
-    if (advancePercentInput) advancePercentInput.addEventListener('input', recalculateQuotation);
+
+    if (advanceTypeSelect) {
+        let prevAdvType = advanceTypeSelect.value;
+        advanceTypeSelect.addEventListener('change', function() {
+            const currentTotal = parseFloat(calcTotalDisplay.textContent.replace(/[^0-9.-]+/g, "")) || 0;
+            if (this.value === 'flat' && prevAdvType === 'percent') {
+                const currentPct = parseFloat(advanceValInput.value) || 50;
+                advanceValInput.value = Math.round(currentTotal * (currentPct / 100.0));
+            } else if (this.value === 'percent' && prevAdvType === 'flat') {
+                const currentFlat = parseFloat(advanceValInput.value) || 0;
+                advanceValInput.value = currentTotal > 0 ? ((currentFlat / currentTotal) * 100.0).toFixed(1) : 50;
+            }
+            prevAdvType = this.value;
+            recalculateQuotation();
+        });
+    }
+    if (advanceValInput) advanceValInput.addEventListener('input', recalculateQuotation);
 
     // Communication tracker collapse toggle label/icon sync
     const commCollapse = document.getElementById('communicationTrackerCollapse');

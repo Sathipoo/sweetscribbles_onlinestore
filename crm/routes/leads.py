@@ -613,8 +613,10 @@ def bulk_email():
     cc_list = []
     if raw_cc:
         cc_list = [c.strip() for c in raw_cc.split(',') if c.strip()]
-    if DEFAULT_CC_EMAIL not in cc_list:
-        cc_list.append(DEFAULT_CC_EMAIL)
+    default_ccs = [c.strip() for c in DEFAULT_CC_EMAIL.split(',') if c.strip()]
+    for def_cc in default_ccs:
+        if def_cc.lower() not in [c.lower() for c in cc_list]:
+            cc_list.append(def_cc)
     effective_cc = ", ".join(cc_list)
 
     if not subject or not content_body:

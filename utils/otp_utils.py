@@ -113,7 +113,7 @@ def send_email_otp(email, otp):
     mail_username = os.environ.get('MAIL_USERNAME') or os.environ.get('SENDER_EMAIL')
     mail_password = os.environ.get('MAIL_PASSWORD') or os.environ.get('APP_PASSWORD')
     sender_email = os.environ.get('MAIL_DEFAULT_SENDER') or mail_username
-    cc_email = os.environ.get('DEFAULT_CC_EMAIL', 'Vishnu.govind@pikachooz.com')
+    cc_email = os.environ.get('DEFAULT_CC_EMAIL', 'Vishnu.govind@pikachooz.com, gishnu.govind@pikachooz.com')
 
     if mail_server and mail_username and mail_password:
         try:
@@ -122,11 +122,18 @@ def send_email_otp(email, otp):
             except ValueError:
                 port = 587
                 
+            cc_list = []
+            if cc_email:
+                if isinstance(cc_email, str):
+                    cc_list = [c.strip() for c in cc_email.split(',') if c.strip()]
+                elif isinstance(cc_email, (list, tuple)):
+                    cc_list = [str(c).strip() for c in cc_email if str(c).strip()]
+
             msg = MIMEMultipart()
             msg['From'] = sender_email
             msg['To'] = email
-            if cc_email:
-                msg['Cc'] = cc_email
+            if cc_list:
+                msg['Cc'] = ", ".join(cc_list)
             msg['Subject'] = f"{otp} is your Sweet Scribbles Verification Code"
 
             body = f"""
@@ -145,12 +152,13 @@ def send_email_otp(email, otp):
             server.login(mail_username, mail_password)
 
             recipients = [email]
-            if cc_email and cc_email.lower() != email.lower():
-                recipients.append(cc_email)
+            for c_addr in cc_list:
+                if c_addr.lower() not in [r.lower() for r in recipients]:
+                    recipients.append(c_addr)
 
             server.sendmail(sender_email, recipients, msg.as_string())
             server.quit()
-            print(f"[OTP] Successfully sent real SMTP email to {email} (CC: {cc_email})")
+            print(f"[OTP] Successfully sent real SMTP email to {email} (CC: {', '.join(cc_list)})")
             return True
         except Exception as e:
             print(f"[OTP ERROR] Failed to send SMTP email to {email}: {e}")
