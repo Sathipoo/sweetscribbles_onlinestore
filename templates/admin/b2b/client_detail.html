@@ -118,6 +118,26 @@
                 </div>
 
                 <div class="mb-3">
+                    <label class="form-label small fw-semibold text-secondary d-flex justify-content-between align-items-center">
+                        <span>CC Email Addresses (Comma-separated)</span>
+                        <span class="badge bg-light text-muted border">Optional</span>
+                    </label>
+                    <input type="text" name="cc_emails" class="form-control font-monospace small" value="{{ client.cc_emails or '' }}" placeholder="e.g. accounts@dheyatech.com, director@dheyatech.com">
+                    <small class="text-muted d-block mt-1" style="font-size: 0.72rem;">
+                        Secondary client recipients (accounts, procurement, founders) to be CC'ed on quotations, proforma &amp; tax invoices when CC is toggled ON.
+                    </small>
+                    {% if client.has_cc_emails %}
+                    <div class="mt-1.5 d-flex flex-wrap gap-1">
+                        {% for c_email in client.cc_email_list %}
+                        <span class="badge bg-light text-dark border small fw-normal">
+                            <i class="bi bi-envelope-at me-1 text-primary"></i>{{ c_email }}
+                        </span>
+                        {% endfor %}
+                    </div>
+                    {% endif %}
+                </div>
+
+                <div class="mb-3">
                     <label class="form-label small fw-semibold text-secondary">Industry / Domain</label>
                     <input type="text" name="industry" class="form-control" value="{{ client.industry or '' }}" placeholder="e.g. IT Services, Banking, Healthcare">
                 </div>

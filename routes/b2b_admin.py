@@ -15,10 +15,32 @@ from utils.email_utils import (
     send_welcome_onboarding_email, send_quotation_email,
     send_advance_received_email, send_design_proof_email,
     send_production_eta_email, send_order_delivered_email,
-    send_proforma_email, send_tax_invoice_email
+    send_proforma_email, send_tax_invoice_email,
+    DEFAULT_CC_EMAIL
 )
 
 b2b_admin_bp = Blueprint('b2b_admin', __name__)
+
+def resolve_b2b_cc_list(order, use_client_cc=None):
+    """
+    Consolidates CC addresses for B2B commercial document dispatches:
+    - Always includes mandatory executive tracking (DEFAULT_CC_EMAIL).
+    - Includes secondary client CC recipients (order.client.cc_email_list) if use_client_cc is True.
+    """
+    cc_addresses = []
+    if DEFAULT_CC_EMAIL:
+        for c in DEFAULT_CC_EMAIL.split(','):
+            c_clean = c.strip()
+            if c_clean and c_clean.lower() not in [x.lower() for x in cc_addresses]:
+                cc_addresses.append(c_clean)
+
+    should_include = order.use_client_cc if use_client_cc is None else bool(use_client_cc)
+    if should_include and order.client and order.client.has_cc_emails:
+        for c in order.client.cc_email_list:
+            if c.lower() not in [x.lower() for x in cc_addresses]:
+                cc_addresses.append(c)
+
+    return cc_addresses
 
 def admin_required(f):
     from functools import wraps
@@ -663,6 +685,36 @@ def toggle_balance_paid(order_id):
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
+@b2b_admin_bp.route('/orders/<int:order_id>/toggle-client-cc', methods=['POST'])
+@admin_required
+def toggle_order_client_cc(order_id):
+    """Asynchronously or synchronously toggles client CC recipient inclusion on an order."""
+    order = B2BOrder.query.get_or_404(order_id)
+    if request.is_json:
+        data = request.get_json() or {}
+        if 'use_client_cc' in data:
+            order.use_client_cc = bool(data['use_client_cc'])
+        else:
+            order.use_client_cc = not order.use_client_cc
+    else:
+        state = request.form.get('use_client_cc')
+        if state is not None:
+            order.use_client_cc = state in ('1', 'true', 'on', 'True')
+        else:
+            order.use_client_cc = not order.use_client_cc
+    db.session.commit()
+
+    if request.is_json or request.headers.get('X-Requested-With') == 'XMLHttpRequest':
+        return jsonify({
+            'success': True,
+            'use_client_cc': order.use_client_cc,
+            'cc_emails': order.client.cc_emails if order.client else None,
+            'cc_count': len(order.client.cc_email_list) if order.client else 0
+        })
+    flash(f"Client CC toggled to {'ON' if order.use_client_cc else 'OFF'}.", 'info')
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
 @b2b_admin_bp.route('/orders/<int:order_id>/send-proforma', methods=['POST'])
 @admin_required
 def send_proforma(order_id):
@@ -672,6 +724,10 @@ def send_proforma(order_id):
         flash("No client associated with this order.", "danger")
         return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
+    use_cc_raw = request.form.get('use_client_cc')
+    if use_cc_raw is not None:
+        order.use_client_cc = use_cc_raw in ('1', 'true', 'on', 'True')
+
     if not order.proforma_invoice_number:
         order.proforma_invoice_number = f"PI-{order.order_number}"
     if not order.proforma_date:
@@ -679,10 +735,11 @@ def send_proforma(order_id):
 
     pdf_bytes = generate_quotation_pdf(order, doc_type='proforma')
     filename = f"Proforma-Invoice-{order.order_number}.pdf"
+    cc_list = resolve_b2b_cc_list(order)
 
     email_sent, email_msg = False, "No client email"
     if order.client.email:
-        email_sent, email_msg = send_proforma_email(order, pdf_bytes, filename=filename)
+        email_sent, email_msg = send_proforma_email(order, pdf_bytes, filename=filename, cc_email=cc_list)
 
     if order.client.phone:
         dispatch_b2b_sms_and_log(
@@ -696,10 +753,11 @@ def send_proforma(order_id):
             }
         )
 
+    client_cc_note = f" (Client CC: ON -> {', '.join(order.client.cc_email_list)})" if (order.use_client_cc and order.client and order.client.has_cc_emails) else " (Client CC: OFF)"
     order.add_log(
         action_title="Proforma Invoice Dispatched (Email + SMS)",
         actor=f"{current_user.name} (Admin)",
-        details=f"Dispatched Proforma Invoice {order.proforma_invoice_number} (Advance Due: ₹{order.advance_amount_required:,.2f}) to {order.client.email}"
+        details=f"Dispatched Proforma Invoice {order.proforma_invoice_number} (Advance Due: ₹{order.advance_amount_required:,.2f}) to {order.client.email}{client_cc_note}"
     )
     db.session.commit()
 
@@ -712,6 +770,7 @@ def send_proforma(order_id):
 
 
 @b2b_admin_bp.route('/orders/<int:order_id>/send-invoice', methods=['POST'])
+@b2b_admin_bp.route('/orders/<int:order_id>/send-tax-invoice', methods=['POST'])
 @admin_required
 def send_tax_invoice(order_id):
     """Generates statutory GST Tax Invoice PDF and dispatches dual Email (with PDF attached) + SMS."""
@@ -720,6 +779,10 @@ def send_tax_invoice(order_id):
         flash("No client associated with this order.", "danger")
         return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
+    use_cc_raw = request.form.get('use_client_cc')
+    if use_cc_raw is not None:
+        order.use_client_cc = use_cc_raw in ('1', 'true', 'on', 'True')
+
     if not order.tax_invoice_number:
         order.tax_invoice_number = f"INV-{order.order_number}"
     if not order.tax_invoice_date:
@@ -727,10 +790,11 @@ def send_tax_invoice(order_id):
 
     pdf_bytes = generate_quotation_pdf(order, doc_type='tax_invoice')
     filename = f"Tax-Invoice-{order.order_number}.pdf"
+    cc_list = resolve_b2b_cc_list(order)
 
     email_sent, email_msg = False, "No client email"
     if order.client.email:
-        email_sent, email_msg = send_tax_invoice_email(order, pdf_bytes, filename=filename)
+        email_sent, email_msg = send_tax_invoice_email(order, pdf_bytes, filename=filename, cc_email=cc_list)
 
     if order.client.phone:
         dispatch_b2b_sms_and_log(
@@ -744,10 +808,11 @@ def send_tax_invoice(order_id):
             }
         )
 
+    client_cc_note = f" (Client CC: ON -> {', '.join(order.client.cc_email_list)})" if (order.use_client_cc and order.client and order.client.has_cc_emails) else " (Client CC: OFF)"
     order.add_log(
         action_title="Statutory Tax Invoice Dispatched (Email + SMS)",
         actor=f"{current_user.name} (Admin)",
-        details=f"Dispatched Tax Invoice {order.tax_invoice_number} (Balance Due: ₹{order.balance_amount_due:,.2f}) to {order.client.email}"
+        details=f"Dispatched Tax Invoice {order.tax_invoice_number} (Balance Due: ₹{order.balance_amount_due:,.2f}) to {order.client.email}{client_cc_note}"
     )
     db.session.commit()
 
@@ -768,13 +833,18 @@ def send_quotation(order_id):
         flash("No client associated with this order.", "danger")
         return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
+    use_cc_raw = request.form.get('use_client_cc')
+    if use_cc_raw is not None:
+        order.use_client_cc = use_cc_raw in ('1', 'true', 'on', 'True')
+
     pdf_bytes = generate_quotation_pdf(order)
     filename = f"Quotation-{order.order_number}.pdf"
+    cc_list = resolve_b2b_cc_list(order)
 
     # 1. Send Email with PDF
     email_sent, email_msg = False, "No client email"
     if order.client.email:
-        email_sent, email_msg = send_quotation_email(order, pdf_bytes, filename=filename)
+        email_sent, email_msg = send_quotation_email(order, pdf_bytes, filename=filename, cc_email=cc_list)
 
     # 2. Send SMS notification
     if order.client.phone:
@@ -789,6 +859,7 @@ def send_quotation(order_id):
             }
         )
 
+    client_cc_note = f" (Client CC: ON -> {', '.join(order.client.cc_email_list)})" if (order.use_client_cc and order.client and order.client.has_cc_emails) else " (Client CC: OFF)"
     # Update stage if in enquiry
     if order.stage == 'enquiry':
         old_stage = order.stage
@@ -798,13 +869,13 @@ def send_quotation(order_id):
             from_stage=old_stage,
             to_stage='quotation_sent',
             actor=f"{current_user.name} (Admin)",
-            details=f"Dispatched quotation PDF (₹{order.total_amount:,.2f}) to {order.client.email} & SMS to {order.client.phone}"
+            details=f"Dispatched quotation PDF (₹{order.total_amount:,.2f}) to {order.client.email}{client_cc_note} & SMS to {order.client.phone}"
         )
     else:
         order.add_log(
             action_title="Commercial Quotation Re-Dispatched (Email + SMS)",
             actor=f"{current_user.name} (Admin)",
-            details=f"Re-sent quotation PDF to {order.client.email} & SMS to {order.client.phone}"
+            details=f"Re-sent quotation PDF to {order.client.email}{client_cc_note} & SMS to {order.client.phone}"
         )
 
     db.session.commit()
@@ -1250,6 +1321,8 @@ def onboard_client():
     raw_phone = request.form.get('phone', '').strip()
     phone = normalize_phone(raw_phone)
     email = request.form.get('email', '').strip()
+    raw_cc = request.form.get('cc_emails', '').strip()
+    cc_emails = ", ".join([c.strip() for c in raw_cc.split(',') if c.strip()]) if raw_cc else None
     gst_number = request.form.get('gst_number', '').strip()
     shipping_address = request.form.get('shipping_address', '').strip()
     industry = request.form.get('industry', '').strip()
@@ -1269,6 +1342,7 @@ def onboard_client():
         contact_name=contact_name,
         phone=phone,
         email=email,
+        cc_emails=cc_emails,
         gst_number=gst_number,
         shipping_address=shipping_address,
         industry=industry,
@@ -1357,6 +1431,10 @@ def edit_client(client_id):
     raw_phone = request.form.get('phone', client.phone).strip()
     client.phone = normalize_phone(raw_phone)
     client.email = request.form.get('email', client.email).strip()
+    raw_cc = request.form.get('cc_emails')
+    if raw_cc is not None:
+        cleaned_ccs = [c.strip() for c in raw_cc.split(',') if c.strip()]
+        client.cc_emails = ", ".join(cleaned_ccs) if cleaned_ccs else None
     client.gst_number = request.form.get('gst_number', client.gst_number).strip()
     client.shipping_address = request.form.get('shipping_address', client.shipping_address).strip()
     client.industry = request.form.get('industry', client.industry).strip()

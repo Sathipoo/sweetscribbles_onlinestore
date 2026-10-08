@@ -10,6 +10,7 @@ class B2BClient(db.Model):
     contact_name = db.Column(db.String(100), nullable=False)
     phone = db.Column(db.String(20), unique=True, index=True, nullable=False)
     email = db.Column(db.String(120), nullable=False)
+    cc_emails = db.Column(db.String(255), nullable=True) # Comma-separated secondary/accounts CC emails
     gst_number = db.Column(db.String(30), nullable=True)
     shipping_address = db.Column(db.Text, nullable=True)
     industry = db.Column(db.String(100), nullable=True)
@@ -28,6 +29,23 @@ class B2BClient(db.Model):
     @property
     def total_spend(self):
         return sum((o.total_amount or 0.0) for o in self.orders if o.stage != 'cancelled')
+
+    @property
+    def cc_email_list(self):
+        """Returns parsed, unique list of secondary client CC email addresses."""
+        if not self.cc_emails:
+            return []
+        cleaned = []
+        for e in self.cc_emails.split(','):
+            e_str = e.strip()
+            if e_str and e_str.lower() not in [c.lower() for c in cleaned]:
+                cleaned.append(e_str)
+        return cleaned
+
+    @property
+    def has_cc_emails(self):
+        """Returns True if this client has at least one valid secondary CC email."""
+        return bool(self.cc_email_list)
 
     @property
     def primary_contact(self):
@@ -110,6 +128,7 @@ class B2BOrder(db.Model):
     tax_invoice_date = db.Column(db.DateTime, nullable=True)
     balance_paid = db.Column(db.Boolean, default=False)
     balance_paid_at = db.Column(db.DateTime, nullable=True)
+    use_client_cc = db.Column(db.Boolean, default=True) # Toggle to keep client CC on quotations & invoices
     
     # Pipeline Workflow Stage
     stage = db.Column(db.String(50), default='enquiry', index=True)

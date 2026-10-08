@@ -18,6 +18,11 @@
         <span class="text-muted small">
             Client: <strong><a href="{{ url_for('b2b_admin.client_detail', client_id=order.client.id) }}" class="text-dark">{{ order.client.company_name }}</a></strong> 
             ({{ order.client.contact_name }} · {{ order.client.phone }} · {{ order.client.email }})
+            {% if order.client.has_cc_emails %}
+            <span class="badge bg-light text-dark border ms-1.5 align-middle" title="Secondary Client CC: {{ order.client.cc_emails }}" style="font-size: 0.72rem;">
+                <i class="bi bi-people me-1 text-primary"></i>CC: {{ order.client.cc_email_list|length }}
+            </span>
+            {% endif %}
         </span>
     </div>
     
@@ -120,16 +125,45 @@
                 </button>
             </form>
 
+            <!-- Client CC Inline Toggle Pill -->
+            {% if order.client.has_cc_emails %}
+            <div class="d-inline-flex align-items-center bg-dark border border-secondary rounded-pill px-2.5 py-1 gap-2 shadow-sm" id="clientCcPillContainer" title="Client CC Addresses: {{ order.client.cc_emails }}">
+                <div class="form-check form-switch m-0 d-flex align-items-center gap-1.5">
+                    <input class="form-check-input mt-0" type="checkbox" id="clientCcToggleSwitch" 
+                           {% if order.use_client_cc %}checked{% endif %} style="cursor: pointer;">
+                    <label class="form-check-label small fw-bold mb-0" for="clientCcToggleSwitch" id="clientCcToggleLabel" style="font-size: 0.72rem; cursor: pointer;">
+                        {% if order.use_client_cc %}
+                            <span class="text-success" id="clientCcStatusText"><i class="bi bi-people-fill me-1"></i>Client CC: ON ({{ order.client.cc_email_list|length }})</span>
+                        {% else %}
+                            <span class="text-secondary" id="clientCcStatusText"><i class="bi bi-people me-1"></i>Client CC: OFF</span>
+                        {% endif %}
+                    </label>
+                </div>
+                <a href="{{ url_for('b2b_admin.client_detail', client_id=order.client.id) }}" class="text-secondary hover-text-light text-decoration-none" title="Manage Client CC in Profile" style="font-size: 0.72rem;">
+                    <i class="bi bi-gear-fill"></i>
+                </a>
+            </div>
+            {% else %}
+            <a href="{{ url_for('b2b_admin.client_detail', client_id=order.client.id) }}" 
+               class="badge bg-dark border border-secondary text-secondary text-decoration-none py-1.5 px-2.5 d-inline-flex align-items-center gap-1 shadow-sm" 
+               title="No client CC emails configured. Click to add in Client Profile." style="font-size: 0.72rem;">
+                <i class="bi bi-person-plus text-warning"></i>
+                <span>+ Add Client CC</span>
+            </a>
+            {% endif %}
+
             <!-- 1. Send Quotation (Email PDF + SMS) -->
-            <form action="{{ url_for('b2b_admin.send_quotation', order_id=order.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Generate Quotation PDF and email to {{ order.client.email }} with SMS alert?');">
-                <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm">
+            <form id="sendQuotationForm" action="{{ url_for('b2b_admin.send_quotation', order_id=order.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="use_client_cc" class="clientCcInput" value="{{ '1' if order.use_client_cc else '0' }}">
+                <button type="submit" class="btn btn-sm btn-warning text-dark fw-bold shadow-sm" id="btnSendQuotation">
                     <i class="bi bi-send-fill me-1"></i>Send Quotation
                 </button>
             </form>
 
             <!-- 1b. Send Proforma Invoice (Email PDF + SMS) -->
-            <form action="{{ url_for('b2b_admin.send_proforma', order_id=order.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Generate Proforma Invoice PDF and email to {{ order.client.email }}?');">
-                <button type="submit" class="btn btn-sm btn-outline-info fw-bold shadow-sm">
+            <form id="sendProformaForm" action="{{ url_for('b2b_admin.send_proforma', order_id=order.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="use_client_cc" class="clientCcInput" value="{{ '1' if order.use_client_cc else '0' }}">
+                <button type="submit" class="btn btn-sm btn-outline-info fw-bold shadow-sm" id="btnSendProforma">
                     <i class="bi bi-file-earmark-text me-1"></i>Send Proforma (PI)
                 </button>
             </form>
@@ -152,8 +186,9 @@
             {% endif %}
 
             <!-- 2b. Send Tax Invoice (Email PDF + SMS) -->
-            <form action="{{ url_for('b2b_admin.send_tax_invoice', order_id=order.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Generate Tax Invoice PDF and email to {{ order.client.email }}?');">
-                <button type="submit" class="btn btn-sm btn-outline-success fw-bold shadow-sm">
+            <form id="sendTaxInvoiceForm" action="{{ url_for('b2b_admin.send_tax_invoice', order_id=order.id) }}" method="POST" class="d-inline">
+                <input type="hidden" name="use_client_cc" class="clientCcInput" value="{{ '1' if order.use_client_cc else '0' }}">
+                <button type="submit" class="btn btn-sm btn-outline-success fw-bold shadow-sm" id="btnSendTaxInvoice">
                     <i class="bi bi-receipt me-1"></i>Send Tax Invoice
                 </button>
             </form>
@@ -1450,6 +1485,82 @@ document.addEventListener('DOMContentLoaded', function() {
         commCollapse.addEventListener('hide.bs.collapse', function() {
             commToggleText.textContent = 'View Communication History';
             commToggleIcon.className = 'bi bi-chevron-down';
+        });
+    }
+
+    // Client CC Toggle Pill Logic & Dynamic Confirmations
+    const ccSwitch = document.getElementById('clientCcToggleSwitch');
+    const ccStatusText = document.getElementById('clientCcStatusText');
+    const clientCcInputs = document.querySelectorAll('.clientCcInput');
+    const clientCcEmailsRaw = {{ (order.client.cc_emails or '') | tojson }};
+    const clientCcCount = {{ (order.client.cc_email_list|length) | tojson }};
+    const clientPrimaryEmail = {{ (order.client.email or '') | tojson }};
+
+    function updateCcDisplay(isOn) {
+        clientCcInputs.forEach(input => {
+            input.value = isOn ? '1' : '0';
+        });
+        if (ccStatusText) {
+            if (isOn) {
+                ccStatusText.className = 'text-success';
+                ccStatusText.innerHTML = `<i class="bi bi-people-fill me-1"></i>Client CC: ON (${clientCcCount})`;
+            } else {
+                ccStatusText.className = 'text-secondary';
+                ccStatusText.innerHTML = `<i class="bi bi-people me-1"></i>Client CC: OFF`;
+            }
+        }
+    }
+
+    if (ccSwitch) {
+        ccSwitch.addEventListener('change', function() {
+            const isOn = this.checked;
+            updateCcDisplay(isOn);
+
+            // Persist setting asynchronously in the background
+            fetch("{{ url_for('b2b_admin.toggle_order_client_cc', order_id=order.id) }}", {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                    "X-Requested-With": "XMLHttpRequest"
+                },
+                body: JSON.stringify({ use_client_cc: isOn })
+            }).catch(err => console.error("Could not persist CC toggle preference:", err));
+        });
+    }
+
+    function getDispatchConfirmMsg(docTitle) {
+        const isCcOn = ccSwitch ? ccSwitch.checked : false;
+        if (isCcOn && clientCcEmailsRaw) {
+            return `Generate ${docTitle} PDF and email to ${clientPrimaryEmail}\n\nClient CC: ON (Also sending to: ${clientCcEmailsRaw})\nSMS Notification: Will be sent to client.`;
+        } else {
+            return `Generate ${docTitle} PDF and email to ${clientPrimaryEmail} only\n\nClient CC: OFF (Secondary recipients excluded)\nSMS Notification: Will be sent to client.`;
+        }
+    }
+
+    const sendQuoteForm = document.getElementById('sendQuotationForm');
+    if (sendQuoteForm) {
+        sendQuoteForm.addEventListener('submit', function(e) {
+            if (!confirm(getDispatchConfirmMsg('Quotation'))) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    const sendPiForm = document.getElementById('sendProformaForm');
+    if (sendPiForm) {
+        sendPiForm.addEventListener('submit', function(e) {
+            if (!confirm(getDispatchConfirmMsg('Proforma Invoice (PI)'))) {
+                e.preventDefault();
+            }
+        });
+    }
+
+    const sendInvForm = document.getElementById('sendTaxInvoiceForm');
+    if (sendInvForm) {
+        sendInvForm.addEventListener('submit', function(e) {
+            if (!confirm(getDispatchConfirmMsg('Tax Invoice (INV)'))) {
+                e.preventDefault();
+            }
         });
     }
 

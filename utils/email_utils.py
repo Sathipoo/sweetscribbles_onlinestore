@@ -336,6 +336,8 @@ def send_quotation_email(order, pdf_bytes, filename=None, cc_email=None):
 
     # Log communication
     effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    if isinstance(effective_cc, (list, tuple)):
+        effective_cc = ", ".join(effective_cc)
     cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
@@ -440,6 +442,8 @@ def send_proforma_email(order, pdf_bytes, filename=None, cc_email=None):
     )
 
     effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    if isinstance(effective_cc, (list, tuple)):
+        effective_cc = ", ".join(effective_cc)
     cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
@@ -536,6 +540,8 @@ def send_tax_invoice_email(order, pdf_bytes, filename=None, cc_email=None):
     )
 
     effective_cc = cc_email if cc_email is not None else DEFAULT_CC_EMAIL
+    if isinstance(effective_cc, (list, tuple)):
+        effective_cc = ", ".join(effective_cc)
     cc_tag = f" [CC: {effective_cc}]" if effective_cc else ""
     log = B2BCommunicationLog(
         order_id=order.id,
