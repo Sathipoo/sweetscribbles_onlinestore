@@ -102,11 +102,11 @@
                     <!-- Step 4: Design Proof -->
                     <div class="col-md-2 col-4">
                         <div class="p-2 rounded-3 border {% if active_order.stage in ['design_review', 'details_locked', 'production', 'delivered'] %}bg-dark text-white border-dark{% else %}bg-light text-muted{% endif %} mb-2 shadow-sm">
-                            <i class="bi {% if active_order.design_status == 'approved' %}bi-check-circle-fill text-success{% elif active_order.design_proof_url %}bi-eye-fill text-warning{% else %}bi-circle{% endif %} fs-5"></i>
+                            <i class="bi {% if active_order.design_status == 'approved' %}bi-check-circle-fill text-success{% elif active_order.has_design_assets %}bi-eye-fill text-warning{% else %}bi-circle{% endif %} fs-5"></i>
                         </div>
                         <span class="d-block small fw-bold text-dark">4. Artwork Proof</span>
                         <small class="text-muted" style="font-size: 0.75rem;">
-                            {% if active_order.design_status == 'approved' %}Approved{% elif active_order.design_proof_url %}Ready for Review{% else %}In Design{% endif %}
+                            {% if active_order.design_status == 'approved' %}Approved{% elif active_order.has_design_assets %}Ready for Review{% else %}In Design{% endif %}
                         </small>
                     </div>
 
@@ -183,9 +183,9 @@
                                 <span class="badge bg-warning-subtle text-warning border border-warning px-3 py-1.5 fw-bold">
                                     <i class="bi bi-arrow-repeat me-1"></i>Revision Requested
                                 </span>
-                            {% elif active_order.design_proof_url %}
+                            {% elif active_order.has_design_assets %}
                                 <span class="badge bg-primary px-3 py-1.5 fw-bold animate-pulse">
-                                    Action Required: Review Proof
+                                    Action Required: Review Proof{% if active_order.design_assets|length > 1 %}s ({{ active_order.design_assets|length }}){% endif %}
                                 </span>
                             {% else %}
                                 <span class="badge bg-light text-muted border px-3 py-1.5">
@@ -194,20 +194,62 @@
                             {% endif %}
                         </div>
 
-                        {% if active_order.design_proof_url %}
+                        {% if active_order.has_design_assets %}
+                            {% if active_order.design_assets %}
+                            <div class="row g-3 mb-3">
+                                {% for asset in active_order.design_assets %}
+                                <div class="{% if active_order.design_assets|length == 1 %}col-12{% else %}col-md-6{% endif %}">
+                                    <div class="card h-100 border rounded-3 p-3 bg-light shadow-2xs">
+                                        <div class="d-flex justify-content-between align-items-start mb-2">
+                                            <span class="badge bg-white text-secondary border small">#{{ loop.index }}</span>
+                                            <strong class="text-dark small text-truncate" style="max-width: 80%;" title="{{ asset.asset_name }}">
+                                                {{ asset.asset_name }}
+                                            </strong>
+                                        </div>
+
+                                        <div class="text-center p-2 bg-white rounded-2 border mb-2 flex-grow-1 d-flex align-items-center justify-content-center" style="min-height: 150px;">
+                                            {% if not asset.is_pdf %}
+                                            <a href="{{ asset.file_url }}" target="_blank">
+                                                <img src="{{ asset.file_url }}" alt="{{ asset.asset_name }}" class="img-fluid rounded" style="max-height: 170px; object-fit: contain;">
+                                            </a>
+                                            {% else %}
+                                            <div class="py-3 text-center">
+                                                <i class="bi bi-file-earmark-pdf text-danger fs-1 d-block mb-1"></i>
+                                                <span class="badge bg-danger-subtle text-danger border">PDF Artwork Proof</span>
+                                            </div>
+                                            {% endif %}
+                                        </div>
+
+                                        {% if asset.notes %}
+                                        <p class="small text-muted mb-2 fst-italic" style="font-size: 0.76rem;">
+                                            <i class="bi bi-info-circle me-1"></i>{{ asset.notes }}
+                                        </p>
+                                        {% endif %}
+
+                                        <div class="text-end">
+                                            <a href="{{ asset.file_url }}" target="_blank" class="btn btn-sm btn-outline-primary rounded-pill px-3 py-1" style="font-size: 0.78rem;">
+                                                <i class="bi bi-box-arrow-up-right me-1"></i>Inspect Full Resolution
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                                {% endfor %}
+                            </div>
+                            {% elif active_order.design_proof_url %}
                             <div class="text-center p-3 bg-light rounded-3 mb-3 border">
                                 <a href="{{ active_order.design_proof_url }}" target="_blank">
                                     <img src="{{ active_order.design_proof_url }}" alt="Design Proof" class="img-fluid rounded shadow-sm" style="max-height: 220px; object-fit: contain;">
                                 </a>
                                 <small class="text-muted d-block mt-2">Click image to inspect full high-resolution mockup</small>
                             </div>
+                            {% endif %}
 
                             {% if active_order.design_status != 'approved' %}
                             <div class="row g-2">
                                 <div class="col-md-6">
                                     <form action="{{ url_for('b2b.approve_design', order_id=active_order.id) }}" method="POST">
                                         <button type="submit" class="btn btn-success w-100 py-2.5 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2">
-                                            <i class="bi bi-check-circle-fill"></i>Approve For Production
+                                            <i class="bi bi-check-circle-fill"></i>Approve {% if active_order.design_assets|length > 1 %}All Proofs{% else %}For Production{% endif %}
                                         </button>
                                     </form>
                                 </div>
@@ -222,7 +264,7 @@
                             <div class="collapse mt-3" id="revisionCollapse">
                                 <form action="{{ url_for('b2b.request_revision', order_id=active_order.id) }}" method="POST" class="p-3 border rounded-3 bg-light">
                                     <label class="form-label small fw-semibold text-secondary">What would you like us to adjust in the artwork?</label>
-                                    <textarea name="design_feedback" class="form-control form-control-sm mb-2" rows="2" placeholder="e.g. Please adjust the logo placement to top-center and use gold foil text..."></textarea>
+                                    <textarea name="design_feedback" class="form-control form-control-sm mb-2" rows="2" placeholder="e.g. Please adjust the logo placement on the Grande box to top-center..."></textarea>
                                     <button type="submit" class="btn btn-warning btn-sm fw-bold">Submit Feedback</button>
                                 </form>
                             </div>

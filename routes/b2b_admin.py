@@ -6,7 +6,8 @@ from flask_login import login_required, current_user
 from extensions import db
 from models.b2b import (
     B2BClient, B2BOrder, B2BProduct, B2BProductImage, B2BProductShowcase,
-    B2BTestimonial, B2BTestimonialImage, B2BOrderItem, B2BCommunicationLog
+    B2BTestimonial, B2BTestimonialImage, B2BOrderItem, B2BCommunicationLog,
+    B2BOrderDesignAsset
 )
 from utils.otp_utils import send_b2b_sms, normalize_phone
 from utils.gcp_storage import upload_file
@@ -906,59 +907,148 @@ def send_welcome_email(order_id):
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 
+def _dispatch_order_design_proofs(order):
+    """Internal helper to dispatch design proof SMS and Email with CC resolution."""
+    old_stage = order.stage
+    if order.stage in ('advance_paid', 'enquiry', 'quotation_sent'):
+        order.stage = 'design_review'
+    order.design_status = 'awaiting_approval'
+    
+    asset_count = len(order.design_assets) or (1 if order.design_proof_url else 0)
+    order.add_log(
+        action_title="Design Proofs Dispatched to Client",
+        from_stage=old_stage,
+        to_stage=order.stage,
+        actor=f"{current_user.name} (Admin)",
+        details=f"Dispatched {asset_count} design asset mockup(s) to client via SMS & Email for approval."
+    )
+
+    if order.client and order.client.phone:
+        dispatch_b2b_sms_and_log(order, 'design_ready', 'design_ready', {
+            'client_name': order.client.contact_name or order.client.company_name,
+            'order_number': order.order_number
+        })
+
+    cc_list = resolve_b2b_cc_list(order)
+    cc_email_str = ", ".join(cc_list) if cc_list else None
+    if order.client and order.client.email:
+        send_design_proof_email(order, cc_email=cc_email_str)
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/design-assets/add', methods=['POST'])
 @b2b_admin_bp.route('/orders/<int:order_id>/upload-proof', methods=['POST'])
 @b2b_admin_bp.route('/orders/<int:order_id>/design-proof', methods=['POST'])
 @admin_required
-def upload_proof(order_id):
+def add_design_asset(order_id):
     order = B2BOrder.query.get_or_404(order_id)
     
-    proof_url = None
-    if 'design_proof' in request.files:
-        file = request.files['design_proof']
-        if file and file.filename:
-            try:
-                proof_url = upload_file(file, file.filename, folder="b2b_designs")
-            except Exception as e:
-                flash(f"Upload error: {str(e)}", 'danger')
-                return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+    asset_name = request.form.get('asset_name', '').strip()
+    notes = request.form.get('notes', '').strip() or None
+    if not asset_name:
+        existing_count = len(order.design_assets)
+        asset_name = f"Design Asset #{existing_count + 1}"
 
-    fallback_url = request.form.get('design_proof_fallback', '').strip()
+    proof_url = None
+    is_pdf = False
+    
+    # Check uploaded file
+    file = request.files.get('design_file') or request.files.get('design_proof')
+    if file and file.filename:
+        try:
+            is_pdf = file.filename.lower().endswith('.pdf')
+            proof_url = upload_file(file, file.filename, folder="b2b_designs")
+        except Exception as e:
+            flash(f"Upload error: {str(e)}", 'danger')
+            return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    # Check fallback URL
+    fallback_url = (request.form.get('design_proof_fallback') or request.form.get('design_file_fallback') or '').strip()
     if not proof_url and fallback_url:
         proof_url = fallback_url
+        is_pdf = proof_url.lower().endswith('.pdf')
 
-    if proof_url:
+    if not proof_url:
+        flash("No design proof file or URL provided. Please select an image or PDF.", 'warning')
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    # Create new design asset
+    asset = B2BOrderDesignAsset(
+        order_id=order.id,
+        asset_name=asset_name,
+        file_url=proof_url,
+        file_type='pdf' if is_pdf else 'image',
+        notes=notes,
+        display_order=len(order.design_assets)
+    )
+    db.session.add(asset)
+
+    # Sync primary design proof URL for legacy compatibility
+    if not order.design_proof_url:
         order.design_proof_url = proof_url
-        order.design_status = 'awaiting_approval'
-        
-        old_stage = order.stage
-        if order.stage in ('advance_paid', 'enquiry', 'quotation_sent'):
-            order.stage = 'design_review'
-            order.add_log(
-                action_title="Design Proof Uploaded & Ready for Client Review",
-                from_stage=old_stage,
-                to_stage='design_review',
-                actor=f"{current_user.name} (Admin)",
-                details="Uploaded high-res sleeve mockup for corporate approval."
-            )
-            if order.client and order.client.phone:
-                dispatch_b2b_sms_and_log(order, 'design_ready', 'design_ready', {
-                    'client_name': order.client.contact_name or order.client.company_name,
-                    'order_number': order.order_number
-                })
-            if order.client and order.client.email:
-                send_design_proof_email(order)
-        else:
-            order.add_log(
-                action_title="Design Proof Updated",
-                actor=f"{current_user.name} (Admin)",
-                details="Updated artwork mockup for client portal."
-            )
 
-        db.session.commit()
-        flash(f"Design proof uploaded for Order #{order.order_number}! Client notified via SMS & Email.", 'success')
+    if order.design_status in ('pending_upload', None):
+        order.design_status = 'assets_uploaded'
+
+    order.add_log(
+        action_title="Design Asset Added",
+        actor=f"{current_user.name} (Admin)",
+        details=f"Uploaded design asset: '{asset_name}'."
+    )
+
+    # Check if admin requested immediate dispatch
+    if request.form.get('dispatch_now') == '1':
+        _dispatch_order_design_proofs(order)
+        flash(f"Design asset '{asset_name}' added and proofs dispatched to client via SMS & Email!", 'success')
     else:
-        flash("No design proof file or URL provided.", 'warning')
+        flash(f"Design asset '{asset_name}' uploaded successfully. Add more assets or click 'Send Design Proofs to Client' when ready.", 'success')
 
+    db.session.commit()
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/design-assets/<int:asset_id>/delete', methods=['POST'])
+@admin_required
+def delete_design_asset(order_id, asset_id):
+    order = B2BOrder.query.get_or_404(order_id)
+    asset = B2BOrderDesignAsset.query.filter_by(id=asset_id, order_id=order.id).first_or_404()
+    
+    asset_name = asset.asset_name
+    db.session.delete(asset)
+    db.session.flush()
+
+    remaining_assets = order.design_assets
+    if remaining_assets:
+        order.design_proof_url = remaining_assets[0].file_url
+    else:
+        order.design_proof_url = None
+        if order.design_status == 'assets_uploaded':
+            order.design_status = 'pending_upload'
+
+    order.add_log(
+        action_title="Design Asset Removed",
+        actor=f"{current_user.name} (Admin)",
+        details=f"Removed design asset: '{asset_name}'."
+    )
+    db.session.commit()
+    flash(f"Design asset '{asset_name}' has been deleted.", 'info')
+    return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+
+@b2b_admin_bp.route('/orders/<int:order_id>/dispatch-design-proofs', methods=['POST'])
+@admin_required
+def dispatch_design_proofs(order_id):
+    order = B2BOrder.query.get_or_404(order_id)
+    
+    if not order.has_design_assets:
+        flash("Please upload at least one design proof asset before dispatching to client.", "warning")
+        return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
+
+    _dispatch_order_design_proofs(order)
+    db.session.commit()
+    
+    asset_count = len(order.design_assets) or 1
+    client_name = (order.client.contact_name or order.client.company_name) if order.client else "Client"
+    flash(f"Design proofs ({asset_count} asset(s)) successfully dispatched to {client_name}! Client notified via SMS and Email.", "success")
     return redirect(url_for('b2b_admin.order_detail', order_id=order.id))
 
 

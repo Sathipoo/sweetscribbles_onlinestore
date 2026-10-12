@@ -153,6 +153,7 @@ class B2BOrder(db.Model):
     logs = db.relationship('B2BOrderLog', backref='order', lazy=True, order_by="desc(B2BOrderLog.created_at)", cascade="all, delete-orphan")
     items = db.relationship('B2BOrderItem', backref='order', lazy=True, order_by="B2BOrderItem.id.asc()", cascade="all, delete-orphan")
     communication_logs = db.relationship('B2BCommunicationLog', backref='order', lazy=True, order_by="desc(B2BCommunicationLog.created_at)", cascade="all, delete-orphan")
+    design_assets = db.relationship('B2BOrderDesignAsset', backref='order', lazy=True, order_by="B2BOrderDesignAsset.display_order.asc(), B2BOrderDesignAsset.created_at.asc()", cascade="all, delete-orphan")
 
     @classmethod
     def generate_order_number(cls):
@@ -262,6 +263,27 @@ class B2BOrder(db.Model):
         adv = self.advance_amount_required if self.advance_paid else 0.0
         return max(0.0, round(total - adv, 2))
 
+    @property
+    def has_design_assets(self):
+        return bool(self.design_assets) or bool(self.design_proof_url)
+
+    @property
+    def all_design_assets(self):
+        """Returns list of B2BOrderDesignAsset or synthesized item if only legacy design_proof_url exists."""
+        if self.design_assets:
+            return self.design_assets
+        if self.design_proof_url:
+            return [
+                B2BOrderDesignAsset(
+                    id=0,
+                    order_id=self.id,
+                    asset_name="Primary Sleeve Mockup",
+                    file_url=self.design_proof_url,
+                    file_type="pdf" if self.design_proof_url.lower().endswith(".pdf") else "image"
+                )
+            ]
+        return []
+
     def add_log(self, action_title, to_stage=None, from_stage=None, actor='Admin', details=None):
         if to_stage is None:
             to_stage = self.stage
@@ -300,6 +322,31 @@ class B2BOrderItem(db.Model):
 
     def __repr__(self):
         return f"<B2BOrderItem {self.item_name} x {self.quantity} @ ₹{self.unit_price}>"
+
+
+class B2BOrderDesignAsset(db.Model):
+    """Multiple design proof assets (e.g. distinct sleeve/box artwork for different hampers) attached to an order."""
+    __tablename__ = 'b2b_order_design_assets'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    order_id = db.Column(db.Integer, db.ForeignKey('b2b_orders.id', ondelete='CASCADE'), nullable=False, index=True)
+    asset_name = db.Column(db.String(150), nullable=False)
+    file_url = db.Column(db.String(500), nullable=False)
+    file_type = db.Column(db.String(50), default='image') # 'image', 'pdf', etc.
+    notes = db.Column(db.Text, nullable=True)
+    display_order = db.Column(db.Integer, default=0)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def __repr__(self):
+        return f"<B2BOrderDesignAsset {self.id}: {self.asset_name} (Order {self.order_id})>"
+
+    @property
+    def is_pdf(self):
+        if self.file_type and 'pdf' in self.file_type.lower():
+            return True
+        if self.file_url and self.file_url.lower().endswith('.pdf'):
+            return True
+        return False
 
 
 class B2BCommunicationLog(db.Model):

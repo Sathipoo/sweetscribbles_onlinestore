@@ -206,9 +206,9 @@
                 {% endif %}
             </form>
 
-            <!-- 3. Upload Design Proof Modal -->
-            <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#uploadProofModal">
-                <i class="bi bi-image me-1"></i>Upload Proof (SMS + Email)
+            <!-- 3. Add / Manage Design Proofs Modal -->
+            <button type="button" class="btn btn-sm btn-outline-light" data-bs-toggle="modal" data-bs-target="#addDesignAssetModal">
+                <i class="bi bi-images me-1"></i>Design Proofs ({{ order.design_assets|length }})
             </button>
 
             <!-- 4. Lock Details & Set Production ETA Modal -->
@@ -851,30 +851,128 @@
             {% endif %}
         </div>
 
-        <!-- Designer Proof Preview -->
+        <!-- Designer Proofs & Packaging Assets -->
         <div class="card border-0 shadow-sm rounded-4 p-4 bg-white mb-4">
             <div class="d-flex justify-content-between align-items-center border-bottom pb-2 mb-3">
-                <h6 class="fw-bold text-dark mb-0">Design Proof (Mockup)</h6>
-                <span class="badge {% if order.design_status == 'approved' %}bg-success{% elif order.design_status == 'revision_requested' %}bg-warning text-dark{% else %}bg-secondary{% endif %}">
-                    {{ order.design_status }}
-                </span>
+                <div class="d-flex align-items-center gap-2">
+                    <h6 class="fw-bold text-dark mb-0">
+                        <i class="bi bi-images me-1.5 text-primary"></i>Design Proofs (Mockups)
+                    </h6>
+                    <span class="badge bg-light text-dark border small">
+                        {{ order.design_assets|length }} Asset{% if order.design_assets|length != 1 %}s{% endif %}
+                    </span>
+                </div>
+                <div class="d-flex align-items-center gap-2">
+                    <span class="badge {% if order.design_status == 'approved' %}bg-success{% elif order.design_status == 'revision_requested' %}bg-warning text-dark{% elif order.design_status == 'assets_uploaded' %}bg-info text-dark{% elif order.design_status == 'awaiting_approval' %}bg-primary text-white{% else %}bg-secondary{% endif %}">
+                        {{ (order.design_status or 'pending_upload')|replace('_', ' ')|title }}
+                    </span>
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-2.5 py-1" style="font-size: 0.78rem;" data-bs-toggle="modal" data-bs-target="#addDesignAssetModal" title="Upload a new box sleeve / mockup asset">
+                        <i class="bi bi-plus-lg me-1"></i>Add Asset
+                    </button>
+                </div>
             </div>
 
-            {% if order.design_proof_url %}
+            {% if order.design_assets %}
+            <div class="d-flex flex-column gap-3 mb-3">
+                {% for asset in order.design_assets %}
+                <div class="border rounded-3 p-3 bg-light position-relative">
+                    <div class="d-flex justify-content-between align-items-start mb-2">
+                        <div>
+                            <div class="d-flex align-items-center gap-2">
+                                <span class="badge bg-white text-secondary border small">#{{ loop.index }}</span>
+                                <strong class="text-dark" style="font-size: 0.92rem;">{{ asset.asset_name }}</strong>
+                            </div>
+                            {% if asset.notes %}
+                            <small class="text-muted d-block mt-0.5" style="font-size: 0.78rem;">
+                                <i class="bi bi-card-text me-1"></i>{{ asset.notes }}
+                            </small>
+                            {% endif %}
+                        </div>
+                        <form action="{{ url_for('b2b_admin.delete_design_asset', order_id=order.id, asset_id=asset.id) }}" method="POST" class="d-inline" onsubmit="return confirm('Remove design asset \'{{ asset.asset_name }}\'?');">
+                            <button type="submit" class="btn btn-sm btn-outline-danger border-0 p-1 px-2" title="Delete this asset">
+                                <i class="bi bi-trash"></i>
+                            </button>
+                        </form>
+                    </div>
+
+                    <div class="text-center p-2 bg-white rounded-2 border mb-2">
+                        {% if not asset.is_pdf %}
+                        <a href="{{ asset.file_url }}" target="_blank">
+                            <img src="{{ asset.file_url }}" alt="{{ asset.asset_name }}" class="img-fluid rounded" style="max-height: 160px; object-fit: contain;">
+                        </a>
+                        {% else %}
+                        <div class="py-3 text-center">
+                            <i class="bi bi-file-earmark-pdf text-danger fs-1 d-block mb-1"></i>
+                            <span class="badge bg-danger-subtle text-danger border">PDF Document Proof</span>
+                        </div>
+                        {% endif %}
+                    </div>
+
+                    <div class="d-flex justify-content-between align-items-center">
+                        <small class="text-muted" style="font-size: 0.75rem;">
+                            <i class="bi bi-clock me-1"></i>{{ asset.created_at.strftime('%d %b, %H:%M') if asset.created_at else '' }}
+                        </small>
+                        <a href="{{ asset.file_url }}" target="_blank" class="btn btn-sm btn-link text-decoration-none p-0 fw-semibold" style="font-size: 0.8rem;">
+                            <i class="bi bi-box-arrow-up-right me-1"></i>Full Resolution
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+            </div>
+
+            <!-- Client Notification Dispatch Bar -->
+            <div class="p-3 rounded-3 border mb-3" style="background-color: #faf5ff; border-color: #e9d8fd !important;">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <div>
+                        <strong style="color: #553c9a; font-size: 0.85rem;"><i class="bi bi-send-check me-1"></i>Client Notification Dispatch</strong>
+                        <div class="text-muted" style="font-size: 0.76rem;">
+                            Dispatches consolidated email with all {{ order.design_assets|length }} mockups + DLT SMS approval link.
+                        </div>
+                    </div>
+                    {% if order.client and order.client.has_cc_emails %}
+                    <span class="badge bg-white text-secondary border small" title="Client CC recipients: {{ order.client.cc_email_list|join(', ') }}">
+                        CC: {{ 'ON' if order.use_client_cc else 'OFF' }}
+                    </span>
+                    {% endif %}
+                </div>
+                <form action="{{ url_for('b2b_admin.dispatch_design_proofs', order_id=order.id) }}" method="POST">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm py-2" style="background: #6b46c1; border-color: #553c9a;">
+                        <i class="bi bi-envelope-paper me-1.5"></i>Send Design Proofs to Client (Email + SMS)
+                    </button>
+                </form>
+            </div>
+
+            {% elif order.design_proof_url %}
+            <!-- Legacy single proof fallback -->
             <div class="text-center p-3 bg-light rounded-3 border mb-3">
                 <a href="{{ order.design_proof_url }}" target="_blank">
                     <img src="{{ order.design_proof_url }}" alt="Proof" class="img-fluid rounded" style="max-height: 180px; object-fit: contain;">
                 </a>
                 <a href="{{ order.design_proof_url }}" target="_blank" class="btn btn-sm btn-link d-block mt-2">Open Full Resolution Proof</a>
             </div>
-            {% if order.design_feedback %}
-            <div class="alert alert-warning p-2.5 small rounded-3 mb-0">
-                <strong>Client Feedback:</strong> {{ order.design_feedback }}
+            <div class="p-3 rounded-3 border mb-3" style="background-color: #faf5ff; border-color: #e9d8fd !important;">
+                <form action="{{ url_for('b2b_admin.dispatch_design_proofs', order_id=order.id) }}" method="POST">
+                    <button type="submit" class="btn btn-primary w-100 fw-bold shadow-sm py-2" style="background: #6b46c1; border-color: #553c9a;">
+                        <i class="bi bi-envelope-paper me-1.5"></i>Resend Design Proofs to Client (Email + SMS)
+                    </button>
+                </form>
             </div>
-            {% endif %}
             {% else %}
             <div class="text-center py-4 bg-light rounded-3 border text-muted small mb-3">
-                No proof uploaded yet. Click <strong>Upload Proof</strong> above to dispatch mockup to client.
+                <i class="bi bi-images text-secondary fs-3 d-block mb-1"></i>
+                No design proof assets uploaded yet.<br>
+                Upload distinct box sleeve or hamper mockups for this order.
+                <div class="mt-2.5">
+                    <button type="button" class="btn btn-sm btn-primary rounded-pill px-3" data-bs-toggle="modal" data-bs-target="#addDesignAssetModal">
+                        <i class="bi bi-plus-lg me-1"></i>Add First Asset
+                    </button>
+                </div>
+            </div>
+            {% endif %}
+
+            {% if order.design_feedback %}
+            <div class="alert alert-warning p-2.5 small rounded-3 mb-0">
+                <strong><i class="bi bi-chat-quote me-1"></i>Client Feedback:</strong> {{ order.design_feedback }}
             </div>
             {% endif %}
         </div>
@@ -1044,27 +1142,51 @@
     </div>
 </div>
 
-<!-- 2. UPLOAD PROOF MODAL -->
-<div class="modal fade" id="uploadProofModal" tabindex="-1" aria-hidden="true">
+<!-- 2. ADD DESIGN PROOF ASSET MODAL -->
+<div class="modal fade" id="addDesignAssetModal" tabindex="-1" aria-hidden="true">
     <div class="modal-dialog modal-dialog-centered">
         <div class="modal-content rounded-4 border-0 shadow-lg">
             <div class="modal-header border-bottom px-4 py-3 bg-dark text-white" style="background: #1e130f !important;">
-                <h5 class="modal-title fw-bold">Upload Custom Box Artwork Proof</h5>
+                <h5 class="modal-title fw-bold">
+                    <i class="bi bi-images me-2 text-warning"></i>Add Design Proof Asset
+                </h5>
                 <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
             </div>
-            <form action="{{ url_for('b2b_admin.upload_proof', order_id=order.id) }}" method="POST" enctype="multipart/form-data">
+            <form action="{{ url_for('b2b_admin.add_design_asset', order_id=order.id) }}" method="POST" enctype="multipart/form-data">
                 <div class="modal-body p-4">
-                    <p class="small text-muted mb-3">
-                        Uploading a proof sets the order to <strong>Design Review</strong> and automatically triggers the <strong>DLT SMS</strong> and <strong>Review Email</strong> with the client portal approval link.
-                    </p>
+                    <div class="alert alert-light border small text-muted mb-3 py-2 px-3">
+                        <i class="bi bi-info-circle text-primary me-1"></i>
+                        Add individual box sleeve or hamper mockups. Uploading an asset <strong>does not</strong> trigger client alerts immediately. You can upload all required assets first, then click <strong>Send Design Proofs to Client</strong>.
+                    </div>
+
                     <div class="mb-3">
-                        <label class="form-label small fw-semibold text-secondary">Select Mockup / Proof Image (PNG, JPG, PDF)</label>
-                        <input type="file" name="design_proof" class="form-control" accept="image/*,.pdf" required>
+                        <label class="form-label small fw-semibold text-secondary">Asset / Box Type Name <span class="text-danger">*</span></label>
+                        <input type="text" name="asset_name" class="form-control" placeholder="e.g. Celebration Carry Hamper — Grande or Just Nuts Box Sleeve" required>
+                        <small class="text-muted" style="font-size: 0.78rem;">Identifies which box or hamper variety this artwork is crafted for.</small>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Design File (PNG, JPG, PDF) <span class="text-danger">*</span></label>
+                        <input type="file" name="design_file" class="form-control" accept="image/*,.pdf" required>
+                    </div>
+
+                    <div class="mb-3">
+                        <label class="form-label small fw-semibold text-secondary">Optional Specifications / Notes</label>
+                        <input type="text" name="notes" class="form-control" placeholder="e.g. Front sleeve with gold foil logo, 4-color print">
+                    </div>
+
+                    <div class="form-check form-switch mt-2">
+                        <input class="form-check-input" type="checkbox" name="dispatch_now" value="1" id="dispatchNowCheck">
+                        <label class="form-check-label small text-secondary" for="dispatchNowCheck">
+                            Dispatch SMS & Email to client immediately after uploading this asset
+                        </label>
                     </div>
                 </div>
                 <div class="modal-footer border-top px-4 py-3 bg-light">
                     <button type="button" class="btn btn-outline-secondary rounded-pill" data-bs-dismiss="modal">Cancel</button>
-                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">Upload & Dispatch Alerts (SMS + Email)</button>
+                    <button type="submit" class="btn btn-primary fw-bold rounded-pill px-4">
+                        <i class="bi bi-cloud-arrow-up me-1"></i>Upload Asset
+                    </button>
                 </div>
             </form>
         </div>

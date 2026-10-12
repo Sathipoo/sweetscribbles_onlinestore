@@ -649,19 +649,80 @@ def send_design_proof_email(order, cc_email=None):
     subject = f"Action Required: Approve Design Proof for Order #{order.order_number} — Sweet Scribbles"
     preheader = f"Your custom branding sleeve proof for #{order.order_number} is ready for review."
 
+    assets = getattr(order, 'design_assets', []) or []
+    assets_html = ""
+    if assets:
+        assets_cards = []
+        for asset in assets:
+            if not asset.is_pdf:
+                preview_elem = f"""
+                <div style="text-align: center; margin: 10px 0;">
+                    <a href="{asset.file_url}" target="_blank">
+                        <img src="{asset.file_url}" alt="{asset.asset_name}" style="max-height: 180px; max-width: 100%; border-radius: 6px; border: 1px solid #E2E8F0; object-fit: contain;">
+                    </a>
+                </div>
+                """
+            else:
+                preview_elem = f"""
+                <div style="text-align: center; margin: 12px 0; color: #C53030; font-weight: 600; font-size: 14px;">
+                    📄 PDF Document Proof
+                </div>
+                """
+            notes_elem = f"<p style='margin: 4px 0 0 0; font-size: 13px; color: #718096; font-style: italic;'>{asset.notes}</p>" if asset.notes else ""
+            assets_cards.append(f"""
+            <div style="background-color: #FAF5FF; border: 1px solid #E9D8FD; border-radius: 8px; padding: 14px 16px; margin-bottom: 14px;">
+                <div style="font-weight: 700; color: #44337A; font-size: 15px; margin-bottom: 4px;">
+                    📦 {asset.asset_name}
+                </div>
+                {preview_elem}
+                {notes_elem}
+                <div style="text-align: right; margin-top: 6px;">
+                    <a href="{asset.file_url}" target="_blank" style="color: #6B46C1; font-size: 13px; font-weight: 600; text-decoration: underline;">
+                        View Full Resolution Mockup &rarr;
+                    </a>
+                </div>
+            </div>
+            """)
+        assets_html = f"""
+        <div style="margin: 24px 0 16px 0;">
+            <h3 style="color: #2D3748; font-size: 16px; margin-bottom: 12px; font-weight: 700;">
+                Packaging & Sleeve Design Proofs ({len(assets)} item{'s' if len(assets) > 1 else ''}):
+            </h3>
+            {''.join(assets_cards)}
+        </div>
+        """
+    elif order.design_proof_url:
+        assets_html = f"""
+        <div style="background-color: #FAF5FF; border: 1px solid #E9D8FD; border-radius: 8px; padding: 14px 16px; margin: 20px 0; text-align: center;">
+            <div style="font-weight: 700; color: #44337A; font-size: 15px; margin-bottom: 8px;">
+                📦 Custom Sleeve Mockup
+            </div>
+            <a href="{order.design_proof_url}" target="_blank">
+                <img src="{order.design_proof_url}" alt="Design Proof" style="max-height: 180px; max-width: 100%; border-radius: 6px; border: 1px solid #E2E8F0; object-fit: contain;">
+            </a>
+            <div style="margin-top: 8px;">
+                <a href="{order.design_proof_url}" target="_blank" style="color: #6B46C1; font-size: 13px; font-weight: 600; text-decoration: underline;">
+                    View Full Resolution Mockup &rarr;
+                </a>
+            </div>
+        </div>
+        """
+
     body_html = f"""
     <h2 style="color: #1A202C; margin-top: 0; font-size: 20px; font-weight: 700;">
-        Your Digital Sleeve Mockup is Ready for Approval!
+        Your Digital Sleeve Mockups are Ready for Approval!
     </h2>
     <p style="color: #4A5568; font-size: 15px;">
         Dear {contact_name},<br><br>
-        Our design studio has crafted your personalized packaging sleeve mockup for Order <b>#{order.order_number}</b>.
+        Our design studio has crafted your personalized packaging sleeve mockups for Order <b>#{order.order_number}</b>.
     </p>
 
-    <div style="background-color: #FAF5FF; border: 1px solid #E9D8FD; border-radius: 8px; padding: 18px 20px; margin: 24px 0;">
-        <h4 style="margin: 0 0 6px 0; color: #553C9A; font-size: 15px;">Sleeve Proof Sign-Off</h4>
-        <p style="margin: 0; color: #6B46C1; font-size: 14px;">
-            Please log into your client portal to review the proof dimensions, logo fidelity, and festive messaging. Once approved, sleeve printing will commence immediately.
+    {assets_html}
+
+    <div style="background-color: #F7FAFC; border: 1px solid #EDF2F7; border-radius: 8px; padding: 18px 20px; margin: 24px 0;">
+        <h4 style="margin: 0 0 6px 0; color: #2D3748; font-size: 15px;">Proof Sign-Off Notice</h4>
+        <p style="margin: 0; color: #4A5568; font-size: 14px;">
+            Please log into your client portal to review each proof's dimensions, logo fidelity, and festive messaging. Once you approve, sleeve printing and production will commence immediately.
         </p>
     </div>
     """
