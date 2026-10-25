@@ -593,15 +593,28 @@ def bulk_email():
     """
     try:
         data = request.get_json(silent=True) or request.form
-        lead_ids = data.get('lead_ids', [])
-        if isinstance(lead_ids, str):
+        raw_lead_ids = data.get('lead_ids', [])
+        lead_ids = []
+        if isinstance(raw_lead_ids, str):
             try:
-                lead_ids = json.loads(lead_ids)
+                raw_lead_ids = json.loads(raw_lead_ids)
             except Exception:
-                lead_ids = [int(i.strip()) for i in lead_ids.split(',') if i.strip()]
+                raw_lead_ids = [i.strip() for i in raw_lead_ids.split(',') if i.strip()]
+
+        if isinstance(raw_lead_ids, (list, tuple)):
+            for item in raw_lead_ids:
+                try:
+                    lead_ids.append(int(item))
+                except (ValueError, TypeError):
+                    pass
 
         target_stage = (data.get('stage') or data.get('target_stage') or '').strip()
         target_source = (data.get('source') or data.get('target_source') or '').strip()
+        if target_stage in ['None', 'null', 'undefined', 'all']:
+            target_stage = ''
+        if target_source in ['None', 'null', 'undefined', 'all']:
+            target_source = ''
+
         subject = data.get('subject', '').strip()
         content_body = (data.get('body') or data.get('content_body') or '').strip()
         cta_text = data.get('cta_text', 'Explore Corporate Festive Hampers').strip()

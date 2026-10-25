@@ -38,7 +38,7 @@
 
         <!-- Prominent Top Send Bulk Email Button -->
         <button type="button" class="btn btn-sm btn-crm-gold rounded-pill px-3 py-1.5 shadow-sm fw-bold"
-            data-bs-toggle="modal" data-bs-target="#bulkEmailModal" onclick="prepareBulkEmailModal('filter')">
+            data-bs-toggle="modal" data-bs-target="#bulkEmailModal" onclick="prepareBulkEmailModal('auto')">
             <i class="bi bi-envelope-paper-heart-fill me-1"></i>Send Bulk Email
         </button>
 
@@ -1967,16 +1967,21 @@ Corporate Gifting Director, Sweet Scribbles`
     }
 
     function prepareBulkEmailModal(mode) {
+        if (!mode || mode === 'auto' || mode === 'filter') {
+            mode = (selectedLeadIds && selectedLeadIds.length > 0) ? 'selected' : 'filter';
+        }
         currentBulkMode = mode;
         const summary = document.getElementById('bulkRecipientSummary');
         const statusAlert = document.getElementById('bulkEmailStatusAlert');
         statusAlert.classList.add('d-none');
 
-        if (mode === 'selected') {
-            summary.innerHTML = `Targeting <strong>${selectedLeadIds.length} selected leads</strong> from table`;
+        if (mode === 'selected' && selectedLeadIds.length > 0) {
+            summary.innerHTML = `Targeting <strong>${selectedLeadIds.length} selected lead${selectedLeadIds.length > 1 ? 's' : ''}</strong> from pipeline`;
         } else {
-            const stage = "{{ current_stage }}";
-            const source = "{{ current_source }}";
+            const rawStage = ("{{ current_stage or '' }}").trim();
+            const rawSource = ("{{ current_source or '' }}").trim();
+            const stage = (rawStage && rawStage !== 'None' && rawStage !== 'all') ? rawStage : '';
+            const source = (rawSource && rawSource !== 'None') ? rawSource : '';
             let filterDesc = [];
             if (stage) filterDesc.push(`Stage: ${stage}`);
             if (source) filterDesc.push(`Source: ${source}`);
@@ -2141,16 +2146,25 @@ Corporate Gifting Director, Sweet Scribbles`
             tplIdToSend = parseInt(templateSelectorVal.replace('tpl_', ''));
         }
 
+        let effectiveLeadIds = null;
+        if (selectedLeadIds && selectedLeadIds.length > 0) {
+            effectiveLeadIds = selectedLeadIds.map(id => parseInt(id)).filter(id => !isNaN(id));
+        }
+
+        const rawStageVal = ("{{ current_stage or '' }}").trim();
+        const rawSourceVal = ("{{ current_source or '' }}").trim();
+        const rawSearchVal = ("{{ search or '' }}").trim();
+
         const payload = {
             template_id: tplIdToSend,
             subject: subject,
             body: body,
             cc_recipients: ccRecipients,
             advance_stage: advanceStage,
-            lead_ids: (currentBulkMode === 'selected' && selectedLeadIds.length > 0) ? selectedLeadIds : null,
-            stage: "{{ current_stage }}" || null,
-            source: "{{ current_source }}" || null,
-            q: "{{ search }}" || null
+            lead_ids: (effectiveLeadIds && effectiveLeadIds.length > 0) ? effectiveLeadIds : null,
+            stage: (rawStageVal && rawStageVal !== 'None' && rawStageVal !== 'all') ? rawStageVal : null,
+            source: (rawSourceVal && rawSourceVal !== 'None') ? rawSourceVal : null,
+            q: (rawSearchVal && rawSearchVal !== 'None') ? rawSearchVal : null
         };
 
         try {
