@@ -1,3 +1,4 @@
+from datetime import timedelta
 import os
 from config import Config
 
@@ -9,6 +10,7 @@ class CRMConfig(Config):
     SESSION_COOKIE_NAME = 'ss_crm_session'
     SESSION_COOKIE_HTTPONLY = True
     SESSION_COOKIE_SAMESITE = 'Lax'
+    PERMANENT_SESSION_LIFETIME = timedelta(days=30)
     
     # CRM Sales Operations Credentials
     CRM_ACCESS_KEY = os.environ.get('CRM_ACCESS_KEY', os.environ.get('ADMIN_PASSWORD', 'sweet2026'))

@@ -1,5 +1,5 @@
 from functools import wraps
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, current_app, jsonify
 
 auth_bp = Blueprint('crm_auth', __name__)
 
@@ -7,6 +7,17 @@ def crm_login_required(f):
     @wraps(f)
     def decorated_function(*args, **kwargs):
         if not session.get('crm_authenticated'):
+            is_ajax = (
+                request.is_json
+                or request.headers.get('X-Requested-With') == 'XMLHttpRequest'
+                or 'application/json' in request.headers.get('Accept', '')
+            )
+            if is_ajax:
+                return jsonify({
+                    'success': False,
+                    'authenticated': False,
+                    'error': 'Your CRM session has expired. Please refresh the page or log in again.'
+                }), 401
             return redirect(url_for('crm_auth.login', next=request.path))
         return f(*args, **kwargs)
     return decorated_function
@@ -22,6 +33,7 @@ def login():
         expected_key = current_app.config.get('CRM_ACCESS_KEY', 'sweet2026')
         
         if key == expected_key or key == 'sweet2026' or key == 'admin':
+            session.permanent = True
             session['crm_authenticated'] = True
             session['crm_user'] = request.form.get('sales_rep_name', 'Sales Operations').strip() or 'Sales Operations'
             next_page = request.args.get('next')

@@ -591,125 +591,133 @@ def bulk_email():
     Performs live parameter substitution ({contact_name}, {company_name}, {city}, {outreach_link})
     and supports customizable CC recipients (always ensuring Vishnu.govind@pikachooz.com is present).
     """
-    data = request.get_json(silent=True) or request.form
-    lead_ids = data.get('lead_ids', [])
-    if isinstance(lead_ids, str):
-        try:
-            lead_ids = json.loads(lead_ids)
-        except Exception:
-            lead_ids = [int(i.strip()) for i in lead_ids.split(',') if i.strip()]
+    try:
+        data = request.get_json(silent=True) or request.form
+        lead_ids = data.get('lead_ids', [])
+        if isinstance(lead_ids, str):
+            try:
+                lead_ids = json.loads(lead_ids)
+            except Exception:
+                lead_ids = [int(i.strip()) for i in lead_ids.split(',') if i.strip()]
 
-    target_stage = (data.get('stage') or data.get('target_stage') or '').strip()
-    target_source = (data.get('source') or data.get('target_source') or '').strip()
-    subject = data.get('subject', '').strip()
-    content_body = (data.get('body') or data.get('content_body') or '').strip()
-    cta_text = data.get('cta_text', 'Explore Corporate Festive Hampers').strip()
-    cta_url = data.get('cta_url', '').strip()
-    include_outreach_link = str(data.get('include_outreach_link', 'true')).lower() in ['true', '1', 'yes']
-    update_stage_to = (data.get('advance_stage') or data.get('update_stage_to') or '').strip()
+        target_stage = (data.get('stage') or data.get('target_stage') or '').strip()
+        target_source = (data.get('source') or data.get('target_source') or '').strip()
+        subject = data.get('subject', '').strip()
+        content_body = (data.get('body') or data.get('content_body') or '').strip()
+        cta_text = data.get('cta_text', 'Explore Corporate Festive Hampers').strip()
+        cta_url = data.get('cta_url', '').strip()
+        include_outreach_link = str(data.get('include_outreach_link', 'true')).lower() in ['true', '1', 'yes']
+        update_stage_to = (data.get('advance_stage') or data.get('update_stage_to') or '').strip()
 
-    # Customizable CC recipients
-    raw_cc = (data.get('cc_recipients') or data.get('cc_email') or '').strip()
-    cc_list = []
-    if raw_cc:
-        cc_list = [c.strip() for c in raw_cc.split(',') if c.strip()]
-    default_ccs = [c.strip() for c in DEFAULT_CC_EMAIL.split(',') if c.strip()]
-    for def_cc in default_ccs:
-        if def_cc.lower() not in [c.lower() for c in cc_list]:
-            cc_list.append(def_cc)
-    effective_cc = ", ".join(cc_list)
+        # Customizable CC recipients
+        raw_cc = (data.get('cc_recipients') or data.get('cc_email') or '').strip()
+        cc_list = []
+        if raw_cc:
+            cc_list = [c.strip() for c in raw_cc.split(',') if c.strip()]
+        default_ccs = [c.strip() for c in DEFAULT_CC_EMAIL.split(',') if c.strip()]
+        for def_cc in default_ccs:
+            if def_cc.lower() not in [c.lower() for c in cc_list]:
+                cc_list.append(def_cc)
+        effective_cc = ", ".join(cc_list)
 
-    if not subject or not content_body:
-        return jsonify({'success': False, 'message': 'Email subject and message body are required.'}), 400
+        if not subject or not content_body:
+            return jsonify({'success': False, 'message': 'Email subject and message body are required.'}), 400
 
-    query = B2BLead.query.filter(B2BLead.email.isnot(None), B2BLead.email != '')
-    if lead_ids:
-        query = query.filter(B2BLead.id.in_(lead_ids))
-    else:
-        if target_stage:
-            query = query.filter(B2BLead.stage == target_stage)
-        if target_source:
-            query = query.filter(B2BLead.lead_source == target_source)
-
-    targets = query.all()
-    if not targets:
-        return jsonify({'success': False, 'message': 'No leads with valid email addresses found in the selection.'}), 400
-
-    store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
-    fallback_cta_url = cta_url or f"{store_base_url}/b2b/hampers"
-
-    template_id = data.get('template_id')
-    template_attachments = []
-    attachment_names = []
-    if template_id:
-        try:
-            tpl = db.session.get(CRMEmailTemplate, int(template_id))
-            if tpl:
-                template_attachments = tpl.get_email_attachments()
-                attachment_names = [a.get('original_filename') or a.get('filename') for a in tpl.attachments]
-        except Exception as e:
-            current_app.logger.warning(f"Error loading template attachments: {e}")
-
-    sent_count = 0
-    failed_count = 0
-
-    sig_gif_tag = f'<div style="margin-top: 14px;"><img src="{store_base_url}/static/gifs/pika_ss_signature.gif" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" /></div>'
-
-    for lead in targets:
-        personal_link = f"{store_base_url}/b2b?trk={lead.tracking_token}"
-        chosen_cta_url = personal_link if include_outreach_link else fallback_cta_url
-
-        # Substitute variables
-        body_rendered = content_body
-        body_rendered = body_rendered.replace('{contact_name}', lead.contact_name or 'Corporate Partner')
-        body_rendered = body_rendered.replace('{company_name}', lead.company_name or 'your organization')
-        body_rendered = body_rendered.replace('{city}', lead.city or '')
-        body_rendered = body_rendered.replace('{designation}', lead.designation or '')
-        body_rendered = body_rendered.replace('{outreach_link}', personal_link)
-        body_rendered = body_rendered.replace('{signature_gif}', sig_gif_tag)
-        if '<p' not in body_rendered and '<div' not in body_rendered:
-            body_rendered = body_rendered.replace('\n', '<br>')
-
-        subj_rendered = subject
-        subj_rendered = subj_rendered.replace('{contact_name}', lead.contact_name or 'Corporate Partner')
-        subj_rendered = subj_rendered.replace('{company_name}', lead.company_name or 'your organization')
-
-        success, _ = send_crm_campaign_email(
-            to_email=lead.email,
-            subject=subj_rendered,
-            recipient_name=lead.contact_name,
-            content_html=body_rendered,
-            cta_text=cta_text,
-            cta_url=chosen_cta_url,
-            cc_email=effective_cc,
-            attachments=template_attachments if template_attachments else None
-        )
-
-        if success:
-            sent_count += 1
-            lead.update_score(15, f"Outreach email dispatched: {subj_rendered[:40]}")
-            if update_stage_to and update_stage_to in [s[0] for s in STAGES]:
-                lead.stage = update_stage_to
-            elif lead.stage == 'fresh_lead':
-                lead.stage = 'prospect'
-
-            # Log sales note
-            timestamp = datetime.utcnow().strftime("%d %b %Y, %I:%M %p")
-            att_info = f"Attachments: {', '.join(attachment_names)}\n" if attachment_names else ""
-            log_msg = f"[{timestamp} - Outbound Email Sent]\nSubject: {subj_rendered}\nCC: {effective_cc}\n{att_info}"
-            lead.notes = log_msg + (lead.notes or '')
+        query = B2BLead.query.filter(B2BLead.email.isnot(None), B2BLead.email != '')
+        if lead_ids:
+            query = query.filter(B2BLead.id.in_(lead_ids))
         else:
-            failed_count += 1
+            if target_stage:
+                query = query.filter(B2BLead.stage == target_stage)
+            if target_source:
+                query = query.filter(B2BLead.lead_source == target_source)
 
-    db.session.commit()
+        targets = query.all()
+        if not targets:
+            return jsonify({'success': False, 'message': 'No leads with valid email addresses found in the selection.'}), 400
 
-    msg = f"Dispatched {sent_count} emails successfully! (Failed/Skipped: {failed_count}). CC recipients: {effective_cc}."
-    return jsonify({
-        'success': True,
-        'sent_count': sent_count,
-        'failed_count': failed_count,
-        'message': msg
-    })
+        store_base_url = current_app.config.get('STORE_BASE_URL', 'https://sweetscribbles.pikachooz.com')
+        fallback_cta_url = cta_url or f"{store_base_url}/b2b/hampers"
+
+        template_id = data.get('template_id')
+        template_attachments = []
+        attachment_names = []
+        if template_id:
+            try:
+                tpl = db.session.get(CRMEmailTemplate, int(template_id))
+                if tpl:
+                    template_attachments = tpl.get_email_attachments()
+                    attachment_names = [a.get('original_filename') or a.get('filename') for a in tpl.attachments]
+            except Exception as e:
+                current_app.logger.warning(f"Error loading template attachments: {e}")
+
+        sent_count = 0
+        failed_count = 0
+
+        sig_gif_tag = f'<div style="margin-top: 14px;"><img src="{store_base_url}/static/gifs/pika_ss_signature.gif" alt="Sweet Scribbles Signature" style="width: 240px; max-width: 100%; height: auto; display: block; border-radius: 4px;" /></div>'
+
+        for lead in targets:
+            personal_link = f"{store_base_url}/b2b?trk={lead.tracking_token}"
+            chosen_cta_url = personal_link if include_outreach_link else fallback_cta_url
+
+            # Substitute variables
+            body_rendered = content_body
+            body_rendered = body_rendered.replace('{contact_name}', lead.contact_name or 'Corporate Partner')
+            body_rendered = body_rendered.replace('{company_name}', lead.company_name or 'your organization')
+            body_rendered = body_rendered.replace('{city}', lead.city or '')
+            body_rendered = body_rendered.replace('{designation}', lead.designation or '')
+            body_rendered = body_rendered.replace('{outreach_link}', personal_link)
+            body_rendered = body_rendered.replace('{signature_gif}', sig_gif_tag)
+            if '<p' not in body_rendered and '<div' not in body_rendered:
+                body_rendered = body_rendered.replace('\n', '<br>')
+
+            subj_rendered = subject
+            subj_rendered = subj_rendered.replace('{contact_name}', lead.contact_name or 'Corporate Partner')
+            subj_rendered = subj_rendered.replace('{company_name}', lead.company_name or 'your organization')
+
+            success, _ = send_crm_campaign_email(
+                to_email=lead.email,
+                subject=subj_rendered,
+                recipient_name=lead.contact_name,
+                content_html=body_rendered,
+                cta_text=cta_text,
+                cta_url=chosen_cta_url,
+                cc_email=effective_cc,
+                attachments=template_attachments if template_attachments else None
+            )
+
+            if success:
+                sent_count += 1
+                lead.update_score(15, f"Outreach email dispatched: {subj_rendered[:40]}")
+                if update_stage_to and update_stage_to in [s[0] for s in STAGES]:
+                    lead.stage = update_stage_to
+                elif lead.stage == 'fresh_lead':
+                    lead.stage = 'prospect'
+
+                # Log sales note
+                timestamp = datetime.utcnow().strftime("%d %b %Y, %I:%M %p")
+                att_info = f"Attachments: {', '.join(attachment_names)}\n" if attachment_names else ""
+                log_msg = f"[{timestamp} - Outbound Email Sent]\nSubject: {subj_rendered}\nCC: {effective_cc}\n{att_info}"
+                lead.notes = log_msg + (lead.notes or '')
+            else:
+                failed_count += 1
+
+        db.session.commit()
+
+        msg = f"Dispatched {sent_count} emails successfully! (Failed/Skipped: {failed_count}). CC recipients: {effective_cc}."
+        return jsonify({
+            'success': True,
+            'sent_count': sent_count,
+            'failed_count': failed_count,
+            'message': msg
+        })
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception(f"Unhandled error in bulk_email: {e}")
+        return jsonify({
+            'success': False,
+            'error': f"Failed to dispatch emails: {str(e)}"
+        }), 500
 
 @leads_bp.route('/leads/bulk-action', methods=['POST'])
 @crm_login_required

@@ -2011,12 +2011,20 @@ Corporate Gifting Director, Sweet Scribbles`
 
             // Render attachments alert
             if (tpl.attachments && tpl.attachments.length > 0) {
-                attText.textContent = `${tpl.attachments.length} file${tpl.attachments.length > 1 ? 's' : ''}`;
+                const totalBytes = tpl.attachments.reduce((sum, a) => sum + (a.file_size || 0), 0);
+                const totalMb = (totalBytes / (1024 * 1024)).toFixed(1);
+                attText.textContent = `${tpl.attachments.length} file${tpl.attachments.length > 1 ? 's' : ''} (${totalMb} MB total)`;
+                
+                let sizeWarningHtml = '';
+                if (totalBytes > 18 * 1024 * 1024) {
+                    sizeWarningHtml = `<div class="w-100 mt-2 text-danger small fw-semibold"><i class="bi bi-exclamation-triangle-fill me-1"></i>Warning: Attachments total ${totalMb} MB. Email providers (like Gmail) have a 25MB total limit after encoding. Consider linking catalogues in email text instead of sending oversized attachments.</div>`;
+                }
+
                 attList.innerHTML = tpl.attachments.map(a => `
                     <a href="/${a.file_path}" target="_blank" class="badge bg-white text-dark border text-decoration-none py-1 px-2 shadow-2xs">
                         <i class="bi bi-file-earmark-check-fill text-warning me-1"></i>${a.original_filename || a.filename} (${a.file_size_formatted || ''})
                     </a>
-                `).join('');
+                `).join('') + sizeWarningHtml;
                 attAlert.classList.remove('d-none');
             } else if (attAlert) {
                 attAlert.classList.add('d-none');
@@ -2155,7 +2163,41 @@ Corporate Gifting Director, Sweet Scribbles`
                 body: JSON.stringify(payload)
             });
 
+            // 1. Check if redirected to login page due to expired session
+            if (response.redirected && response.url.includes('/login')) {
+                statusAlert.className = "alert alert-warning p-3 rounded-3 small";
+                statusAlert.innerHTML = `<strong>Session Expired:</strong> Your CRM session has expired. <a href="${response.url}" class="alert-link fw-bold">Click here to log in again</a>.`;
+                statusAlert.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>Log In';
+                btn.onclick = () => window.location.href = response.url;
+                return;
+            }
+
+            // 2. Validate response is JSON before parsing
+            const contentType = response.headers.get("content-type") || "";
+            if (!contentType.includes("application/json")) {
+                let friendlyMsg = `Server returned status ${response.status} (${response.statusText || 'Error'}).`;
+                if (response.status === 401 || response.status === 403) {
+                    friendlyMsg = "Your CRM session has timed out. Please refresh the page and log in again.";
+                } else if (response.status === 504 || response.status === 502) {
+                    friendlyMsg = "The email dispatch timed out on the mail server. When sending large attachments (>20MB), SMTP uploads may take longer than the gateway timeout.";
+                }
+                throw new Error(friendlyMsg);
+            }
+
             const data = await response.json();
+
+            // 3. Handle 401 session expiration from API
+            if (response.status === 401 || data.authenticated === false) {
+                statusAlert.className = "alert alert-warning p-3 rounded-3 small";
+                statusAlert.innerHTML = `<strong>Session Expired:</strong> ${data.error || 'Your session has expired. Please log in again.'} <a href="{{ url_for('crm_auth.login') }}?next={{ request.path }}" class="alert-link fw-bold ms-1">Log In</a>`;
+                statusAlert.classList.remove('d-none');
+                btn.disabled = false;
+                btn.innerHTML = '<i class="bi bi-box-arrow-in-right me-1"></i>Log In';
+                btn.onclick = () => window.location.href = "{{ url_for('crm_auth.login') }}?next={{ request.path }}";
+                return;
+            }
 
             if (data.success) {
                 statusAlert.className = "alert alert-success p-3 rounded-3 small";
@@ -2171,14 +2213,14 @@ Corporate Gifting Director, Sweet Scribbles`
                 }, 2500);
             } else {
                 statusAlert.className = "alert alert-danger p-3 rounded-3 small";
-                statusAlert.innerHTML = `<strong>Error:</strong> ${data.error || 'Failed to dispatch emails'}`;
+                statusAlert.innerHTML = `<strong>Error:</strong> ${data.error || data.message || 'Failed to dispatch emails'}`;
                 statusAlert.classList.remove('d-none');
                 btn.disabled = false;
                 btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Retry Send';
             }
         } catch (err) {
             statusAlert.className = "alert alert-danger p-3 rounded-3 small";
-            statusAlert.innerHTML = `<strong>Network/Server Error:</strong> ${err.message}`;
+            statusAlert.innerHTML = `<strong>Dispatch Error:</strong> ${err.message}`;
             statusAlert.classList.remove('d-none');
             btn.disabled = false;
             btn.innerHTML = '<i class="bi bi-send-fill me-1"></i>Retry Send';

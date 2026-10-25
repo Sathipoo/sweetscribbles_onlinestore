@@ -80,7 +80,7 @@ def send_b2b_email(to_email, subject, html_content, text_content=None, attachmen
             if cc_addr.lower() not in [r.lower() for r in envelope_recipients]:
                 envelope_recipients.append(cc_addr)
 
-        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=15)
+        server = smtplib.SMTP(SMTP_SERVER, SMTP_PORT, timeout=45)
         server.starttls()
         server.login(SENDER_EMAIL, APP_PASSWORD)
         server.sendmail(SENDER_EMAIL, envelope_recipients, msg.as_string())
